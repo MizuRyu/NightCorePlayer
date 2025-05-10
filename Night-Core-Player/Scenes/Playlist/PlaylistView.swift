@@ -38,6 +38,9 @@ struct PlaylistView: View {
             .scrollContentBackground(.hidden)
             .background(Color(.systemBackground))
             .navigationTitle("プレイリスト")
+            .navigationDestination(for: PlaylistCategory.self) { cat in
+                PlaylistDetailView(category: cat)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .enableInjection()
