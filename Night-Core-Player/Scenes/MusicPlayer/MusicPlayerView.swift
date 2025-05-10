@@ -56,13 +56,15 @@ struct MusicPlayerView: View {
                         .font(.title2)
                 }
             }
-
             // 📊 シークバー
             HStack {
                 Text(timeString(from: viewModel.currentTime))
                     .font(.caption2)
                 Slider(
-                    value: $viewModel.currentTime,
+                    value: Binding(
+                        get: { viewModel.currentTime },
+                        set: { viewModel.seek(to: $0 ) }
+                    ),
                     in: 0...viewModel.musicDuration
                 )
                 .accentColor(.indigo)
@@ -76,7 +78,9 @@ struct MusicPlayerView: View {
                     Image(systemName: "gobackward.15")
                         .font(.title2)
                 }
-                Button { viewModel.togglePlayPause() } label: {
+                Button (action: {
+                    viewModel.isPlaying ? viewModel.pause() : viewModel.play()
+                }) {
                     Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
                         .font(.largeTitle)
                 }
@@ -92,7 +96,10 @@ struct MusicPlayerView: View {
             // ⚙️ 倍速調整
             VStack(spacing: 10) {
                 Slider(
-                    value: $viewModel.rate,
+                    value: Binding(
+                        get: { viewModel.rate },
+                        set: { viewModel.setRate(to: $0) }
+                    ),
                     in: 0.5...3.0,
                     step: 0.01
                 )
@@ -119,7 +126,7 @@ struct MusicPlayerView: View {
                         viewModel.changeRate(by: -0.1)
                     }
                     SpeedControlButton(label: "-0.01", color: .red) {
-                        viewModel.changeRate(by: -0.10)
+                        viewModel.changeRate(by: -0.01)
                     }
                     Text(String(format: "%.2fx", viewModel.rate))
                         .font(.callout)
@@ -127,7 +134,7 @@ struct MusicPlayerView: View {
                         .padding(.horizontal, 8)
                         .frame(minWidth: 40)
                     SpeedControlButton(label: "+0.01", color: .green) {
-                        viewModel.changeRate(by: +0.10)
+                        viewModel.changeRate(by: +0.01)
                     }
                     SpeedControlButton(label: "+0.1", color: .green) {
                         viewModel.changeRate(by: +0.1)

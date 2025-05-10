@@ -8,9 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		F391D4232DCF2E5500517D0B /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = F391D4222DCF2E5500517D0B /* Inject */; };
+		F391D4252DCF4ECD00517D0B /* track1.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = F391D4242DCF4ECC00517D0B /* track1.mp4 */; };
+		F391D4272DCF4ED400517D0B /* track2.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = F391D4262DCF4ED400517D0B /* track2.mp4 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		F391D4242DCF4ECC00517D0B /* track1.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = track1.mp4; sourceTree = "<group>"; };
+		F391D4262DCF4ED400517D0B /* track2.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = track2.mp4; sourceTree = "<group>"; };
 		F3FD9E852DCDAD7300645A6A /* Night-Core-Player.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Night-Core-Player.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -37,6 +41,8 @@
 		F3FD9E7C2DCDAD7300645A6A = {
 			isa = PBXGroup;
 			children = (
+				F391D4262DCF4ED400517D0B /* track2.mp4 */,
+				F391D4242DCF4ECC00517D0B /* track1.mp4 */,
 				F3FD9E872DCDAD7300645A6A /* Night-Core-Player */,
 				F3FD9E862DCDAD7300645A6A /* Products */,
 			);
@@ -118,6 +124,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F391D4252DCF4ECD00517D0B /* track1.mp4 in Resources */,
+				F391D4272DCF4ED400517D0B /* track2.mp4 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
