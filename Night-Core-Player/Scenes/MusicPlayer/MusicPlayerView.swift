@@ -37,7 +37,6 @@ struct MusicPlayerView: View {
                 .scaledToFit()
                 .cornerRadius(12)
                 .padding(.horizontal)
-
             // ⏮️ 曲情報 + ⏭️
             HStack(spacing: 24) {
                 Button { viewModel.previousTrack() } label: {
@@ -142,17 +141,6 @@ struct MusicPlayerView: View {
                 }
             }
             Spacer()
-            
-            // ⭐️ Tab Bar（ダミー）
-            HStack {
-                ForEach(0..<5) { idx in
-                    Spacer()
-                    Image(systemName: idx == 0 ? "star.fill" : "star")
-                    Spacer()
-                }
-            }
-            .padding(.vertical, 8)
-            .background(Color(UIColor.systemBackground).shadow(radius: 1))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .enableInjection()

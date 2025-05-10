@@ -16,7 +16,7 @@ struct NightcorePlayerApp: App {
     }
     var body: some Scene {
         WindowGroup {
-            MusicPlayerView()
+            MainTabView()
         }
     }
 }
