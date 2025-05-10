@@ -3,12 +3,6 @@ import AVFoundation
 
 @MainActor
 class MusicPlayerViewModel: ObservableObject {
-    struct Track {
-        let title: String
-        let artist: String
-        let artworkName: String
-        let fileURL: URL
-    }
     
     private lazy var tracks: [Track] = [
         .init(
