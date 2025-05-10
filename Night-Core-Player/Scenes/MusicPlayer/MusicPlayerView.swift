@@ -1,6 +1,9 @@
 import SwiftUI
+import Inject
 
 struct MusicPlayerView: View {
+    // Injection 発生を監視するwrapper
+    @ObserveInjection var inject
     @StateObject var viewModel = MusicPlayerViewModel()
 
     var body: some View {
@@ -98,6 +101,7 @@ struct MusicPlayerView: View {
             .background(Color(UIColor.systemBackground).shadow(radius: 1))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .enableInjection()
     }
 
     // —————————————————————
@@ -109,3 +113,6 @@ struct MusicPlayerView: View {
     }
 }
 
+#Preview {
+    MusicPlayerView()
+}
