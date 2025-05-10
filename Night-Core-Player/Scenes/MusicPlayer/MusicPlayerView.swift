@@ -1,6 +1,24 @@
 import SwiftUI
 import Inject
 
+struct SpeedControlButton: View {
+    let label: String
+    let color: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.callout)
+                .foregroundColor(.white)
+                .padding(.vertical, 5)
+                .padding(.horizontal, 10)
+                .background(color)
+                .cornerRadius(8)
+        }
+    }
+}
+
 struct MusicPlayerView: View {
     // Injection 発生を監視するwrapper
     @ObserveInjection var inject
@@ -47,29 +65,11 @@ struct MusicPlayerView: View {
                     value: $viewModel.currentTime,
                     in: 0...viewModel.musicDuration
                 )
+                .accentColor(.indigo)
                 Text(timeString(from: viewModel.musicDuration))
                     .font(.caption2)
             }
             .padding(.horizontal)
-
-            // ⚙️ 倍速調整
-            HStack(spacing: 12) {
-                Button("-0.10") { viewModel.changeRate(by: -0.10) }
-                    .foregroundColor(.red)
-                    .font(.caption)
-                Button("-0.01") { viewModel.changeRate(by: -0.01) }
-                    .foregroundColor(.red)
-                    .font(.caption)
-                Text(String(format: "%.2fx", viewModel.rate))
-                    .font(.caption)
-                Button("+0.01") { viewModel.changeRate(by: +0.01) }
-                    .foregroundColor(.green)
-                    .font(.caption)
-                Button("+0.10") { viewModel.changeRate(by: +0.10) }
-                    .foregroundColor(.green)
-                    .font(.caption)
-            }
-
             // ▶️ 再生コントロール
             HStack(spacing: 48) {
                 Button { viewModel.rewind15() } label: {
@@ -86,9 +86,56 @@ struct MusicPlayerView: View {
                 }
             }
             .padding(.vertical, 8)
-
+            
             Spacer()
 
+            // ⚙️ 倍速調整
+            VStack(spacing: 10) {
+                Slider(
+                    value: $viewModel.rate,
+                    in: 0.5...3.0,
+                    step: 0.01
+                )
+                .frame(width: 340)
+                .accentColor(.indigo)
+                // Slider のメーター線
+                .overlay(
+                    GeometryReader { geo in
+                        let divisions = 10
+                        ForEach(0...divisions, id: \.self) { i in
+                            let x = geo.size.width * CGFloat(i) / CGFloat(divisions)
+                            Rectangle()
+                                .frame(width: 1, height: 10)
+                                .foregroundColor(.secondary.opacity(0.6))
+                                .position(x: x, y: geo.size.height/2)
+                        }
+                    }
+                )
+                .padding(.horizontal)
+                
+                
+                HStack(spacing: 12) {
+                    SpeedControlButton(label: "-0.1", color: .red) {
+                        viewModel.changeRate(by: -0.1)
+                    }
+                    SpeedControlButton(label: "-0.01", color: .red) {
+                        viewModel.changeRate(by: -0.10)
+                    }
+                    Text(String(format: "%.2fx", viewModel.rate))
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .frame(minWidth: 40)
+                    SpeedControlButton(label: "+0.01", color: .green) {
+                        viewModel.changeRate(by: +0.10)
+                    }
+                    SpeedControlButton(label: "+0.1", color: .green) {
+                        viewModel.changeRate(by: +0.1)
+                    }
+                }
+            }
+            Spacer()
+            
             // ⭐️ Tab Bar（ダミー）
             HStack {
                 ForEach(0..<5) { idx in
