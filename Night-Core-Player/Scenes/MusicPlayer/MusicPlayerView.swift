@@ -30,11 +30,13 @@ struct MusicPlayerView: View {
             Text("Playing Now")
                 .font(.headline)
                 .padding(.top, 8)
+            Spacer()
 
             // 🖼️ アートワーク
             viewModel.artworkImage
                 .resizable()
                 .scaledToFit()
+                .frame(width: 300, height: 300)
                 .cornerRadius(12)
                 .padding(.horizontal)
             // ⏮️ 曲情報 + ⏭️
