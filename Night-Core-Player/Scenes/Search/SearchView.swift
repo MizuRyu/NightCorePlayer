@@ -59,12 +59,16 @@ struct SearchView: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
             
-            List {
-                ForEach(vm.filteredTracks) { track in
-                    SearchRowView(track: track)
+            if !vm.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+                List {
+                    ForEach(vm.filteredTracks) { track in
+                        SearchRowView(track: track)
+                    }
                 }
+                .listStyle(PlainListStyle())
+            } else {
+                Spacer()
             }
-            .listStyle(PlainListStyle())
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .enableInjection()
