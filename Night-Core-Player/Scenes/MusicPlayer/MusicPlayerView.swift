@@ -46,12 +46,24 @@ struct MusicPlayerView: View {
                         .font(.title2)
                         .foregroundColor(.indigo)
                 }
+                
                 VStack {
-                    Text(viewModel.trackTitle)
-                        .font(.title3)
-                    Text(viewModel.artistName)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    MarqueeTextView(
+                        text: viewModel.trackTitle,
+                        font: .title3,
+                        visibleWidth: 100,
+                        speed: 30,
+                        spacingBetweenTexts: 20,
+                        delayBeforeScroll: 3
+                    )
+                    MarqueeTextView(
+                        text: viewModel.artistName,
+                        font: .subheadline,
+                        visibleWidth: 100,
+                        speed: 30,
+                        spacingBetweenTexts: 20,
+                        delayBeforeScroll: 3
+                    ).foregroundColor(.secondary)
                 }
                 Button { viewModel.nextTrack() } label: {
                     Image(systemName: "forward.fill")
