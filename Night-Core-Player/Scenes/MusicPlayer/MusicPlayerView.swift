@@ -42,6 +42,7 @@ struct MusicPlayerView: View {
                 Button { viewModel.previousTrack() } label: {
                     Image(systemName: "backward.fill")
                         .font(.title2)
+                        .foregroundColor(.indigo)
                 }
                 VStack {
                     Text(viewModel.trackTitle)
@@ -53,6 +54,7 @@ struct MusicPlayerView: View {
                 Button { viewModel.nextTrack() } label: {
                     Image(systemName: "forward.fill")
                         .font(.title2)
+                        .foregroundColor(.indigo)
                 }
             }
             // 📊 シークバー
@@ -76,16 +78,19 @@ struct MusicPlayerView: View {
                 Button { viewModel.rewind15() } label: {
                     Image(systemName: "gobackward.15")
                         .font(.title2)
+                        .foregroundColor(.indigo)
                 }
                 Button (action: {
                     viewModel.isPlaying ? viewModel.pause() : viewModel.play()
                 }) {
                     Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
                         .font(.largeTitle)
+                        .foregroundColor(.indigo)
                 }
                 Button { viewModel.forward15() } label: {
                     Image(systemName: "goforward.15")
                         .font(.title2)
+                        .foregroundColor(.indigo)
                 }
             }
             .padding(.vertical, 8)
