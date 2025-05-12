@@ -16,7 +16,7 @@ class MusicPlayerViewModel: ObservableObject {
     @Published private(set) var currentTrackIndex: Int = 0
     @Published private(set) var trackTitle: String = ""
     @Published private(set) var artistName: String = ""
-    @Published private(set) var artworkImage: Image = Image("music.note")
+    @Published private(set) var artworkImage: Image = Image(systemName: "music.note")
     
     @Published var currentTime: Double = 0
     @Published var musicDuration: Double = 240
@@ -30,7 +30,11 @@ class MusicPlayerViewModel: ObservableObject {
         Task { await authorizeAndLoadFirstTrack() }
     }
     
-    deinit { cancellables.forEach { $0.cancel() } }
+    deinit {
+        cancellables.forEach { $0.cancel() }
+        player.endGeneratingPlaybackNotifications()
+        NotificationCenter.default.removeObserver(self, name: .MPMusicPlayerControllerPlaybackStateDidChange, object: player)
+    }
     
     
     func previousTrack() {
@@ -47,6 +51,7 @@ class MusicPlayerViewModel: ObservableObject {
     }
     
     func play() {
+        player.currentPlaybackRate = Float(rate)
         player.play()
         isPlaying = true
         
@@ -92,6 +97,25 @@ class MusicPlayerViewModel: ObservableObject {
         let status = await MusicAuthorization.request()
         guard status == .authorized else { return }
         await loadTrack(at: currentTrackIndex, autoPlay: false)
+        // 再生通知を有効化
+        player.beginGeneratingPlaybackNotifications()
+        NotificationCenter.default.addObserver(
+            forName: .MPMusicPlayerControllerPlaybackStateDidChange,
+            object: player,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self = self else { return }
+                switch self.player.playbackState {
+                case .playing:
+                    self.player.currentPlaybackRate = Float(self.rate)
+                case .stopped:
+                    self.nextTrack()
+                default:
+                    break
+                }
+            }
+        }
         observePlayer()
     }
     
@@ -112,6 +136,8 @@ class MusicPlayerViewModel: ObservableObject {
                 artworkImage = Image(systemName: "music.note")
             }
             player.setQueue(with: [song.id.rawValue])
+            // カスタム再生速度をキープする
+            player.currentPlaybackRate = Float(rate)
             if autoPlay { player.play() }
             isPlaying = autoPlay
         } catch {
