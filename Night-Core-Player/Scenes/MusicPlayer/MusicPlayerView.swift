@@ -23,6 +23,13 @@ struct MusicPlayerView: View {
     // Injection 発生を監視するwrapper
     @ObserveInjection var inject
     @StateObject var viewModel = MusicPlayerViewModel()
+    
+    init() {
+        let clearImage = UIImage()
+        UISlider.appearance().setThumbImage(clearImage, for: .normal)
+        UISlider.appearance().setThumbImage(clearImage, for: .highlighted)
+        UISlider.appearance().thumbTintColor = .clear
+    }
 
     var body: some View {
         VStack(spacing: 16) {
