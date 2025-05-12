@@ -8,8 +8,8 @@ class MusicPlayerViewModel: ObservableObject {
     
     // Dummy
     private let songIDs: [MusicItemID] = [
+        MusicItemID("1485735963"),
         MusicItemID("1752838890"),
-        MusicItemID("1679278167"),
         MusicItemID("1490256995")
     ]
     
