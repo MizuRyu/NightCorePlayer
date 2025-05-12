@@ -1,58 +1,45 @@
 import SwiftUI
-import AVFoundation
+import MusicKit
+import MediaPlayer
+import Combine
 
 @MainActor
 class MusicPlayerViewModel: ObservableObject {
     
-    private lazy var tracks: [Track] = [
-        .init(
-            title: "title1",
-            artist: "artist1",
-            artworkName: "imgAssets1",
-            fileURL: Bundle.main.url(forResource: "track1", withExtension: "mp4")!
-        ),
-        .init(
-            title: "title2",
-            artist: "artist2",
-            artworkName: "imgAssets2",
-            fileURL: Bundle.main.url(forResource: "track2", withExtension: "mp4")!
-        )
+    // Dummy
+    private let songIDs: [MusicItemID] = [
+        MusicItemID("1752838890"),
+        MusicItemID("1679278167"),
+        MusicItemID("1490256995")
     ]
     
     @Published private(set) var currentTrackIndex: Int = 0
     @Published private(set) var trackTitle: String = ""
     @Published private(set) var artistName: String = ""
-    @Published private(set) var artworkImage: Image = Image("")
+    @Published private(set) var artworkImage: Image = Image("music.note")
     
     @Published var currentTime: Double = 0
     @Published var musicDuration: Double = 240
     @Published var rate: Double = 1.0
     @Published var isPlaying: Bool = true
     
-    private var player: AVPlayer?
-    private var timeObserverToken: Any?
-    private var endObserver: Any?
+    private let player = MPMusicPlayerController.applicationMusicPlayer
+    private var cancellables = Set<AnyCancellable>()
     
     init() {
-        loadTrack(at: currentTrackIndex, autoPlay: false)
+        Task { await authorizeAndLoadFirstTrack() }
     }
     
-    deinit {
-        if let token = timeObserverToken {
-            player?.removeTimeObserver(token)
-        }
-        if let endObserver = endObserver {
-            NotificationCenter.default.removeObserver(endObserver)
-        }
-    }
+    deinit { cancellables.forEach { $0.cancel() } }
     
     
     func previousTrack() {
-        changeTrack(to: (currentTrackIndex - 1 + tracks.count) % tracks.count)
+        changeTrack(to: (currentTrackIndex - 1 + songIDs.count) % songIDs.count)
         
     }
     func nextTrack() {
-        changeTrack(to: (currentTrackIndex + 1 + tracks.count) % tracks.count)
+        changeTrack(to: (currentTrackIndex + 1 + songIDs.count) % songIDs.count)
+        
     }
     
     func togglePlayPause() {
@@ -60,16 +47,13 @@ class MusicPlayerViewModel: ObservableObject {
     }
     
     func play() {
-        if timeObserverToken == nil {
-            addPeriodicTimeObserver()
-        }
-        player?.playImmediately(atRate: Float(rate))
+        player.play()
         isPlaying = true
         
     }
     
     func pause() {
-        player?.pause()
+        player.pause()
         isPlaying = false
     }
     
@@ -80,9 +64,7 @@ class MusicPlayerViewModel: ObservableObject {
     func setRate(to newRate: Double) {
         let tmp = min(max(newRate, 0.5), 3.0)
         rate = tmp
-        if isPlaying {
-            player?.rate = Float(tmp)
-        }
+        player.currentPlaybackRate = Float(tmp)
     }
     func rewind15() {
         seek(by: -15)
@@ -92,77 +74,59 @@ class MusicPlayerViewModel: ObservableObject {
     }
     
     func seek(to time: Double) {
-        guard let player = player else { return }
-        let cm = CMTime(seconds: time, preferredTimescale: 600)
-        player.seek(to: cm)
+        player.currentPlaybackTime = time
         currentTime = time
     }
     
     private func seek(by delta: Double) {
-        guard let player = player else { return }
-        let current = player.currentTime().seconds
-        let newTime = min(max(current + delta, 0), musicDuration)
-        player.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
+        let newTime = min(max(currentTime + delta, 0), musicDuration)
+        player.currentPlaybackTime = newTime
         currentTime = newTime
     }
     
     private func changeTrack(to newIndex: Int) {
-        // 停止・Observer削除
-        player?.pause()
-        if let token = timeObserverToken {
-            player?.removeTimeObserver(token)
-            timeObserverToken = nil
-        }
-        // 読み込み
-        loadTrack(at: newIndex, autoPlay: true)
+        Task { await loadTrack(at: newIndex, autoPlay : true) }
     }
     
+    private func authorizeAndLoadFirstTrack() async {
+        let status = await MusicAuthorization.request()
+        guard status == .authorized else { return }
+        await loadTrack(at: currentTrackIndex, autoPlay: false)
+        observePlayer()
+    }
     
-    private func loadTrack(at index: Int, autoPlay: Bool) {
+    private func loadTrack(at index: Int, autoPlay: Bool) async {
         currentTrackIndex = index
-        let t = tracks[index]
-        trackTitle = t.title
-        artistName = t.artist
-        artworkImage = Image(t.artworkName)
         
-        // AVPlayer setup
-        let item = AVPlayerItem(url: t.fileURL)
-        player = AVPlayer(playerItem: item)
-        
-        if let obs = endObserver {
-            NotificationCenter.default.removeObserver(obs)
-        }
-        endObserver = NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: item,
-            queue: .main,
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.nextTrack()
+        do {
+            let req = MusicCatalogResourceRequest<Song>(matching: \.id, equalTo: songIDs[index])
+            guard let song = try await req.response().items.first else { return }
+            trackTitle = song.title
+            artistName = song.artistName
+            musicDuration = song.duration ?? 0
+           if let url = song.artwork?.url(width: 300, height: 300),
+               let (data, _) = try? await URLSession.shared.data(from: url),
+               let uiImg = UIImage(data: data) {
+                artworkImage = Image(uiImage: uiImg)
+            } else {
+                artworkImage = Image(systemName: "music.note")
             }
-        }
-        
-        // 再生時間取得
-        Task { @MainActor in
-            let durationCM = try? await item.asset.load(.duration)
-            let secs = durationCM?.seconds ?? 0
-            musicDuration = secs.isFinite ? secs : 0
-        }
-        
-        addPeriodicTimeObserver()
-        
-        if autoPlay {
-            play()
+            player.setQueue(with: [song.id.rawValue])
+            if autoPlay { player.play() }
+            isPlaying = autoPlay
+        } catch {
+            print("MusicKit load error", error)
         }
     }
     
-    private func addPeriodicTimeObserver() {
-        guard timeObserverToken == nil, let player = player else { return }
-        let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
-        timeObserverToken = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
-            Task { @MainActor in
-                self?.currentTime = time.seconds
+    private func observePlayer() {
+        // MediaPlayer には Combine Publisher が無いため Timer 監視に差し替え
+        Timer.publish(every: 0.5, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                self.currentTime = self.player.currentPlaybackTime
             }
-        }
+            .store(in: &cancellables)
     }
 }
