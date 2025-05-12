@@ -23,6 +23,13 @@ struct MusicPlayerView: View {
     // Injection 発生を監視するwrapper
     @ObserveInjection var inject
     @StateObject var viewModel = MusicPlayerViewModel()
+    
+    init() {
+        let clearImage = UIImage()
+        UISlider.appearance().setThumbImage(clearImage, for: .normal)
+        UISlider.appearance().setThumbImage(clearImage, for: .highlighted)
+        UISlider.appearance().thumbTintColor = .clear
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -30,11 +37,13 @@ struct MusicPlayerView: View {
             Text("Playing Now")
                 .font(.headline)
                 .padding(.top, 8)
+            Spacer()
 
             // 🖼️ アートワーク
             viewModel.artworkImage
                 .resizable()
                 .scaledToFit()
+                .frame(width: 300, height: 300)
                 .cornerRadius(12)
                 .padding(.horizontal)
             // ⏮️ 曲情報 + ⏭️
@@ -42,17 +51,31 @@ struct MusicPlayerView: View {
                 Button { viewModel.previousTrack() } label: {
                     Image(systemName: "backward.fill")
                         .font(.title2)
+                        .foregroundColor(.indigo)
                 }
+                
                 VStack {
-                    Text(viewModel.trackTitle)
-                        .font(.title3)
-                    Text(viewModel.artistName)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    MarqueeTextView(
+                        text: viewModel.trackTitle,
+                        font: .title3,
+                        visibleWidth: 100,
+                        speed: 30,
+                        spacingBetweenTexts: 20,
+                        delayBeforeScroll: 3
+                    )
+                    MarqueeTextView(
+                        text: viewModel.artistName,
+                        font: .subheadline,
+                        visibleWidth: 100,
+                        speed: 30,
+                        spacingBetweenTexts: 20,
+                        delayBeforeScroll: 3
+                    ).foregroundColor(.secondary)
                 }
                 Button { viewModel.nextTrack() } label: {
                     Image(systemName: "forward.fill")
                         .font(.title2)
+                        .foregroundColor(.indigo)
                 }
             }
             // 📊 シークバー
@@ -76,16 +99,19 @@ struct MusicPlayerView: View {
                 Button { viewModel.rewind15() } label: {
                     Image(systemName: "gobackward.15")
                         .font(.title2)
+                        .foregroundColor(.indigo)
                 }
                 Button (action: {
                     viewModel.isPlaying ? viewModel.pause() : viewModel.play()
                 }) {
                     Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
                         .font(.largeTitle)
+                        .foregroundColor(.indigo)
                 }
                 Button { viewModel.forward15() } label: {
                     Image(systemName: "goforward.15")
                         .font(.title2)
+                        .foregroundColor(.indigo)
                 }
             }
             .padding(.vertical, 8)
