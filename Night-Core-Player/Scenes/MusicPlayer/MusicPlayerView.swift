@@ -27,8 +27,6 @@ struct MusicPlayerView: View {
     init() {
         let clearImage = UIImage()
         UISlider.appearance().setThumbImage(clearImage, for: .normal)
-        UISlider.appearance().setThumbImage(clearImage, for: .highlighted)
-        UISlider.appearance().thumbTintColor = .clear
     }
 
     var body: some View {
@@ -115,7 +113,7 @@ struct MusicPlayerView: View {
                 }
             }
             .padding(.vertical, 8)
-            
+
             Spacer()
 
             // ⚙️ 倍速調整
