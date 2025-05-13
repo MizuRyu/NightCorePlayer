@@ -111,11 +111,12 @@
 				};
 			};
 			buildConfigurationList = F3FD9E802DCDAD7300645A6A /* Build configuration list for PBXProject "Night-Core-Player" */;
-			developmentRegion = en;
+			developmentRegion = ja;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				ja,
 			);
 			mainGroup = F3FD9E7C2DCDAD7300645A6A;
 			minimizedProjectReferenceProxies = 1;
