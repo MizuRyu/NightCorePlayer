@@ -5,13 +5,7 @@ import Combine
 
 @MainActor
 class MusicPlayerViewModel: ObservableObject {
-    
-    // Dummy
-    private let songIDs: [MusicItemID] = [
-        MusicItemID("1485735963"),
-        MusicItemID("1752838890"),
-        MusicItemID("1490256995")
-    ]
+    private var songIDs: [MusicItemID]
     
     @Published private(set) var currentTrackIndex: Int = 0
     @Published private(set) var trackTitle: String = ""
@@ -21,13 +15,17 @@ class MusicPlayerViewModel: ObservableObject {
     @Published var currentTime: Double = 0
     @Published var musicDuration: Double = 240
     @Published var rate: Double = 1.0
-    @Published var isPlaying: Bool = true
+    @Published var isPlaying: Bool = false
     
     private let player = MPMusicPlayerController.applicationMusicPlayer
     private var cancellables = Set<AnyCancellable>()
     
-    init() {
-        Task { await authorizeAndLoadFirstTrack() }
+    init(songIDs: [MusicItemID] = [], initialIndex: Int = 0) {
+        self.songIDs = songIDs
+        self.currentTrackIndex = initialIndex
+        if !songIDs.isEmpty {
+            Task { await authorizeAndLoadFirstTrack() }
+        }
     }
     
     deinit {
@@ -96,7 +94,8 @@ class MusicPlayerViewModel: ObservableObject {
     private func authorizeAndLoadFirstTrack() async {
         let status = await MusicAuthorization.request()
         guard status == .authorized else { return }
-        await loadTrack(at: currentTrackIndex, autoPlay: false)
+        await loadTrack(at: currentTrackIndex, autoPlay: true)
+        player.repeatMode = .none
         // 再生通知を有効化
         player.beginGeneratingPlaybackNotifications()
         NotificationCenter.default.addObserver(
@@ -123,7 +122,9 @@ class MusicPlayerViewModel: ObservableObject {
         currentTrackIndex = index
         
         do {
-            let req = MusicCatalogResourceRequest<Song>(matching: \.id, equalTo: songIDs[index])
+            let req = MusicCatalogResourceRequest<Song>(
+                matching: \.id, equalTo: songIDs[index]
+            )
             guard let song = try await req.response().items.first else { return }
             trackTitle = song.title
             artistName = song.artistName
