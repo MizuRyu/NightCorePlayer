@@ -43,6 +43,7 @@ struct SearchRowView: View {
 struct SearchView: View {
     @ObserveInjection var inject
     @StateObject private var vm = SearchViewModel()
+    @EnvironmentObject private var nav: PlayerNavigator
     
     var body: some View {
         NavigationStack {
@@ -74,7 +75,11 @@ struct SearchView: View {
                 if !vm.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
                     List {
                         ForEach(vm.filteredSongs, id: \.id) { song in
-                            NavigationLink(value: song) {
+                            Button {
+                                nav.songIDs = vm.filteredSongs.map { $0.id }
+                                nav.initialIndex = vm.filteredSongs.firstIndex { $0.id == song.id } ?? 0
+                                nav.selectedTab = .player
+                            } label: {
                                 SearchRowView(song: song)
                             }
                         }

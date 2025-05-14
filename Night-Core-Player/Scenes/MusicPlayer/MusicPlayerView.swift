@@ -23,10 +23,11 @@ struct SpeedControlButton: View {
 struct MusicPlayerView: View {
     // Injection 発生を監視するwrapper
     @ObserveInjection var inject
-    @StateObject private var viewModel: MusicPlayerViewModel
+    @EnvironmentObject private var nav: PlayerNavigator
+    @StateObject private var viewModel = MusicPlayerViewModel()
+    
     
     init() {
-        _viewModel = StateObject(wrappedValue: MusicPlayerViewModel())
         let clearImage = UIImage()
         UISlider.appearance().setThumbImage(clearImage, for: .normal)
     }
@@ -178,6 +179,11 @@ struct MusicPlayerView: View {
                 }
             }
             Spacer()
+        }
+        .onChange(of: nav.songIDs) { _, newIDs in
+            viewModel.loadPlaylist(
+                newIDs, startAt: nav.initialIndex
+                )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .enableInjection()

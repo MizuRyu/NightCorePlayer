@@ -146,6 +146,12 @@ class MusicPlayerViewModel: ObservableObject {
         }
     }
     
+    func loadPlaylist(_ newSongIDs: [MusicItemID], startAt index: Int = 0) {
+        self.songIDs = newSongIDs
+        self.currentTrackIndex = index
+        Task { await authorizeAndLoadFirstTrack() }
+    }
+    
     private func observePlayer() {
         // MediaPlayer には Combine Publisher が無いため Timer 監視に差し替え
         Timer.publish(every: 0.5, on: .main, in: .common)
