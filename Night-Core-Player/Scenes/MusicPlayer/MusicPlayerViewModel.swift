@@ -115,6 +115,19 @@ class MusicPlayerViewModel: ObservableObject {
                 }
             }
         }
+        
+        NotificationCenter.default.addObserver(
+            forName: .MPMusicPlayerControllerNowPlayingItemDidChange,
+            object: player,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            Task { @MainActor in
+                if self.player.nowPlayingItem == nil {
+                    self.nextTrack()
+                }
+            }
+        }
         observePlayer()
     }
     
@@ -158,7 +171,12 @@ class MusicPlayerViewModel: ObservableObject {
             .autoconnect()
             .sink { [weak self] _ in
                 guard let self = self else { return }
-                self.currentTime = self.player.currentPlaybackTime
+                let t = self.player.currentPlaybackTime
+                self.currentTime = t
+                if self.player.playbackState == .playing,
+                   t >= self.musicDuration - 0.05 {
+                    self.nextTrack()
+                }
             }
             .store(in: &cancellables)
     }
