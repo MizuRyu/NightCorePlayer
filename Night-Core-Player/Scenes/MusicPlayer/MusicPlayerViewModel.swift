@@ -14,7 +14,7 @@ class MusicPlayerViewModel: ObservableObject {
     
     @Published var currentTime: Double = 0
     @Published var musicDuration: Double = 240
-    @Published var rate: Double = 1.0
+    @Published var rate: Double = 1.15
     @Published var isPlaying: Bool = false
     
     private let player = MPMusicPlayerController.applicationMusicPlayer
