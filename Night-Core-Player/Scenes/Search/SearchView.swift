@@ -4,6 +4,7 @@ import MusicKit
 
 struct SearchRowView: View {
     let song: Song
+    @State private var isShowingPopover = false
     
     var body: some View {
         HStack {
@@ -31,13 +32,25 @@ struct SearchRowView: View {
                     .foregroundColor(.secondary)
             }
             Spacer()
-            Button {
+            Menu {
+                Button("再生を次に追加") {
+                    // TODO: 再生キューに追加ロジック
+                }
+                Button("ライブラリに追加") {
+                    // TODO: ライブラリに追加ロジック
+                }
+                Divider()
+                Button("キャンセル", role: .cancel) {
+                }
             } label: {
                 Image(systemName: "ellipsis")
                     .rotationEffect(.degrees(90))
                     .foregroundColor(.secondary)
+                    .padding(8)
             }
+            .menuStyle(BorderlessButtonMenuStyle())
         }
+        .padding(.vertical, 4)
     }
 }
 struct SearchView: View {
@@ -73,15 +86,13 @@ struct SearchView: View {
                 .padding(.vertical, 8)
                 
                 if !vm.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
-                    List {
-                        ForEach(vm.filteredSongs, id: \.id) { song in
-                            Button {
-                                nav.songIDs = vm.filteredSongs.map { $0.id }
-                                nav.initialIndex = vm.filteredSongs.firstIndex { $0.id == song.id } ?? 0
-                                nav.selectedTab = .player
-                            } label: {
-                                SearchRowView(song: song)
-                            }
+                    List(vm.filteredSongs, id: \.id) { song in
+                        Button {
+                            nav.songIDs = vm.filteredSongs.map { $0.id }
+                            nav.initialIndex = vm.filteredSongs.firstIndex { $0.id == song.id } ?? 0
+                            nav.selectedTab = .player
+                        } label: {
+                            SearchRowView(song: song)
                         }
                     }
                     .listStyle(PlainListStyle())
