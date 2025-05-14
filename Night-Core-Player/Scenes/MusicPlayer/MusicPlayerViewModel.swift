@@ -94,7 +94,12 @@ class MusicPlayerViewModel: ObservableObject {
     private func authorizeAndLoadFirstTrack() async {
         let status = await MusicAuthorization.request()
         guard status == .authorized else { return }
+        
+        // 全曲を再生キューにセット
+        let descriptor = MPMusicPlayerStoreQueueDescriptor(storeIDs: songIDs.map { $0.rawValue })
+        player.setQueue(with: descriptor)
         await loadTrack(at: currentTrackIndex, autoPlay: true)
+
         player.repeatMode = .none
         // 再生通知を有効化
         player.beginGeneratingPlaybackNotifications()
@@ -149,11 +154,10 @@ class MusicPlayerViewModel: ObservableObject {
             } else {
                 artworkImage = Image(systemName: "music.note")
             }
-            player.setQueue(with: [song.id.rawValue])
-            // カスタム再生速度をキープする
-            player.currentPlaybackRate = Float(rate)
+            player.nowPlayingItem = player.nowPlayingItem
             if autoPlay { player.play() }
             isPlaying = autoPlay
+
         } catch {
             print("MusicKit load error", error)
         }
