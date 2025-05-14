@@ -1,5 +1,6 @@
 import SwiftUI
 import Inject
+import MusicKit
 
 struct SpeedControlButton: View {
     let label: String
@@ -22,9 +23,22 @@ struct SpeedControlButton: View {
 struct MusicPlayerView: View {
     // Injection 発生を監視するwrapper
     @ObserveInjection var inject
-    @StateObject var viewModel = MusicPlayerViewModel()
+    @EnvironmentObject private var nav: PlayerNavigator
+    @StateObject private var viewModel = MusicPlayerViewModel()
+    
     
     init() {
+        let clearImage = UIImage()
+        UISlider.appearance().setThumbImage(clearImage, for: .normal)
+    }
+    
+    init(songIDs: [MusicItemID], initialIndex: Int = 0) {
+        _viewModel = StateObject(
+            wrappedValue: MusicPlayerViewModel(
+                songIDs: songIDs,
+                initialIndex: initialIndex
+            )
+        )
         let clearImage = UIImage()
         UISlider.appearance().setThumbImage(clearImage, for: .normal)
     }
@@ -166,6 +180,11 @@ struct MusicPlayerView: View {
             }
             Spacer()
         }
+        .onChange(of: nav.songIDs) { _, newIDs in
+            viewModel.loadPlaylist(
+                newIDs, startAt: nav.initialIndex
+                )
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .enableInjection()
     }
@@ -179,6 +198,6 @@ struct MusicPlayerView: View {
     }
 }
 
-#Preview {
-    MusicPlayerView()
-}
+//#Preview {
+//    MusicPlayerView()
+//}
