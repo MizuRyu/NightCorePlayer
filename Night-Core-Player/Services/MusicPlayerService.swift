@@ -92,9 +92,13 @@ public actor MusicPlayerService: Sendable {
     public func setQueue(ids: [MusicItemID], startAt index: Int) {
         songIDs = ids
         currentIndex = index
+        
         let descriptor = MPMusicPlayerStoreQueueDescriptor(storeIDs: ids.map(\.rawValue))
+        descriptor.startItemID = ids[index].rawValue
+        
         player.setQueue(with: descriptor)
         player.nowPlayingItem = nil
+        
         Task { await publishSnapshot() }
     }
     
