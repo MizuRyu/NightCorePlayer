@@ -62,20 +62,11 @@ struct SearchView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 HStack {
-                    Text("検索")
-                        .font(.largeTitle)
-                        .bold()
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-                
-                HStack {
                     Image(systemName: "magnifyingglass")
-                    TextField("Search", text: $vm.searchText)
-                        .onChange(of: vm.searchText) {
-                            vm.updateFilter()
-                        }
+                    TextField("曲名・アーティスト名", text: $vm.query)
+                        .textInputAutocapitalization(.never)
+                        .disableAutocorrection(true)
+                        .submitLabel(.search)
                     Spacer()
                     Image(systemName: "mic.fill")
                 }
@@ -83,30 +74,37 @@ struct SearchView: View {
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(10)
                 .padding(.horizontal)
-                .padding(.vertical, 8)
+                .padding(.top, 8)
                 
-                if !vm.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
-                    List(vm.filteredSongs, id: \.id) { song in
+                if vm.isLoading {
+                    ProgressView().padding(.top, 40)
+                } else if !vm.songs.isEmpty {
+                    List(vm.songs, id: \.id) { song in
                         Button {
-                            nav.songIDs = vm.filteredSongs.map { $0.id }
-                            nav.initialIndex = vm.filteredSongs.firstIndex { $0.id == song.id } ?? 0
+                            nav.songIDs = vm.songs.map { $0.id }
+                            nav.initialIndex = vm.songs.firstIndex(where: { $0.id == song.id }) ?? 0
                             nav.selectedTab = .player
                         } label: {
                             SearchRowView(song: song)
                         }
                     }
+                
                     .listStyle(PlainListStyle())
                     .navigationDestination(for: Song.self) { song in
                         MusicPlayerView(
-                            songIDs: vm.filteredSongs.map { $0.id },
-                            initialIndex: vm.filteredSongs.firstIndex { $0.id == song.id} ?? 0
+                            songIDs: vm.songs.map { $0.id },
+                            initialIndex: vm.songs.firstIndex { $0.id == song.id} ?? 0
                         )
                     }
-                } else {
-                    Spacer()
                 }
+                
+                Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .scrollContentBackground(.hidden)
+            .background(Color(.systemBackground))
+            .navigationTitle("検索")
+            .navigationBarTitleDisplayMode(.large)
             .enableInjection()
         }
     }
