@@ -9,9 +9,8 @@ public enum Constants {
     }
     
     public enum Timing {
-        public static let seaerchDebounce: Duration = .milliseconds(500)
-        public static let musicPlayerTick: Duration = .milliseconds(500)
-        public static let marqueeDelay: Duration = .seconds(3.0)
+        public static let searchDebounce: Int = 500
+        public static let musicPlayerTick: Int = 500
     }
     
     public enum DefaultValues {
@@ -75,10 +74,9 @@ public enum Constants {
         public static let maxPlaybackRate: Double = 3.0
         public static let step: Double = 0.5
         public static let defaultPlaybackRate: Double = 1.15
-        public static let rateStepSmall: Double = 0.01
         public static let rateStepLarge: Double = 0.1
-        public static let rewindSeconds: Double = 15.0
-        public static let forwardSeconds: Double = 15.0
+        public static let rateStepSmall: Double = 0.01
+        public static let skipSeconds: Double = 15.0
         public static let sliderDivisions: Int = 10
         public static let artworkSize: CGFloat = 300
         public static let updateInterval: TimeInterval = 0.5

@@ -35,20 +35,19 @@ struct SliderTickMarksOverlay: View {
                 let xPos   = geo.size.width * ratio
                 
                 VStack(spacing: 4) {
-                    // ▼ 数字（上）
+                    // 数字（上）
                     Text(String(format: "%.1f", value))
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                    // ▼ 目盛り（下）
+                    // 目盛り（下）
                     Rectangle()
                         .fill(Color.secondary.opacity(0.6))
                         .frame(width: 1, height: 8)
                 }
-                // Slider のセンターラインよりやや上に配置
                 .position(x: xPos, y: max(0, geo.size.height/2 - 14))
             }
         }
-        .allowsHitTesting(false)      // Slider 操作を邪魔しない
+        .allowsHitTesting(false)
     }
 }
 
@@ -111,9 +110,9 @@ struct MusicPlayerView: View {
                         text: vm.artist,
                         font: .subheadline,
                         visibleWidth: 100,
-                        speed: 30,
-                        spacingBetweenTexts: 20,
-                        delayBeforeScroll: 3
+                        speed: Constants.MarqueeText.defaultSpeed,
+                        spacingBetweenTexts: Constants.MarqueeText.defaultSpacing,
+                        delayBeforeScroll: Constants.MarqueeText.defaultDelay
                     )
                     .foregroundColor(.secondary)
                     .frame(width: 100, height: subtitleHeight)
@@ -175,7 +174,7 @@ struct MusicPlayerView: View {
                     in: Constants.MusicPlayer.minPlaybackRate...Constants.MusicPlayer.maxPlaybackRate,
                     step: 0.01
                 ) { editing in
-                    if !editing { vm.changeRate(by: vm.rate) }
+                    if !editing { vm.setRate(to: vm.rate) }
                 }
                 
                 .frame(width: 340)
@@ -185,22 +184,22 @@ struct MusicPlayerView: View {
                 
                 
                 HStack(spacing: 12) {
-                    SpeedControlButton(label: "-0.1", color: .red) {
-                        vm.changeRate(by: -0.1)
+                    SpeedControlButton(label: "-\(Constants.MusicPlayer.rateStepLarge)", color: .red) {
+                        vm.changeRate(by: -Constants.MusicPlayer.rateStepLarge)
                     }
-                    SpeedControlButton(label: "-0.01", color: .red) {
-                        vm.changeRate(by: -0.01)
+                    SpeedControlButton(label: "-\(Constants.MusicPlayer.rateStepSmall)", color: .red) {
+                        vm.changeRate(by: -Constants.MusicPlayer.rateStepSmall)
                     }
                     Text(String(format: "%.2fx", vm.rate))
                         .font(.callout)
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
                         .frame(minWidth: 40)
-                    SpeedControlButton(label: "+0.01", color: .green) {
-                        vm.changeRate(by: +0.01)
+                    SpeedControlButton(label: "+\(Constants.MusicPlayer.rateStepSmall)", color: .green) {
+                        vm.changeRate(by: Constants.MusicPlayer.rateStepSmall)
                     }
-                    SpeedControlButton(label: "+0.1", color: .green) {
-                        vm.changeRate(by: +0.1)
+                    SpeedControlButton(label: "+\(Constants.MusicPlayer.rateStepLarge)", color: .green) {
+                        vm.changeRate(by: Constants.MusicPlayer.rateStepSmall)
                     }
                 }
             }

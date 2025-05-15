@@ -14,6 +14,8 @@ final class MusicPlayerViewModel: ObservableObject {
     @Published private(set) var duration: Double    = 0
     @Published private(set) var rate: Double        = Constants.MusicPlayer.defaultPlaybackRate
     @Published private(set) var isPlaying: Bool     = false
+
+    private var skipSeconds: Double = Constants.MusicPlayer.skipSeconds
     
     // MARK: - Dependencies
     private let service: MusicPlayerService
@@ -27,11 +29,11 @@ final class MusicPlayerViewModel: ObservableObject {
     func nextTrack()       { Task { await service.next()     } }
     func previousTrack()   { Task { await service.previous() } }
     func rewind15() {
-        let newTime = max(currentTime - 15, 0)
+        let newTime = max(currentTime - skipSeconds, 0)
         seek(to: newTime)
     }
     func forward15() {
-        let newTime = min(currentTime + 15, duration)
+        let newTime = min(currentTime + skipSeconds, duration)
         seek(to: newTime)
     }
     func seek(to time: Double){

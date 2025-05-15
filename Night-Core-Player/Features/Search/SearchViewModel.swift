@@ -15,7 +15,7 @@ class SearchViewModel: ObservableObject {
     init() {
         cancellable = $query
             .removeDuplicates()
-            .debounce(for: .milliseconds(400), scheduler: RunLoop.main)
+            .debounce(for: .milliseconds(Constants.Timing.searchDebounce), scheduler: RunLoop.main)
             .sink { [weak self] keyword in
                 Task { await self?.performSearch(keyword: keyword) }
             }
