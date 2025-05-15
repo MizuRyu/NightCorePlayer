@@ -20,7 +20,7 @@ struct MusicKitService {
     /// - Returns: 検索結果の Song 配列
     static func searchSongs(
         keyword: String,
-        limit: Int = 10
+        limit: Int = Constants.MusicAPI.musicKitSearchLimit
     ) async throws -> [Song] {
         try await ensureAuth()
         
