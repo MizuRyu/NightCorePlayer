@@ -67,22 +67,29 @@ struct MusicPlayerView: View {
                 }
                 
                 VStack {
-                    MarqueeTextView(
-                        text: viewModel.trackTitle,
+                    let titleHeight = UIFont.preferredFont(forTextStyle: .title3).lineHeight
+                    let subtitleHeight = UIFont.preferredFont(forTextStyle: .subheadline).lineHeight
+                    MarqueeText(
+                        text: vm.title,
                         font: .title3,
                         visibleWidth: 100,
                         speed: 30,
                         spacingBetweenTexts: 20,
                         delayBeforeScroll: 3
                     )
-                    MarqueeTextView(
-                        text: viewModel.artistName,
+                    .frame(width: 100, height: titleHeight)
+                    .clipped()
+                    MarqueeText(
+                        text: vm.artist,
                         font: .subheadline,
                         visibleWidth: 100,
                         speed: 30,
                         spacingBetweenTexts: 20,
                         delayBeforeScroll: 3
-                    ).foregroundColor(.secondary)
+                    )
+                    .foregroundColor(.secondary)
+                    .frame(width: 100, height: subtitleHeight)
+                    .clipped()
                 }
                 Button { viewModel.nextTrack() } label: {
                     Image(systemName: "forward.fill")
