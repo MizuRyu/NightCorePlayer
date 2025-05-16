@@ -21,7 +21,7 @@ final class MusicPlayerViewModel: ObservableObject {
     private let service: MusicPlayerService
     private var cancellables = Set<AnyCancellable>()
     
-    init(service: MusicPlayerService = .init()) {
+    init(service: MusicPlayerService) {
         self.service = service
         bindService()
     }
