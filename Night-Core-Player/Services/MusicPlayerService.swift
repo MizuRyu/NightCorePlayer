@@ -110,8 +110,16 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     
     /// 再生キューのセットと開始位置
     public func setQueue(ids: [MusicItemID], startAt index: Int) async {
+        guard !ids.isEmpty else {
+            songIDs = []
+            currentIndex = 0
+            await publishSnapshot()
+            return
+        }
+        
         songIDs = ids
-        currentIndex = index
+        let safeIndex = min(max(index, 0), ids.count - 1)
+        currentIndex = safeIndex
         
         let descriptor = MPMusicPlayerStoreQueueDescriptor(storeIDs: ids.map(\.rawValue))
         descriptor.startItemID = ids[index].rawValue
