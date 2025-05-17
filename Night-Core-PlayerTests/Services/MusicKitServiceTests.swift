@@ -4,27 +4,6 @@ import SwiftUI
 import MusicKit
 @testable import Night_Core_Player
 
-// テストデータ生成 Helper
-internal func makeDummySong(id: String) -> Song {
-    let data = """
-    { "id":"\(id)",
-      "type":"songs",
-      "attributes": { "name":"DummyTitle", "artistName":"DummyArtist" }
-    }
-    """.data(using: .utf8)!
-    return try! JSONDecoder().decode(Song.self, from: data)
-}
-
-internal func makeDummyPlaylist(id: String, name: String = "DummyList") -> Playlist {
-    let data = """
-    { "id":"\(id)",
-      "type":"playlists",
-      "attributes": { "name":"\(name)" }
-    }
-    """.data(using: .utf8)!
-    return try! JSONDecoder().decode(Playlist.self, from: data)
-}
-
 @Suite
 @MainActor
 struct MusicKitServiceImplTests {
