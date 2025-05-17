@@ -3,7 +3,34 @@ import MediaPlayer
 import MusicKit
 import SwiftUI
 
-public actor MusicPlayerService: Sendable {
+public struct MusicPlayerSnapshot: Sendable {
+    public let title: String
+    public let artist: String
+    public let artwork: Image
+    public let currentTime: TimeInterval
+    public let duration: TimeInterval
+    public let rate: Double
+    public let isPlaying: Bool
+}
+
+@MainActor
+protocol MusicPlayerService: Sendable {
+    var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> { get }
+    
+    func setQueue(ids: [MusicItemID], startAt index: Int) async
+    func play() async
+    func pause() async
+    func next() async
+    func previous() async
+    func seek(to time: TimeInterval) async
+    func changeRate(to newRate: Double) async
+    
+    func currentSong() async throws -> Song?
+    func currentArtworkImage(width: CGFloat, height: CGFloat) async throws -> Image
+}
+
+@MainActor
+public final class MusicPlayerServiceImpl: MusicPlayerService {
     private nonisolated(unsafe) let player = MPMusicPlayerController.applicationMusicPlayer
     private var songIDs: [MusicItemID] = []
     private var currentIndex: Int = 0
@@ -13,22 +40,12 @@ public actor MusicPlayerService: Sendable {
     private var minPlaybackRate: Double = Constants.MusicPlayer.minPlaybackRate
     private var maxPlaybackRate: Double = Constants.MusicPlayer.maxPlaybackRate
     
-    public struct PlaybackSnapshot: Sendable {
-        public let title: String
-        public let artist: String
-        public let artwork: Image
-        public let currentTime: TimeInterval
-        public let duration: TimeInterval
-        public let rate: Double
-        public let isPlaying: Bool
-    }
-    
-    public nonisolated let snapshotSubject = PassthroughSubject<PlaybackSnapshot, Never>()
-    public nonisolated var snapshotPublisher: AnyPublisher<PlaybackSnapshot, Never> {
+    private let snapshotSubject = PassthroughSubject<MusicPlayerSnapshot, Never>()
+    public var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> {
         snapshotSubject.eraseToAnyPublisher()
     }
     
-    private nonisolated(unsafe) var timeCancelable: AnyCancellable?
+    private var timeCancelable: AnyCancellable?
         
     public init() {
         player.beginGeneratingPlaybackNotifications()
@@ -64,12 +81,14 @@ public actor MusicPlayerService: Sendable {
         NotificationCenter.default.removeObserver(self)
     }
     
+    // 0.5秒経過時、再生時間UI更新
     private func handleTimerTick() async {
         if player.playbackState == .playing {
             await publishSnapshot()
         }
     }
     
+    // 再生状態変更時、UI更新
     private func handlePlaybackStateChange() async {
         if player.playbackState == .playing {
             player.currentPlaybackRate = Float(storedRate)
@@ -77,6 +96,7 @@ public actor MusicPlayerService: Sendable {
         await publishSnapshot()
     }
     
+    // 曲変更時、UI更新
     private func handleNowPlayingItemChange() async {
         refreshCurrentIndex()
         let idx = player.indexOfNowPlayingItem
@@ -89,72 +109,66 @@ public actor MusicPlayerService: Sendable {
     }
     
     /// 再生キューのセットと開始位置
-    public func setQueue(ids: [MusicItemID], startAt index: Int) {
+    public func setQueue(ids: [MusicItemID], startAt index: Int) async {
+        guard !ids.isEmpty else {
+            songIDs = []
+            currentIndex = 0
+            await publishSnapshot()
+            return
+        }
+        
         songIDs = ids
-        currentIndex = index
+        let safeIndex = min(max(index, 0), ids.count - 1)
+        currentIndex = safeIndex
         
         let descriptor = MPMusicPlayerStoreQueueDescriptor(storeIDs: ids.map(\.rawValue))
-        descriptor.startItemID = ids[index].rawValue
+        descriptor.startItemID = ids[safeIndex].rawValue
         
         player.setQueue(with: descriptor)
         player.nowPlayingItem = nil
         
-        Task { await publishSnapshot() }
+        await publishSnapshot()
     }
     
-    public func play() {
+    public func play() async {
         player.play()
         player.currentPlaybackRate = Float(storedRate)
-        Task {
-            await publishSnapshot()
-        }
+        await publishSnapshot()
     }
-    public func pause() {
+    public func pause() async {
         player.currentPlaybackRate = Float(storedRate)
         player.pause()
-        Task {
-            await publishSnapshot()
-        }
+        await publishSnapshot()
+
     }
-    public func next() {
+    public func next() async {
         player.skipToNextItem()
         currentIndex = (currentIndex + 1) % songIDs.count
-        Task {
-            await publishSnapshot()
-        }
+        await publishSnapshot()
+
     }
-    public func previous() {
+    public func previous() async {
         player.skipToPreviousItem()
         currentIndex = (currentIndex - 1 + songIDs.count) % songIDs.count
-        Task {
-            await publishSnapshot()
-        }
+        await publishSnapshot()
+
     }
-    public func seek(to time: TimeInterval) {
-        let tmp = min(max(time, 0), duration)
+    public func seek(to time: TimeInterval) async {
+        let tmp = min(max(time, 0), player.nowPlayingItem?.playbackDuration ?? 0)
         player.currentPlaybackTime = tmp
-        if tmp >= duration - 0.05, songIDs.count > 1 {
-            next()
+        if tmp >= (player.nowPlayingItem?.playbackDuration ?? 0) - 0.05, songIDs.count > 1 {
+            await next()
             return
         }
         else {
-            Task {
-                await publishSnapshot()
-            }
-        }
-    }
-    public func changeRate(to newRate: Double) {
-        storedRate = min(max(newRate, minPlaybackRate), maxPlaybackRate)
-        player.currentPlaybackRate = Float(storedRate)
-        Task {
             await publishSnapshot()
         }
     }
-    
-    public var currentTime: TimeInterval { player.currentPlaybackTime }
-    public var duration: TimeInterval { player.nowPlayingItem?.playbackDuration ?? 0 }
-    public var rate: Float { player.currentPlaybackRate }
-    public var isPlaying: Bool { player.playbackState == .playing }
+    public func changeRate(to newRate: Double) async {
+        storedRate = min(max(newRate, minPlaybackRate), maxPlaybackRate)
+        player.currentPlaybackRate = Float(storedRate)
+        await publishSnapshot()
+    }
     
     /// カタログから現在トラックのメタ情報を取得
     public func currentSong() async throws -> Song? {
@@ -180,16 +194,24 @@ public actor MusicPlayerService: Sendable {
     private func publishSnapshot() async {
         refreshCurrentIndex()
         let song = try? await currentSong()
-        let img = (try? await currentArtworkImage()) ?? Image(systemName: "music.note")
-        snapshotSubject.send(.init(
-            title: song?.title ?? "-",
-            artist: song?.artistName ?? "-",
-            artwork: img,
-            currentTime: currentTime,
-            duration: duration,
-            rate: storedRate,
-            isPlaying: isPlaying
-        ))
+        let title = song?.title ?? "-"
+        let artist = song?.artistName ?? "-"
+        let artwork = (try? await currentArtworkImage()) ?? Image(systemName: "music.note")
+        let current = player.currentPlaybackTime
+        let total = player.nowPlayingItem?.playbackDuration ?? 0
+        let playing = player.playbackState == .playing
+        
+        snapshotSubject.send(
+            .init(
+                title: title,
+                artist: artist,
+                artwork: artwork,
+                currentTime: current,
+                duration: total,
+                rate: storedRate,
+                isPlaying: playing
+            )
+        )
     }
     private func refreshCurrentIndex() {
         guard

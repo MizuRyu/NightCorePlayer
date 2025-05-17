@@ -55,8 +55,7 @@ struct MusicPlayerView: View {
     // Injection 発生を監視するwrapper
     @ObserveInjection var inject
     @EnvironmentObject private var nav: PlayerNavigator
-    @StateObject private var vm = MusicPlayerViewModel()
-    
+    @StateObject private var vm = MusicPlayerViewModel(service: MusicPlayerServiceImpl())
     
     init() {
         let clearImage = UIImage()
@@ -64,7 +63,8 @@ struct MusicPlayerView: View {
     }
     
     init(songIDs: [MusicItemID], initialIndex: Int = 0) {
-        _vm = StateObject(wrappedValue: MusicPlayerViewModel())
+        _vm = StateObject(wrappedValue: MusicPlayerViewModel(service: MusicPlayerServiceImpl()))
+
         let clearImage = UIImage()
         UISlider.appearance().setThumbImage(clearImage, for: .normal)
         vm.loadPlaylist(ids: songIDs, startAt: initialIndex)

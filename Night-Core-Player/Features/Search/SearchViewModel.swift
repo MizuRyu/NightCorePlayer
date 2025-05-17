@@ -5,6 +5,8 @@ import MusicKit
 @MainActor
 class SearchViewModel: ObservableObject {
     
+    private let musicKitService: MusicKitService
+    
     @Published var query: String = ""
     @Published private(set) var songs: [Song] = []
     @Published private(set) var isLoading = false
@@ -12,7 +14,8 @@ class SearchViewModel: ObservableObject {
     
     private var cancellable: AnyCancellable?
     
-    init() {
+    init(musicKitService: MusicKitService = MusicKitServiceImpl()) {
+        self.musicKitService = musicKitService
         cancellable = $query
             .removeDuplicates()
             .debounce(for: .milliseconds(Constants.Timing.searchDebounce), scheduler: RunLoop.main)
@@ -29,7 +32,7 @@ class SearchViewModel: ObservableObject {
         
         isLoading = true; error = nil
         do {
-            songs = try await MusicKitService.searchSongs(keyword: trimmed, limit: Constants.MusicAPI.musicKitSearchLimit)
+            songs = try await musicKitService.searchSongs(keyword: trimmed, limit: Constants.MusicAPI.musicKitSearchLimit)
         } catch {
             self.error = error; songs = []
         }
