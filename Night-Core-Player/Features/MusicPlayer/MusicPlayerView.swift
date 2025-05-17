@@ -62,12 +62,12 @@ struct MusicPlayerView: View {
         UISlider.appearance().setThumbImage(clearImage, for: .normal)
     }
     
-    init(songIDs: [MusicItemID], initialIndex: Int = 0) {
+    init(songs: [Song], initialIndex: Int = 0) {
         _vm = StateObject(wrappedValue: MusicPlayerViewModel(service: MusicPlayerServiceImpl()))
 
         let clearImage = UIImage()
         UISlider.appearance().setThumbImage(clearImage, for: .normal)
-        vm.loadPlaylist(ids: songIDs, startAt: initialIndex)
+        vm.loadPlaylist(songs: songs, startAt: initialIndex)
     }
 
     var body: some View {
@@ -205,9 +205,9 @@ struct MusicPlayerView: View {
             }
             Spacer()
         }
-        .onChange(of: nav.songIDs) { _, newIDs in
+        .onChange(of: nav.songs) { _, songs in
             vm.loadPlaylist(
-                ids: newIDs,
+                songs: songs,
                 startAt: nav.initialIndex
             )
         }

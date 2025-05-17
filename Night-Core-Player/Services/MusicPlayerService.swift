@@ -17,7 +17,7 @@ public struct MusicPlayerSnapshot: Sendable {
 protocol MusicPlayerService: Sendable {
     var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> { get }
     
-    func setQueue(ids: [MusicItemID], startAt index: Int) async
+    func setQueue(songs: [Song], startAt index: Int) async
     func play() async
     func pause() async
     func next() async
@@ -33,6 +33,7 @@ protocol MusicPlayerService: Sendable {
 public final class MusicPlayerServiceImpl: MusicPlayerService {
     private nonisolated(unsafe) let player = MPMusicPlayerController.applicationMusicPlayer
     private var songIDs: [MusicItemID] = []
+    private var songs: [Song] = []
     private var currentIndex: Int = 0
     
     private var storedRate: Double = Constants.MusicPlayer.defaultPlaybackRate
@@ -109,22 +110,35 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     }
     
     /// 再生キューのセットと開始位置
-    public func setQueue(ids: [MusicItemID], startAt index: Int) async {
-        guard !ids.isEmpty else {
-            songIDs = []
+    public func setQueue(songs: [Song], startAt index: Int) async {
+        guard !songs.isEmpty else {
+            self.songs = []
             currentIndex = 0
             await publishSnapshot()
             return
         }
         
-        songIDs = ids
-        let safeIndex = min(max(index, 0), ids.count - 1)
+        self.songs = songs
+        self.songIDs = songs.map(\.id)
+        let safeIndex = min(max(index, 0), songIDs.count - 1)
         currentIndex = safeIndex
         
-        let descriptor = MPMusicPlayerStoreQueueDescriptor(storeIDs: ids.map(\.rawValue))
-        descriptor.startItemID = ids[safeIndex].rawValue
+
+        // ライブラリ、カタログ両方に対応するPlayerDescriptorを作成        
+        let playParams: [MPMusicPlayerPlayParameters] = songs.compactMap { song in
+            guard let pp = song.playParameters else { return nil }
+            do {
+                let data = try JSONEncoder().encode(pp)
+                return try JSONDecoder().decode(MPMusicPlayerPlayParameters.self, from: data)
+            } catch {
+                return nil
+            }
+        }
+        
+        let descriptor = MPMusicPlayerPlayParametersQueueDescriptor(playParametersQueue: playParams)
         
         player.setQueue(with: descriptor)
+        
         player.nowPlayingItem = nil
         
         await publishSnapshot()
@@ -193,23 +207,55 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     
     private func publishSnapshot() async {
         refreshCurrentIndex()
-        let song = try? await currentSong()
-        let title = song?.title ?? "-"
-        let artist = song?.artistName ?? "-"
-        let artwork = (try? await currentArtworkImage()) ?? Image(systemName: "music.note")
-        let current = player.currentPlaybackTime
-        let total = player.nowPlayingItem?.playbackDuration ?? 0
-        let playing = player.playbackState == .playing
+        
+        let currentTime = player.currentPlaybackTime
+        let duration    = player.nowPlayingItem?.playbackDuration ?? 0
+        let isPlaying   = player.playbackState == .playing
+        let rate        = storedRate
+        
+        // MPMediaItem (ローカル) からメタ情報取得
+        var title   = "-"
+        var artist  = "-"
+        var artwork = Image(systemName: "music.note")
+        var hasLocalArtwork = false
+        
+        if let mediaItem = player.nowPlayingItem {
+            title  = mediaItem.title  ?? "-"
+            artist = mediaItem.artist ?? "-"
+            
+            if let art = mediaItem.artwork?
+                .image(at: CGSize(
+                    width: Constants.MusicPlayer.artworkSize,
+                    height: Constants.MusicPlayer.artworkSize
+                )) {
+                artwork = Image(uiImage: art)
+                hasLocalArtwork = true
+            }
+        }
+        
+        // ローカルにない、カタログ楽曲である場合、network経由で取得
+        if !hasLocalArtwork {
+            if let song = try? await currentSong(),
+               let url  = song.artwork?.url(
+                width: Int(Constants.MusicPlayer.artworkSize),
+                height: Int(Constants.MusicPlayer.artworkSize)
+               ),
+               let (data, _) = try? await URLSession.shared.data(from: url),
+               let uiImg     = UIImage(data: data)
+            {
+                artwork = Image(uiImage: uiImg)
+            }
+        }
         
         snapshotSubject.send(
             .init(
                 title: title,
                 artist: artist,
                 artwork: artwork,
-                currentTime: current,
-                duration: total,
-                rate: storedRate,
-                isPlaying: playing
+                currentTime: currentTime,
+                duration:    duration,
+                rate:        rate,
+                isPlaying:   isPlaying
             )
         )
     }
