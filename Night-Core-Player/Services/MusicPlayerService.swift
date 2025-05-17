@@ -123,9 +123,10 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         let safeIndex = min(max(index, 0), songIDs.count - 1)
         currentIndex = safeIndex
         
-
+        let rotatedSongs = Array(songs[safeIndex...] + songs[..<safeIndex])
+        
         // ライブラリ、カタログ両方に対応するPlayerDescriptorを作成        
-        let playParams: [MPMusicPlayerPlayParameters] = songs.compactMap { song in
+        let playParams: [MPMusicPlayerPlayParameters] = rotatedSongs.compactMap { song in
             guard let pp = song.playParameters else { return nil }
             do {
                 let data = try JSONEncoder().encode(pp)
@@ -134,14 +135,13 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
                 return nil
             }
         }
-        
-        let descriptor = MPMusicPlayerPlayParametersQueueDescriptor(playParametersQueue: playParams)
+        let descriptor = MPMusicPlayerPlayParametersQueueDescriptor(
+            playParametersQueue: playParams
+            )
         
         player.setQueue(with: descriptor)
-        
-        player.nowPlayingItem = nil
-        
-        await publishSnapshot()
+
+        await play()
     }
     
     public func play() async {
@@ -259,6 +259,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             )
         )
     }
+
     private func refreshCurrentIndex() {
         guard
             let id = player.nowPlayingItem?.playbackStoreID,

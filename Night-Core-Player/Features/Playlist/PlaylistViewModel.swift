@@ -24,7 +24,6 @@ class PlaylistViewModel: ObservableObject {
         
         do {
             let playlists = try await musicKitService.fetchLibraryPlaylists(limit: limit)
-            print(playlists)
             self.rows = playlists.map { pl in
                 PlaylistRowModel(
                     id: pl.id,
