@@ -41,7 +41,7 @@ protocol MusicKitService: Sendable {
     func ensureAuth() async throws -> Void
     func searchSongs(keyword: String, limit: Int) async throws -> [Song]
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist]
-    func fetchPlaylistSongs(in plyalist: Playlist) async throws -> [Song]
+    func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song]
 }
 
 final class MusicKitServiceImpl: MusicKitService {

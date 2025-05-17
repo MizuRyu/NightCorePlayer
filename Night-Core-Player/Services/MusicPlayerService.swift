@@ -122,7 +122,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         currentIndex = safeIndex
         
         let descriptor = MPMusicPlayerStoreQueueDescriptor(storeIDs: ids.map(\.rawValue))
-        descriptor.startItemID = ids[index].rawValue
+        descriptor.startItemID = ids[safeIndex].rawValue
         
         player.setQueue(with: descriptor)
         player.nowPlayingItem = nil
