@@ -12,7 +12,18 @@
 		F391D4272DCF4ED400517D0B /* track2.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = F391D4262DCF4ED400517D0B /* track2.mp4 */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		F36015E02DD6E8EE008A255A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F3FD9E7D2DCDAD7300645A6A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F3FD9E842DCDAD7300645A6A;
+			remoteInfo = "Night-Core-Player";
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		F36015DC2DD6E8EE008A255A /* Night-Core-PlayerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Night-Core-PlayerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F391D4242DCF4ECC00517D0B /* track1.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = track1.mp4; sourceTree = "<group>"; };
 		F391D4262DCF4ED400517D0B /* track2.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = track2.mp4; sourceTree = "<group>"; };
 		F3FD9E852DCDAD7300645A6A /* Night-Core-Player.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Night-Core-Player.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -29,6 +40,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		F36015DD2DD6E8EE008A255A /* Night-Core-PlayerTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Night-Core-PlayerTests";
+			sourceTree = "<group>";
+		};
 		F3FD9E872DCDAD7300645A6A /* Night-Core-Player */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -40,6 +56,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F36015D92DD6E8EE008A255A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F3FD9E822DCDAD7300645A6A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -57,6 +80,7 @@
 				F391D4262DCF4ED400517D0B /* track2.mp4 */,
 				F391D4242DCF4ECC00517D0B /* track1.mp4 */,
 				F3FD9E872DCDAD7300645A6A /* Night-Core-Player */,
+				F36015DD2DD6E8EE008A255A /* Night-Core-PlayerTests */,
 				F3FD9E862DCDAD7300645A6A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -65,6 +89,7 @@
 			isa = PBXGroup;
 			children = (
 				F3FD9E852DCDAD7300645A6A /* Night-Core-Player.app */,
+				F36015DC2DD6E8EE008A255A /* Night-Core-PlayerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -72,6 +97,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		F36015DB2DD6E8EE008A255A /* Night-Core-PlayerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F36015E22DD6E8EE008A255A /* Build configuration list for PBXNativeTarget "Night-Core-PlayerTests" */;
+			buildPhases = (
+				F36015D82DD6E8EE008A255A /* Sources */,
+				F36015D92DD6E8EE008A255A /* Frameworks */,
+				F36015DA2DD6E8EE008A255A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F36015E12DD6E8EE008A255A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				F36015DD2DD6E8EE008A255A /* Night-Core-PlayerTests */,
+			);
+			name = "Night-Core-PlayerTests";
+			packageProductDependencies = (
+			);
+			productName = "Night-Core-PlayerTests";
+			productReference = F36015DC2DD6E8EE008A255A /* Night-Core-PlayerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		F3FD9E842DCDAD7300645A6A /* Night-Core-Player */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F3FD9E902DCDAD7400645A6A /* Build configuration list for PBXNativeTarget "Night-Core-Player" */;
@@ -105,6 +153,10 @@
 				LastSwiftUpdateCheck = 1630;
 				LastUpgradeCheck = 1630;
 				TargetAttributes = {
+					F36015DB2DD6E8EE008A255A = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = F3FD9E842DCDAD7300645A6A;
+					};
 					F3FD9E842DCDAD7300645A6A = {
 						CreatedOnToolsVersion = 16.3;
 					};
@@ -129,11 +181,19 @@
 			projectRoot = "";
 			targets = (
 				F3FD9E842DCDAD7300645A6A /* Night-Core-Player */,
+				F36015DB2DD6E8EE008A255A /* Night-Core-PlayerTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		F36015DA2DD6E8EE008A255A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F3FD9E832DCDAD7300645A6A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -146,6 +206,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F36015D82DD6E8EE008A255A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F3FD9E812DCDAD7300645A6A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -155,7 +222,51 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		F36015E12DD6E8EE008A255A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F3FD9E842DCDAD7300645A6A /* Night-Core-Player */;
+			targetProxy = F36015E02DD6E8EE008A255A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		F36015E32DD6E8EE008A255A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9MTVXZRQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "RyuMizu.Night-Core-PlayerTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Night-Core-Player.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Night-Core-Player";
+			};
+			name = Debug;
+		};
+		F36015E42DD6E8EE008A255A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ND9MTVXZRQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "RyuMizu.Night-Core-PlayerTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Night-Core-Player.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Night-Core-Player";
+			};
+			name = Release;
+		};
 		F3FD9E8E2DCDAD7400645A6A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -348,6 +459,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F36015E22DD6E8EE008A255A /* Build configuration list for PBXNativeTarget "Night-Core-PlayerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F36015E32DD6E8EE008A255A /* Debug */,
+				F36015E42DD6E8EE008A255A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		F3FD9E802DCDAD7300645A6A /* Build configuration list for PBXProject "Night-Core-Player" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
