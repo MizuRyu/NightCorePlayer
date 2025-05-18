@@ -31,10 +31,9 @@ protocol MusicPlayerService: Sendable {
 
 @MainActor
 public final class MusicPlayerServiceImpl: MusicPlayerService {
-    private nonisolated(unsafe) let player = MPMusicPlayerController.applicationMusicPlayer
+    private let player = MPMusicPlayerController.applicationMusicPlayer
     private var songIDs: [MusicItemID] = []
     private var songs: [Song] = []
-    private var currentIndex: Int = 0
     
     private var storedRate: Double = Constants.MusicPlayer.defaultPlaybackRate
     private var defaultPlaybackRate: Double = Constants.MusicPlayer.defaultPlaybackRate
@@ -99,13 +98,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     
     // 曲変更時、UI更新
     private func handleNowPlayingItemChange() async {
-        refreshCurrentIndex()
         let idx = player.indexOfNowPlayingItem
-        if idx != NSNotFound, idx < songIDs.count {
-            currentIndex = idx
-        } else {
-            currentIndex = (currentIndex + 1) % songIDs.count
-        }
         await publishSnapshot()
     }
     
@@ -113,7 +106,6 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     public func setQueue(songs: [Song], startAt index: Int) async {
         guard !songs.isEmpty else {
             self.songs = []
-            currentIndex = 0
             await publishSnapshot()
             return
         }
@@ -121,7 +113,6 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         self.songs = songs
         self.songIDs = songs.map(\.id)
         let safeIndex = min(max(index, 0), songIDs.count - 1)
-        currentIndex = safeIndex
         
         let rotatedSongs = Array(songs[safeIndex...] + songs[..<safeIndex])
         
@@ -157,13 +148,11 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     }
     public func next() async {
         player.skipToNextItem()
-        currentIndex = (currentIndex + 1) % songIDs.count
         await publishSnapshot()
 
     }
     public func previous() async {
         player.skipToPreviousItem()
-        currentIndex = (currentIndex - 1 + songIDs.count) % songIDs.count
         await publishSnapshot()
 
     }
@@ -186,8 +175,9 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     
     /// カタログから現在トラックのメタ情報を取得
     public func currentSong() async throws -> Song? {
-        guard songIDs.indices.contains(currentIndex) else { return nil }
-        let req = MusicCatalogResourceRequest<Song>(matching: \.id, equalTo: songIDs[currentIndex])
+        let playerIndex = player.indexOfNowPlayingItem
+        guard songIDs.indices.contains(playerIndex) else { return nil }
+        let req = MusicCatalogResourceRequest<Song>(matching: \.id, equalTo: songIDs[playerIndex])
         return try await req.response().items.first
     }
     
@@ -206,8 +196,6 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     }
     
     private func publishSnapshot() async {
-        refreshCurrentIndex()
-        
         let currentTime = player.currentPlaybackTime
         let duration    = player.nowPlayingItem?.playbackDuration ?? 0
         let isPlaying   = player.playbackState == .playing
@@ -258,13 +246,5 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
                 isPlaying:   isPlaying
             )
         )
-    }
-
-    private func refreshCurrentIndex() {
-        guard
-            let id = player.nowPlayingItem?.playbackStoreID,
-            let idx = songIDs.firstIndex(where: { $0.rawValue == id })
-        else { return }
-        currentIndex = idx
     }
 }
