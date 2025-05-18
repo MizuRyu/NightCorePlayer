@@ -1,31 +1,33 @@
 import Foundation
+import MusicKit
 
 @MainActor
 class PlaylistDetailViewModel: ObservableObject {
-    let category: PlaylistCategory
+    let playlist: Playlist
     @Published var tracks: [Track] = []
+    @Published private(set) var songs: [Song] = []
+    @Published private(set) var isLoading = false
+    @Published private(set) var errorMessage: String?
     
-    init(category: PlaylistCategory) {
-        self.category = category
-        
-        loadMockTracks()
+    private var musicKitService: MusicKitService
+    
+    init(playlist: Playlist,
+         musicKitService: MusicKitService = MusicKitServiceImpl()) {
+        self.playlist = playlist
+        self.musicKitService = musicKitService
     }
     
-    private func loadMockTracks() {
-        let base: [Track] = [
-            .init(
-                title: "title1",
-                artist: "artist1",
-                artworkName: "imgAssets1",
-                fileURL: Bundle.main.url(forResource: "track1", withExtension: "mp4")!
-            ),
-            .init(
-                title: "title2",
-                artist: "artist2",
-                artworkName: "imgAssets2",
-                fileURL: Bundle.main.url(forResource: "track2", withExtension: "mp4")!
-            )
-        ]
-        self.tracks = (0..<5).map { i in base[i % base.count] }
+    func load() async {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            songs = try await musicKitService.fetchPlaylistSongs(in: playlist)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+            songs = []
+        }
     }
 }

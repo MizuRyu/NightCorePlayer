@@ -5,7 +5,7 @@ import Combine
 
 @MainActor
 final class MusicPlayerViewModel: ObservableObject {
-    private var songIDs: [MusicItemID] = []
+    private var songs: [Song] = []
     
     @Published private(set) var title: String      = "—"
     @Published private(set) var artist: String     = "—"
@@ -53,9 +53,9 @@ final class MusicPlayerViewModel: ObservableObject {
         setRate(to: rate + delta)
     }
     
-    func loadPlaylist(ids: [MusicItemID], startAt index: Int = 0, autoPlay: Bool = true) {
+    func loadPlaylist(songs: [Song], startAt index: Int = 0, autoPlay: Bool = true) {
         Task {
-            await service.setQueue(ids: ids, startAt: index)
+            await service.setQueue(songs: songs, startAt: index)
             if autoPlay { await service.play() }
         }
     }

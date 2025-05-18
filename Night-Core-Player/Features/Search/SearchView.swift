@@ -81,7 +81,7 @@ struct SearchView: View {
                 } else if !vm.songs.isEmpty {
                     List(vm.songs, id: \.id) { song in
                         Button {
-                            nav.songIDs = vm.songs.map { $0.id }
+                            nav.songs = vm.songs
                             nav.initialIndex = vm.songs.firstIndex(where: { $0.id == song.id }) ?? 0
                             nav.selectedTab = .player
                         } label: {
@@ -92,7 +92,7 @@ struct SearchView: View {
                     .listStyle(PlainListStyle())
                     .navigationDestination(for: Song.self) { song in
                         MusicPlayerView(
-                            songIDs: vm.songs.map { $0.id },
+                            songs: vm.songs,
                             initialIndex: vm.songs.firstIndex { $0.id == song.id} ?? 0
                         )
                     }

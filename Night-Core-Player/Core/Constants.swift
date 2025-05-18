@@ -5,7 +5,7 @@ public enum Constants {
     
     public enum MusicAPI {
         public static let musicKitSearchLimit: Int = 25
-        public static let musicKitPlaylistLimit: Int = 10
+        public static let playlistsLoadLimit: Int = 10
     }
     
     public enum Timing {

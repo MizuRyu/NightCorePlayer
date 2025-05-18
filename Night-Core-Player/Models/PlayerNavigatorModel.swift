@@ -7,6 +7,6 @@ final class PlayerNavigator: ObservableObject {
     }
     
     @Published var selectedTab: Tab = .search
-    @Published var songIDs: [MusicItemID] = []
+    @Published var songs: [Song] = []
     @Published var initialIndex: Int = 0
 }

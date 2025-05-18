@@ -211,13 +211,13 @@ struct MusicPlayerViewModelTests {
     @Test("loadPlaylist: autoPlay=falseならplay()されないこと")
     func testLoadPlaylist_setQueue() async {
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        let ids: [MusicItemID] = [
-            MusicKit.MusicItemID(rawValue: "A"),
-            MusicKit.MusicItemID(rawValue: "B"),
-            MusicKit.MusicItemID(rawValue: "C")
+        let songs: [Song] = [
+            makeDummySong(id: "1"),
+            makeDummySong(id: "2"),
+            makeDummySong(id: "3")
         ]
         
-        vm.loadPlaylist(ids: ids, startAt: 1, autoPlay: false)
+        vm.loadPlaylist(songs: songs, startAt: 1, autoPlay: false)
         try? await Task.sleep(nanoseconds: 50_000_000)
         
         #expect(svc.setQueueCallArgs.count == 1, "setQueueが呼ばれること")
@@ -228,12 +228,13 @@ struct MusicPlayerViewModelTests {
     @Test("loadPlaylist: autoPlay=trueでplay()が呼ばれること")
     func testLoadPlaylist_autoPlay() async {
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        let ids: [MusicItemID] = [
-            MusicKit.MusicItemID(rawValue: "X"),
-            MusicKit.MusicItemID(rawValue: "Y")
+        let songs: [Song] = [
+            makeDummySong(id: "1"),
+            makeDummySong(id: "2"),
+            makeDummySong(id: "3")
         ]
         
-        vm.loadPlaylist(ids: ids, startAt: 0, autoPlay: true)
+        vm.loadPlaylist(songs: songs, startAt: 0, autoPlay: true)
         try? await Task.sleep(nanoseconds: 50_000_000)
         
         #expect(svc.playCallCount == 1, "play()が呼ばれること")

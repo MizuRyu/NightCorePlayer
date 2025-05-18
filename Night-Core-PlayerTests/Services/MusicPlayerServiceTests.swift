@@ -23,14 +23,16 @@ struct MusicPlayerServiceImplTests {
         return (service, ptr, cancellable)
     }
     
-    @Test("setQueue: IDs と startAt を渡すと currentTime=0・停止状態のスナップショットが送られること")
+    @Test("setQueue: songs と startAt を渡すと currentTime=0・停止状態のスナップショットが送られること")
     func testSetQueue() async {
         // Given
         let (service, ptr, cancel) = MusicPlayerServiceImplTests.setUp()
-        let ids: [MusicItemID] = [MusicKit.MusicItemID(rawValue: "1"), MusicKit.MusicItemID(rawValue:"2")]
-        
+        let songs: [Song] = [
+            makeDummySong(id: "1"),
+            makeDummySong(id: "2")
+        ]
         // When
-        await service.setQueue(ids: ids, startAt: 1)
+        await service.setQueue(songs: songs, startAt: 1)
         
         // Then
         let last = ptr.pointee.last
@@ -46,10 +48,10 @@ struct MusicPlayerServiceImplTests {
     func testSetQueueEmpty() async {
         // Given
         let (service, ptr, cancel) = MusicPlayerServiceImplTests.setUp()
-        let empty: [MusicItemID] = []
+        let empty: [Song] = []
         
         // When
-        await service.setQueue(ids: empty, startAt: 0)
+        await service.setQueue(songs: empty, startAt: 0)
         
         // Then
         #expect(!ptr.pointee.isEmpty, "スナップショットが発行されること")
