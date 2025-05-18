@@ -19,3 +19,37 @@ final class MusicKitServiceMock_Search: MusicKitService {
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist] { fatalError() }
     func fetchPlaylistSongs(in: Playlist) async throws -> [Song] { fatalError() }
 }
+
+final class MusicKitServiceMock_Playlist: MusicKitService {
+    var fetchLibraryPlaylistsCallCount = 0
+    var fetchPlaylistSongsCallCount = 0
+    
+    var fetchLibraryPlaylistsHandler: ((Int) throws -> [Playlist])? = nil
+    
+    func ensureAuth() async throws {}
+    
+    func searchSongs(keyword: String, limit: Int) async throws -> [Song] {
+        fatalError()
+    }
+    
+    func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist] {
+        fetchLibraryPlaylistsCallCount += 1
+        if let handler = fetchLibraryPlaylistsHandler {
+            return try handler(limit)
+        }
+        return []
+    }
+    
+    var result: Result<[Song], Error> = .success([])
+    
+    func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song] {
+        fetchPlaylistSongsCallCount += 1
+        switch result {
+        case .success(let songs):
+            return songs
+        case .failure(let error):
+            throw error
+        }
+    }
+}
+

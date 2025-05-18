@@ -8,7 +8,7 @@ import MediaPlayer
 // MARK: - MusicPlayerService モック実装
 
 final class MusicPlayerServiceMock: MusicPlayerService {
-    private(set) var setQueueCallArgs: [(ids: [MusicItemID], startAt: Int)] = []
+    private(set) var setQueueCallArgs: [(songs: [Song], startAt: Int)] = []
     private(set) var playCallCount = 0
     private(set) var pauseCallCount = 0
     private(set) var nextCallCount = 0
@@ -20,8 +20,8 @@ final class MusicPlayerServiceMock: MusicPlayerService {
         snapshotSubject.eraseToAnyPublisher()
     }
     
-    func setQueue(ids: [MusicItemID], startAt index: Int) async {
-        setQueueCallArgs.append((ids, index))
+    func setQueue(songs: [Song], startAt index: Int) async {
+        setQueueCallArgs.append((songs, index))
         // Snapshot 発行
         snapshotSubject.send(
             .init(title: "-", artist: "-", artwork: Image(systemName: "music.note"),
@@ -71,15 +71,15 @@ final class MusicPlayerServiceMock_ForViewModel: MusicPlayerService {
    private(set) var previousCallCount = 0
    private(set) var seekCallArgs: [TimeInterval] = []
    private(set) var changeRateCallArgs: [Double] = []
-   private(set) var setQueueCallArgs: [(ids: [MusicItemID], startAt: Int)] = []
+   private(set) var setQueueCallArgs: [(songs: [Song], startAt: Int)] = []
    
    let snapshotSubject = PassthroughSubject<MusicPlayerSnapshot, Never>()
    var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> {
        snapshotSubject.eraseToAnyPublisher()
    }
    
-   func setQueue(ids: [MusicItemID], startAt index: Int) async {
-       setQueueCallArgs.append((ids, index))
+   func setQueue(songs: [Song], startAt index: Int) async {
+       setQueueCallArgs.append((songs, index))
    }
    func play() async { playCallCount += 1 }
    func pause() async { pauseCallCount += 1 }
