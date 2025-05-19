@@ -50,12 +50,12 @@ struct SliderTickMarksOverlay: View {
         .allowsHitTesting(false)
     }
 }
-
 struct MusicPlayerView: View {
     // Injection 発生を監視するwrapper
     @ObserveInjection var inject
     @EnvironmentObject private var nav: PlayerNavigator
     @EnvironmentObject private var vm: MusicPlayerViewModel
+    @State private var isQueuePresented = false
     
     init() {
         let clearImage = UIImage()
@@ -67,161 +67,170 @@ struct MusicPlayerView: View {
         UISlider.appearance().setThumbImage(clearImage, for: .normal)
         vm.loadPlaylist(songs: songs, startAt: initialIndex)
     }
-
+    
     var body: some View {
-        VStack(spacing: 16) {
-            // 🚀 タイトル
-            Text("Playing Now")
-                .font(.headline)
-                .padding(.top, 8)
-            Spacer()
-
-            // 🖼️ アートワーク
-            vm.artwork
-                .resizable()
-                .scaledToFit()
-                .frame(width: 300, height: 300)
-                .cornerRadius(12)
-                .padding(.horizontal)
-            // ⏮️ 曲情報 + ⏭️
-            HStack(spacing: 24) {
-                Button { vm.previousTrack() } label: {
-                    Image(systemName: "backward.fill")
-                        .font(.title2)
-                        .foregroundColor(.indigo)
-                }
+        ZStack {
+            VStack(spacing: 16) {
+                // 🚀 タイトル
+                Text("Playing Now")
+                    .font(.headline)
+                    .padding(.top, 8)
+                Spacer()
                 
-                VStack {
-                    let titleHeight = UIFont.preferredFont(forTextStyle: .title3).lineHeight
-                    let subtitleHeight = UIFont.preferredFont(forTextStyle: .subheadline).lineHeight
-                    MarqueeText(
-                        text: vm.title,
-                        font: .title3,
-                        visibleWidth: 100,
-                        speed: 30,
-                        spacingBetweenTexts: 20,
-                        delayBeforeScroll: 3
-                    )
-                    .frame(width: 100, height: titleHeight)
-                    .clipped()
-                    MarqueeText(
-                        text: vm.artist,
-                        font: .subheadline,
-                        visibleWidth: 100,
-                        speed: Constants.MarqueeText.defaultSpeed,
-                        spacingBetweenTexts: Constants.MarqueeText.defaultSpacing,
-                        delayBeforeScroll: Constants.MarqueeText.defaultDelay
-                    )
-                    .foregroundColor(.secondary)
-                    .frame(width: 100, height: subtitleHeight)
-                    .clipped()
-                }
-                Button { vm.nextTrack() } label: {
-                    Image(systemName: "forward.fill")
-                        .font(.title2)
-                        .foregroundColor(.indigo)
-                }
-            }
-            // 📊 シークバー
-            HStack {
-                Text(timeString(from: vm.currentTime))
-                    .font(.caption2)
-                Slider(
-                    value: Binding(
-                        get: { vm.currentTime },
-                        set: { vm.seek(to: $0 ) }
-                    ),
-                    in: 0...vm.duration
-                )
-                .accentColor(.indigo)
-                Text(timeString(from: vm.duration))
-                    .font(.caption2)
-            }
-            .padding(.horizontal)
-            // ▶️ 再生コントロール
-            HStack(spacing: 48) {
-                Button { vm.rewind15() } label: {
-                    Image(systemName: "gobackward.15")
-                        .font(.title2)
-                        .foregroundColor(.indigo)
-                }
-                Button (action: {
-                    vm.playPauseTrack()
-                }) {
-                    Image(systemName: vm.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.largeTitle)
-                        .foregroundColor(.indigo)
-                }
-                Button { vm.forward15() } label: {
-                    Image(systemName: "goforward.15")
-                        .font(.title2)
-                        .foregroundColor(.indigo)
-                }
-            }
-            .padding(.vertical, 8)
-
-            Spacer()
-
-            // ⚙️ 倍速調整
-            VStack(spacing: 10) {
-                Slider(
-                    value: Binding(
-                        get: { vm.rate },
-                        set: { vm.setRate(to: $0) }
-                    ),
-                    in: Constants.MusicPlayer.minPlaybackRate...Constants.MusicPlayer.maxPlaybackRate,
-                    step: 0.01
-                ) { editing in
-                    if !editing { vm.setRate(to: vm.rate) }
-                }
-                
-                .frame(width: 340)
-                .accentColor(.indigo)
-                .overlay(SliderTickMarksOverlay())
-                .padding(.horizontal)
-                
-                
-                HStack(spacing: 12) {
-                    SpeedControlButton(label: "-\(Constants.MusicPlayer.rateStepLarge)", color: .red) {
-                        vm.changeRate(by: -Constants.MusicPlayer.rateStepLarge)
+                // 🖼️ アートワーク
+                vm.artwork
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 300, height: 300)
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                // ⏮️ 曲情報 + ⏭️
+                HStack(spacing: 24) {
+                    Button { vm.previousTrack() } label: {
+                        Image(systemName: "backward.fill")
+                            .font(.title2)
+                            .foregroundColor(.indigo)
                     }
-                    SpeedControlButton(label: "-\(Constants.MusicPlayer.rateStepSmall)", color: .red) {
-                        vm.changeRate(by: -Constants.MusicPlayer.rateStepSmall)
-                    }
-                    Text(String(format: "%.2fx", vm.rate))
-                        .font(.callout)
+                    
+                    VStack {
+                        let titleHeight = UIFont.preferredFont(forTextStyle: .title3).lineHeight
+                        let subtitleHeight = UIFont.preferredFont(forTextStyle: .subheadline).lineHeight
+                        MarqueeText(
+                            text: vm.title,
+                            font: .title3,
+                            visibleWidth: 100,
+                            speed: 30,
+                            spacingBetweenTexts: 20,
+                            delayBeforeScroll: 3
+                        )
+                        .frame(width: 100, height: titleHeight)
+                        .clipped()
+                        MarqueeText(
+                            text: vm.artist,
+                            font: .subheadline,
+                            visibleWidth: 100,
+                            speed: Constants.MarqueeText.defaultSpeed,
+                            spacingBetweenTexts: Constants.MarqueeText.defaultSpacing,
+                            delayBeforeScroll: Constants.MarqueeText.defaultDelay
+                        )
                         .foregroundColor(.secondary)
-                        .padding(.horizontal, 8)
-                        .frame(minWidth: 40)
-                    SpeedControlButton(label: "+\(Constants.MusicPlayer.rateStepSmall)", color: .green) {
-                        vm.changeRate(by: Constants.MusicPlayer.rateStepSmall)
+                        .frame(width: 100, height: subtitleHeight)
+                        .clipped()
                     }
-                    SpeedControlButton(label: "+\(Constants.MusicPlayer.rateStepLarge)", color: .green) {
-                        vm.changeRate(by: Constants.MusicPlayer.rateStepSmall)
+                    Button { vm.nextTrack() } label: {
+                        Image(systemName: "forward.fill")
+                            .font(.title2)
+                            .foregroundColor(.indigo)
                     }
                 }
+                // 📊 シークバー
+                HStack {
+                    Text(timeString(from: vm.currentTime))
+                        .font(.caption2)
+                    Slider(
+                        value: Binding(
+                            get: { vm.currentTime },
+                            set: { vm.seek(to: $0 ) }
+                        ),
+                        in: 0...vm.duration
+                    )
+                    .accentColor(.indigo)
+                    Text(timeString(from: vm.duration))
+                        .font(.caption2)
+                }
+                .padding(.horizontal)
+                // ▶️ 再生コントロール
+                HStack(spacing: 48) {
+                    Button { vm.rewind15() } label: {
+                        Image(systemName: "gobackward.15")
+                            .font(.title2)
+                            .foregroundColor(.indigo)
+                    }
+                    Button (action: {
+                        vm.playPauseTrack()
+                    }) {
+                        Image(systemName: vm.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.largeTitle)
+                            .foregroundColor(.indigo)
+                    }
+                    Button { vm.forward15() } label: {
+                        Image(systemName: "goforward.15")
+                            .font(.title2)
+                            .foregroundColor(.indigo)
+                    }
+                }
+                .padding(.vertical, 8)
+                Spacer()
+                
+                // ⚙️ 倍速調整
+                VStack(spacing: 10) {
+                    Slider(
+                        value: Binding(
+                            get: { vm.rate },
+                            set: { vm.setRate(to: $0) }
+                        ),
+                        in: Constants.MusicPlayer.minPlaybackRate...Constants.MusicPlayer.maxPlaybackRate,
+                        step: 0.01
+                    ) { editing in
+                        if !editing { vm.setRate(to: vm.rate) }
+                    }
+                    
+                    .frame(width: 340)
+                    .accentColor(.indigo)
+                    .overlay(SliderTickMarksOverlay())
+                    .padding(.horizontal)
+                    
+                    
+                    HStack(spacing: 12) {
+                        SpeedControlButton(label: "-\(Constants.MusicPlayer.rateStepLarge)", color: .red) {
+                            vm.changeRate(by: -Constants.MusicPlayer.rateStepLarge)
+                        }
+                        SpeedControlButton(label: "-\(Constants.MusicPlayer.rateStepSmall)", color: .red) {
+                            vm.changeRate(by: -Constants.MusicPlayer.rateStepSmall)
+                        }
+                        Text(String(format: "%.2fx", vm.rate))
+                            .font(.callout)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 8)
+                            .frame(minWidth: 40)
+                        SpeedControlButton(label: "+\(Constants.MusicPlayer.rateStepSmall)", color: .green) {
+                            vm.changeRate(by: Constants.MusicPlayer.rateStepSmall)
+                        }
+                        SpeedControlButton(label: "+\(Constants.MusicPlayer.rateStepLarge)", color: .green) {
+                            vm.changeRate(by: Constants.MusicPlayer.rateStepSmall)
+                        }
+                    }
+                }
+                Spacer()
+                
+                // 再生キュー表示
+                Button(action: {
+                    isQueuePresented = true
+                }) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "list.bullet")
+                            .font(.title2)
+                            .foregroundColor(.indigo)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 30)
+                    .contentShape(Rectangle())
+                }
             }
-            Spacer()
+            .sheet(isPresented: $isQueuePresented) {
+                PlayingQueueView()
+                    .environmentObject(vm)
+            }
+            .onChange(of: nav.songs) { _, songs in
+                vm.loadPlaylist(
+                    songs: songs,
+                    startAt: nav.initialIndex
+                )
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .enableInjection()
         }
-        .onChange(of: nav.songs) { _, songs in
-            vm.loadPlaylist(
-                songs: songs,
-                startAt: nav.initialIndex
-            )
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .enableInjection()
-    }
-
-    // —————————————————————
-    // MARK: – Helpers
-    // —————————————————————
-    private func timeString(from seconds: Double) -> String {
-        let s = Int(seconds)
-        return String(format: "%02d:%02d", s/60, s%60)
     }
 }
-
 //#Preview {
 //    MusicPlayerView()
 //}
