@@ -45,6 +45,7 @@ public enum Constants {
             public static let buttonMinHeight: CGFloat = 42.0
             public static let speedControlSliderWidth: CGFloat = 340.0
             public static let playlistIconWidth: CGFloat = 24.0
+            public static let miniMusicPlayerHeight: CGFloat = 55.0
         }
         
         public enum Padding {
