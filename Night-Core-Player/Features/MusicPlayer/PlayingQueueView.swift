@@ -57,29 +57,47 @@ struct MusicPlayerControlsView: View {
     }
 }
 
+struct NowPlayingHeaderView: View {
+    @EnvironmentObject private var vm: MusicPlayerViewModel
+    
+    var body: some View {
+        HStack {
+            vm.artwork
+                .resizable()
+                .scaledToFit()
+                .frame(width: 70, height: 70)
+                .cornerRadius(6)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(vm.title)
+                    .font(.body)
+                    .lineLimit(1)
+                Text(vm.artist)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+        
+    }
+}
+
 struct PlayingQueueView: View {
     @EnvironmentObject private var vm: MusicPlayerViewModel
     @Environment(\.dismiss) private var dismiss
-    //
-    //    private func move(from src: IndexSet, to dst: Int) {
-    //        guard let i = src.first else { return }
-    //        Task { await vm.moveQueueuItem(from: i, to: dst) }
-    //    }
-    //    private func delete(at offsets: IndexSet) {
-    //        guard let i = offsets.first else { return }
-    //        Task { await vm.removeQueueItem(at: i)}
-    //    }
-    //
-    //    private var remainingTime: String {
-    //        let remaining = vm.queue
-    //            .enumerated()
-    //            .filter { $0.offset >= vm.currentIndex }
-    //            .map(\.element.duration)
-    //            .reduce(0, +) / vm.playbackRate
-    //        let m = Int(remaining) / 60
-    //        let s = Int(remaining) % 60
-    //        return String(format: "%02d:%02d", m, s)
-    //    }
+    private var remainingTime: String {
+        return "16min"
+//        let remaining = vm.musicPlayerQueue
+//            .enumerated()
+//            .filter { $0.offset >= vm.currentIndex }
+//            .map(\.element.duration)
+//            .reduce(0, +) / vm.playbackRate
+//        let m = Int(remaining) / 60
+//        let s = Int(remaining) % 60
+//        return String(format: "%02d:%02d", m, s)
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -92,37 +110,13 @@ struct PlayingQueueView: View {
                 .padding(.bottom, 4)
             
             // 現在再生中の楽曲
-            HStack {
-                Image(systemName: "music.note")
-                    .scaledToFit()
-                    .frame(width: 70, height: 70)
-                    .cornerRadius(6)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.gray, lineWidth: 1)
-                    )
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("currentTitle")
-                        .font(.body)
-                        .lineLimit(1)
-                    Text("currentArtist")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
-                Spacer()
-            }
-            .padding(.horizontal)
-            .padding(.bottom, 8)
-
+            NowPlayingHeaderView()
             // — Header
             HStack {
                 Spacer()
-                //                Text("\(vm.queue.count) items")
-                Text("3 items")
+                Text("\(vm.musicPlayerQueue.count) items")
                 Spacer()
-//                Text(remainingTime)
-                Text("18 min")
+                Text(remainingTime)
                 Spacer()
             }
             .padding(.horizontal)
@@ -137,97 +131,28 @@ struct PlayingQueueView: View {
                         
             // — List
             List {
-//                ForEach(Array(vm.queue.enumerated()), id: \.element.id) { idx, song in
-//                    PlayingQueueItemRowView(
-//                        song: song,
-//                        isCurrent: idx == vm.currentIndex
-//                    )
-//                }
-                //                .onMove(perform: move)
-                //                .onDelete(perform: delete)
-                HStack(spacing: 12) {
-                    // (song.artwork ?? Image(systemName: "music.note"))
-                    Image(systemName: "music.note")
-                        .scaledToFit()
-                        .frame(width: 44, height: 44)
-                        .cornerRadius(6)
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("title")
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                        Text("artistName")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-                    
-                    Spacer()
-                    
-                    Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.secondary)
+                ForEach(Array(vm.musicPlayerQueue.enumerated()), id: \.element.id) { idx, song in
+                    PlayingQueueItemRowView(
+                        song: song,
+                        isCurrent: idx == vm.currentIndex
+                    )
+                    .listRowBackground(
+                        idx == vm.currentIndex
+                        ? Color.indigo.opacity(0.1)
+                        : Color.clear
+                    )
                 }
-                .padding(.vertical, 4)
-                .contentShape(Rectangle())
-                .listRowSeparator(.hidden)
-                HStack(spacing: 12) {
-                    // (song.artwork ?? Image(systemName: "music.note"))
-                    Image(systemName: "music.note")
-                        .scaledToFit()
-                        .frame(width: 44, height: 44)
-                        .cornerRadius(6)
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("title")
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                        Text("artistName")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-                    
-                    Spacer()
-                    
-                    Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.secondary)
+                .onMove { indices, newOffset in
+                    guard let src = indices.first else { return }
+                    let dst = newOffset > src
+                    ? newOffset - 1
+                    : newOffset
+                    vm.moveQueueItem(from: src, to:  dst)
                 }
-                .padding(.vertical, 4)
-                .contentShape(Rectangle())
-                .listRowSeparator(.hidden)
-                HStack(spacing: 12) {
-                    // (song.artwork ?? Image(systemName: "music.note"))
-                    Image(systemName: "music.note")
-                        .scaledToFit()
-                        .frame(width: 44, height: 44)
-                        .cornerRadius(6)
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("title")
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                        Text("artistName")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-                    
-                    Spacer()
-                    
-                    Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.secondary)
-                }
-                .padding(.vertical, 4)
-                .contentShape(Rectangle())
-                .listRowSeparator(.hidden)
+                .deleteDisabled(true)
             }
             .listStyle(.plain)
+            .environment(\.editMode, .constant(.active))
             
             Spacer()
             

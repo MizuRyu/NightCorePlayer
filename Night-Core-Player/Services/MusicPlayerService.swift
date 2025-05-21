@@ -3,7 +3,170 @@ import MediaPlayer
 import MusicKit
 import SwiftUI
 
-public struct MusicPlayerSnapshot: Sendable {
+@MainActor
+public protocol PlayerControllable: Sendable {
+    var playbackState: MPMusicPlaybackState { get }
+    var currentTime: TimeInterval { get }
+    var nowPlayingItem: MPMediaItem? { get }
+    var indexOfNowPlayingItem: Int { get }
+    var playbackRate: Double { get set }
+
+    func play()
+    func pause()
+    func seek(to time: TimeInterval)
+    func skipToNext()
+    func skipToPrevious()
+    func setQueue(with descriptor: MPMusicPlayerPlayParametersQueueDescriptor)
+    func prepend(_ descriptor: MPMusicPlayerPlayParametersQueueDescriptor)
+    func stop()
+}
+
+public enum QueueUpdateAction: Sendable {
+    case playNewQueue // 新しいキューで再生開始
+    case updatePlayerQueueOnly // プレイヤーのキューのみ更新（View）
+    case playCurrentTrack // 現在のトラックを再生
+    case playerShouldStop // プレイヤーを停止
+    case noAction
+}
+
+@MainActor
+public protocol QueueManaging: Sendable {
+    var items: [Song] { get }
+    var currentIndex: Int { get set }
+    var currentSong: Song? { get }
+    var isEmpty: Bool { get }
+    
+    func setQueue(_ songs: [Song], startAt idx: Int) async -> QueueUpdateAction
+    func moveItem(from src: Int, to dst: Int) async -> QueueUpdateAction
+    func removeItem(at idx: Int) async -> (action:QueueUpdateAction, removed: Song?)
+    func insertNext(_ song: Song) async -> (action: QueueUpdateAction, newIndex: Int?)
+    func advanceToNextTrack() async -> Bool
+    func regressToPreviousTrack() async -> Bool
+    func songsForPlayerQueueDescriptor() async -> [Song]
+}
+
+/// 再生操作、プレイヤーの状態取得
+@MainActor
+final class MPMusicPlayerAdapter: PlayerControllable {
+    private let player = MPMusicPlayerController.applicationQueuePlayer
+
+    init(defaultRate: Double) {
+        player.beginGeneratingPlaybackNotifications()
+        player.currentPlaybackRate = Float(defaultRate)
+    }
+
+    deinit {
+        player.endGeneratingPlaybackNotifications()
+    }
+
+    var playbackState: MPMusicPlaybackState { player.playbackState }
+    var currentTime: TimeInterval { player.currentPlaybackTime }
+    var nowPlayingItem: MPMediaItem? { player.nowPlayingItem }
+    var indexOfNowPlayingItem: Int { player.indexOfNowPlayingItem }
+    var playbackRate: Double {
+        get { Double(player.currentPlaybackRate) }
+        set { player.currentPlaybackRate = Float(newValue) }
+    }
+
+    func play() { player.play() }
+    func pause() { player.pause() }
+    func seek(to time: TimeInterval) { player.currentPlaybackTime = time }
+    func skipToNext() { player.skipToNextItem() }
+    func skipToPrevious() { player.skipToPreviousItem() }
+    func setQueue(with descriptor: MPMusicPlayerPlayParametersQueueDescriptor) { player.setQueue(with: descriptor) }
+    func prepend(_ descriptor: MPMusicPlayerPlayParametersQueueDescriptor) { player.prepend(descriptor) }
+    func stop() { player.stop() }
+}
+
+/// 再生キューの論理操作を集約
+@MainActor
+public final class MusicQueueManager: QueueManaging {
+    public var items: [Song] = []
+    public var currentIndex: Int = 0
+    
+    public var isEmpty: Bool { items.isEmpty}
+    public var currentSong: Song? {
+        guard items.indices.contains(currentIndex) else { return nil }
+        return items[currentIndex]
+    }
+    
+    // 指定されたインデックスから開始するように、再生キューを設定
+    public func setQueue(_ songs: [Song], startAt idx: Int) async -> QueueUpdateAction {
+        items = songs
+        if songs.isEmpty {
+            currentIndex = 0
+            return .playerShouldStop
+        }
+        currentIndex = songs.isEmpty ? 0 : min(max(idx, 0), songs.count - 1)
+        return .playNewQueue
+    }
+
+    public func moveItem(from src: Int, to dst: Int) async -> QueueUpdateAction {
+        guard src != dst,
+              items.indices.contains(src),
+              items.indices.contains(dst) else { return .noAction }
+        let song = items.remove(at: src)
+        items.insert(song, at: dst)
+        // 現在再生中のインデックスを調整する
+        if src == currentIndex { currentIndex = dst }
+        else if src < currentIndex && dst >= currentIndex { currentIndex -= 1 }
+        else if src > currentIndex && dst <= currentIndex { currentIndex += 1 }
+        return .updatePlayerQueueOnly
+    }
+
+    public func removeItem(at idx: Int) async -> (action: QueueUpdateAction, removed: Song?) {
+        guard items.indices.contains(idx) else { return (.noAction, nil) }
+        let removed = items.remove(at: idx)
+        if items.isEmpty {
+            currentIndex = 0
+            return (.playerShouldStop, removed)
+        }
+        let oldIndex = currentIndex
+        if idx < oldIndex {
+            currentIndex -= 1
+            return (.updatePlayerQueueOnly, removed)
+        } else if idx == oldIndex {
+            currentIndex = min(oldIndex, items.count - 1)
+            return (.playNewQueue, removed)
+        }
+        return (.updatePlayerQueueOnly, removed)
+    }
+
+    // 現在再生されている次の位置に楽曲を割り込み
+    public func insertNext(_ song: Song) async -> (action: QueueUpdateAction, newIndex: Int?) {
+        if items.isEmpty {
+            items = [song]
+            currentIndex = 0
+            return (.playNewQueue, 0)
+        }
+        let rawIndex = currentIndex + 1
+        let insertAt = min(max(rawIndex, 0), items.count)
+        items.insert(song, at: insertAt)
+        return (.updatePlayerQueueOnly, insertAt)
+    }
+
+    // 次の楽曲に進むことができるかどうか
+    public func advanceToNextTrack() async -> Bool {
+        guard currentIndex + 1 < items.count else { return false }
+        currentIndex += 1
+        return true
+    }
+
+    // 前の楽曲に戻ることができるかどうか
+    public func regressToPreviousTrack() async -> Bool {
+        guard currentIndex > 0 else { return false }
+        currentIndex -= 1
+        return true
+    }
+
+    public func songsForPlayerQueueDescriptor() async -> [Song] {
+        guard !items.isEmpty else { return [] }
+        return Array(items[currentIndex...] + items[..<currentIndex])
+    }
+}
+
+/// 音楽プレイヤーの現在の状態
+public struct MusicPlayerSnapshot: Sendable, Equatable {
     public let title: String
     public let artist: String
     public let artwork: Image
@@ -11,13 +174,23 @@ public struct MusicPlayerSnapshot: Sendable {
     public let duration: TimeInterval
     public let rate: Double
     public let isPlaying: Bool
+    
+    public static let empty = MusicPlayerSnapshot(
+        title: "-",
+        artist: "-",
+        artwork: Image(systemName: "music.note"),
+        currentTime: 0,
+        duration: 0,
+        rate: Constants.MusicPlayer.defaultPlaybackRate,
+        isPlaying: false
+    )
 }
 
+/// Main Protocol
 @MainActor
 protocol MusicPlayerService: Sendable {
     var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> { get }
     
-    func setQueue(songs: [Song], startAt index: Int) async
     func play() async
     func pause() async
     func next() async
@@ -25,226 +198,343 @@ protocol MusicPlayerService: Sendable {
     func seek(to time: TimeInterval) async
     func changeRate(to newRate: Double) async
     
-    func currentSong() async throws -> Song?
-    func currentArtworkImage(width: CGFloat, height: CGFloat) async throws -> Image
+    func setQueue(songs: [Song], startAt index: Int) async
+    func moveItem(from src: Int, to dst: Int) async
+    func removeItem(at idx: Int) async
+    func insertNext(_ song: Song) async
+    func playNow(_ song: Song) async
+        
+    var musicPlayerQueue: [Song] { get }
+    var nowPlayingIndex: Int { get }
+    var playHistory: [Song] { get }
+    func clearHistory()
 }
 
+/// Main
 @MainActor
 public final class MusicPlayerServiceImpl: MusicPlayerService {
-    private let player = MPMusicPlayerController.applicationMusicPlayer
-    private var songIDs: [MusicItemID] = []
-    private var songs: [Song] = []
-    
-    private var storedRate: Double = Constants.MusicPlayer.defaultPlaybackRate
-    private var defaultPlaybackRate: Double = Constants.MusicPlayer.defaultPlaybackRate
-    private var minPlaybackRate: Double = Constants.MusicPlayer.minPlaybackRate
-    private var maxPlaybackRate: Double = Constants.MusicPlayer.maxPlaybackRate
-    
-    private let snapshotSubject = PassthroughSubject<MusicPlayerSnapshot, Never>()
+    @Published public private(set) var snapshot: MusicPlayerSnapshot = .empty
     public var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> {
-        snapshotSubject.eraseToAnyPublisher()
+        $snapshot.eraseToAnyPublisher()
     }
     
-    private var timeCancelable: AnyCancellable?
+    public var musicPlayerQueue: [Song] { queue.items }
+    public var nowPlayingIndex: Int { queue.currentIndex }
+    
+    private var player: PlayerControllable
+    public var queue: QueueManaging
+    private var history: [Song] = []
+    
+    private let defaultPlaybackRate: Double = Constants.MusicPlayer.defaultPlaybackRate
+    var currentPlaybackRate: Double = Constants.MusicPlayer.defaultPlaybackRate
+    private let minPlaybackRate: Double = Constants.MusicPlayer.minPlaybackRate
+    private let maxPlaybackRate: Double = Constants.MusicPlayer.maxPlaybackRate
+    
+    
+    private var timerCancellable: AnyCancellable?
+    private var lastPlayerIndex: Int? = nil
         
-    public init() {
-        player.beginGeneratingPlaybackNotifications()
-        player.currentPlaybackRate = Float(defaultPlaybackRate)
+    
+    public init(
+        playerAdapter : PlayerControllable? = nil,
+        queueManager : QueueManaging? = nil
+    ) {
+        self.player   = playerAdapter ?? MPMusicPlayerAdapter(defaultRate: Constants.MusicPlayer.defaultPlaybackRate)
+        self.queue    = queueManager ?? MusicQueueManager()
         
-        timeCancelable = Timer.publish(every: 0.5, on: .main, in: .common)
+        // 0.5秒ごとにcurrentTimeを更新
+        timerCancellable = Timer.publish(every: 0.5, on: .main, in: .common)
             .autoconnect()
-            .sink { [weak self] _ in
-                guard let self else { return }
-                Task { await self.handleTimerTick() }
-            }
+            .sink { [weak self] _ in self?.updateSnapshot() }
         
-        NotificationCenter.default.addObserver(
-            forName: .MPMusicPlayerControllerPlaybackStateDidChange,
-            object: player,
-            queue: .main
-        ) { [weak self] _ in
-            guard let self else { return }
-            Task { await self.handlePlaybackStateChange() }
-        }
-        
+        // 曲変更通知
         NotificationCenter.default.addObserver(
             forName: .MPMusicPlayerControllerNowPlayingItemDidChange,
-            object: player,
+            object: nil,
             queue: .main
-        ) { [weak self] _ in
-            guard let self else { return }
-            Task { await self.handleNowPlayingItemChange() } }
+        ) { [weak self] _ in self?.trackChanged() }
     }
     
     deinit {
-        player.endGeneratingPlaybackNotifications()
+        timerCancellable?.cancel()
         NotificationCenter.default.removeObserver(self)
     }
     
-    // 0.5秒経過時、再生時間UI更新
-    private func handleTimerTick() async {
-        if player.playbackState == .playing {
-            await publishSnapshot()
-        }
-    }
-    
-    // 再生状態変更時、UI更新
-    private func handlePlaybackStateChange() async {
-        if player.playbackState == .playing {
-            player.currentPlaybackRate = Float(storedRate)
-        }
-        await publishSnapshot()
-    }
-    
-    // 曲変更時、UI更新
-    private func handleNowPlayingItemChange() async {
-        let idx = player.indexOfNowPlayingItem
-        await publishSnapshot()
-    }
-    
-    /// 再生キューのセットと開始位置
-    public func setQueue(songs: [Song], startAt index: Int) async {
-        guard !songs.isEmpty else {
-            self.songs = []
-            await publishSnapshot()
-            return
-        }
-        
-        self.songs = songs
-        self.songIDs = songs.map(\.id)
-        let safeIndex = min(max(index, 0), songIDs.count - 1)
-        
-        let rotatedSongs = Array(songs[safeIndex...] + songs[..<safeIndex])
-        
-        // ライブラリ、カタログ両方に対応するPlayerDescriptorを作成        
-        let playParams: [MPMusicPlayerPlayParameters] = rotatedSongs.compactMap { song in
-            guard let pp = song.playParameters else { return nil }
-            do {
-                let data = try JSONEncoder().encode(pp)
-                return try JSONDecoder().decode(MPMusicPlayerPlayParameters.self, from: data)
-            } catch {
-                return nil
-            }
-        }
-        let descriptor = MPMusicPlayerPlayParametersQueueDescriptor(
-            playParametersQueue: playParams
-            )
-        
-        player.setQueue(with: descriptor)
-
-        await play()
+    public func setQueue(songs: [Song], startAt idx: Int) async {
+        let action = await queue.setQueue(songs, startAt: idx)
+        await handleQueueAction(action)
     }
     
     public func play() async {
         player.play()
-        player.currentPlaybackRate = Float(storedRate)
-        await publishSnapshot()
+        player.playbackRate = currentPlaybackRate
+        
+        updateSnapshot()
     }
     public func pause() async {
-        player.currentPlaybackRate = Float(storedRate)
         player.pause()
-        await publishSnapshot()
+        updateSnapshot()
 
     }
     public func next() async {
-        player.skipToNextItem()
-        await publishSnapshot()
-
+        let advanced = await queue.advanceToNextTrack()
+        guard advanced else { return }
+        await handleQueueAction(.playNewQueue)
     }
+    
     public func previous() async {
-        player.skipToPreviousItem()
-        await publishSnapshot()
-
+        let regressed = await queue.regressToPreviousTrack()
+        guard regressed else { return }
+        await handleQueueAction(.playNewQueue)
     }
+
+    // 自動スキップ時
     public func seek(to time: TimeInterval) async {
-        let tmp = min(max(time, 0), player.nowPlayingItem?.playbackDuration ?? 0)
-        player.currentPlaybackTime = tmp
-        if tmp >= (player.nowPlayingItem?.playbackDuration ?? 0) - 0.05, songIDs.count > 1 {
-            await next()
-            return
-        }
-        else {
-            await publishSnapshot()
-        }
+        let dur = queue.currentSong?.duration ?? player.nowPlayingItem?.playbackDuration ?? 0
+        let t   = Swift.min(Swift.max(time, 0), dur)
+        player.seek(to: t)
+        updateSnapshot()
     }
     public func changeRate(to newRate: Double) async {
-        storedRate = min(max(newRate, minPlaybackRate), maxPlaybackRate)
-        player.currentPlaybackRate = Float(storedRate)
-        await publishSnapshot()
+        currentPlaybackRate = Swift.min(Swift.max(newRate, minPlaybackRate), maxPlaybackRate)
+        player.playbackRate = currentPlaybackRate
+        updateSnapshot()
     }
-    
-    /// カタログから現在トラックのメタ情報を取得
-    public func currentSong() async throws -> Song? {
-        let playerIndex = player.indexOfNowPlayingItem
-        guard songIDs.indices.contains(playerIndex) else { return nil }
-        let req = MusicCatalogResourceRequest<Song>(matching: \.id, equalTo: songIDs[playerIndex])
-        return try await req.response().items.first
+
+    public func moveItem(from src: Int, to dst: Int) async {
+        let _ = await queue.moveItem(from: src, to: dst)
     }
-    
-    public func currentArtworkImage(
-        width: CGFloat = Constants.MusicPlayer.artworkSize,
-        height: CGFloat = Constants.MusicPlayer.artworkSize
-    ) async throws -> Image {
-        guard let song = try await currentSong(),
-              let url = song.artwork?.url(width: Int(width), height: Int(height)),
-              let (data, _) = try? await URLSession.shared.data(from: url),
-              let uiImg = UIImage(data: data)
-        else {
-            return Image(systemName: "music.note")
+
+    public func removeItem(at idx: Int) async {
+        let (action, _) = await queue.removeItem(at: idx)
+        await handleQueueAction(action)
+    }
+
+    public func playNow(_ song: Song) async {
+        let action = await queue.setQueue([song], startAt: 0)
+        await handleQueueAction(action)
+    }
+
+    public func insertNext(_ song: Song) async {
+        let (action, _) = await queue.insertNext(song)
+        if action == .playNewQueue {
+            // キューが空である場合
+            await handleQueueAction(action)
+            return
         }
-        return Image(uiImage: uiImg)
+        if let pp = try? makePlayParameters(for: song) {
+            player.prepend(MPMusicPlayerPlayParametersQueueDescriptor(playParametersQueue: [pp]))
+        }
     }
     
-    private func publishSnapshot() async {
-        let currentTime = player.currentPlaybackTime
-        let duration    = player.nowPlayingItem?.playbackDuration ?? 0
-        let isPlaying   = player.playbackState == .playing
-        let rate        = storedRate
-        
-        // MPMediaItem (ローカル) からメタ情報取得
-        var title   = "-"
-        var artist  = "-"
-        var artwork = Image(systemName: "music.note")
-        var hasLocalArtwork = false
-        
-        if let mediaItem = player.nowPlayingItem {
-            title  = mediaItem.title  ?? "-"
-            artist = mediaItem.artist ?? "-"
-            
-            if let art = mediaItem.artwork?
-                .image(at: CGSize(
-                    width: Constants.MusicPlayer.artworkSize,
-                    height: Constants.MusicPlayer.artworkSize
-                )) {
-                artwork = Image(uiImage: art)
-                hasLocalArtwork = true
+    public var playHistory: [Song] { history }
+    
+    public func clearHistory() {
+        history.removeAll()
+    }
+
+    private func handleQueueAction(_ action: QueueUpdateAction) async {
+        switch action {
+            case .playNewQueue:
+                if let descriptor = try? buildQueueDescriptor(from: await queue.items, startAt: queue.currentIndex) {
+                    player.setQueue(with: descriptor)
+                    player.play()
+                    player.playbackRate = currentPlaybackRate
+                } else {
+                    player.stop()
+                }
+            updateSnapshot()
+            case .updatePlayerQueueOnly:
+            if let descriptor = try? buildQueueDescriptor(from: await queue.items, startAt: queue.currentIndex) {
+
+                let currentPos = player.currentTime
+                player.setQueue(with: descriptor)
+                player.seek(to: currentPos)
+                
+                player.playbackRate = currentPlaybackRate
             }
+            updateSnapshot()
+            case .playCurrentTrack:
+                player.play()
+                updateSnapshot()
+            case .playerShouldStop:
+                player.stop()
+                updateSnapshot()
+            case .noAction:
+                break
+        }
+    }
+    
+    private func updateSnapshot() {
+        let item = player.nowPlayingItem
+        let song = queue.currentSong
+        let title = item?.title ?? song?.title ?? "-"
+        let artist = item?.artist ?? song?.artistName ?? "-"
+        let duration = item?.playbackDuration ?? song?.duration ?? 0
+        let currentTime = player.currentTime
+        let isPlaying = player.playbackState == .playing
+        let rate = currentPlaybackRate
+        
+        guard let song = song else {
+            snapshot = MusicPlayerSnapshot.empty
+            return
         }
         
-        // ローカルにない、カタログ楽曲である場合、network経由で取得
-        if !hasLocalArtwork {
-            if let song = try? await currentSong(),
-               let url  = song.artwork?.url(
-                width: Int(Constants.MusicPlayer.artworkSize),
-                height: Int(Constants.MusicPlayer.artworkSize)
-               ),
-               let (data, _) = try? await URLSession.shared.data(from: url),
-               let uiImg     = UIImage(data: data)
-            {
-                artwork = Image(uiImage: uiImg)
-            }
+        struct Holder { static var lastSongID: String? = nil }
+        let currentID = song.id.rawValue
+        let isNewSong = (Holder.lastSongID != currentID)
+        if isNewSong {
+            Holder.lastSongID = currentID
         }
         
-        snapshotSubject.send(
-            .init(
-                title: title,
-                artist: artist,
-                artwork: artwork,
+        let artworkToShow: Image = isNewSong
+        ? Image(systemName: "music.note")
+        : snapshot.artwork
+        
+        snapshot = MusicPlayerSnapshot(
+            title:       title,
+            artist:      artist,
+            artwork:     artworkToShow,
+            currentTime: currentTime,
+            duration:    duration,
+            rate:        rate,
+            isPlaying:   isPlaying
+        )
+        
+        guard isNewSong else { return }
+        Task { [weak self] in
+            guard let self = self else { return }
+            let fetchedArt = await self.getArtwork(for: song)
+            let updated = MusicPlayerSnapshot(
+                title:       title,
+                artist:      artist,
+                artwork:     fetchedArt,
                 currentTime: currentTime,
                 duration:    duration,
                 rate:        rate,
                 isPlaying:   isPlaying
             )
-        )
+            self.snapshot = updated
+        }
+    }
+
+    private func trackChanged() {
+        let playerIndex = player.indexOfNowPlayingItem
+        let currentQueueIndex = queue.currentIndex
+        
+        guard playerIndex != lastPlayerIndex else { return }
+        lastPlayerIndex = playerIndex
+
+        if playerIndex >= 0 && playerIndex < queue.items.count {
+            let actualIndex = (queue.currentIndex + playerIndex) % queue.items.count
+            
+            if actualIndex != queue.currentIndex {
+                queue.currentIndex = actualIndex
+            } else {
+                if let now = player.nowPlayingItem {
+                    let pid = now.persistentID
+                    if let idx = queue.items.firstIndex(where: { song in
+                        let songId = UInt64(song.id.rawValue)
+                        return songId == pid
+                    }) {
+                        if idx != queue.currentIndex {
+                            queue.currentIndex = idx
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 履歴更新
+        if let current = queue.currentSong {
+            if history.last?.id != current.id {
+                history.append(current)
+                let titles = history.map{ $0.title }
+            }
+        }
+        
+        updateSnapshot()
+    }
+
+    // プレイリスト（ローカル）からPlayeParametersを抽出するため
+    private func makePlayParameters(for song: Song) throws -> MPMusicPlayerPlayParameters? {
+        guard let playParams = song.playParameters else {
+            return nil
+        }
+        // 冗長だがプレイリストの楽曲からPlayParametersを生成するために必要
+        let data = try JSONEncoder().encode(playParams)
+        let pp   = try JSONDecoder().decode(MPMusicPlayerPlayParameters.self, from: data)
+        return pp
+    }
+    // 指定位置の楽曲を先頭に配置する
+    private func buildQueueDescriptor(from songs: [Song], startAt index: Int) throws -> MPMusicPlayerPlayParametersQueueDescriptor {
+        guard !songs.isEmpty, songs.indices.contains(index) else {
+            throw NSError(domain: "MusicPlayerUtils", code: -2, userInfo: nil)
+ }
+        let rotated = Array(songs[index...] + songs[..<index])
+        let params = try rotated.compactMap { try makePlayParameters(for: $0) }
+        guard !params.isEmpty else {
+            throw NSError(domain: "MusicPlayerUtils", code: -2, userInfo: nil)
+ }
+        return MPMusicPlayerPlayParametersQueueDescriptor(playParametersQueue: params)
+    }
+    
+    /// カタログから楽曲詳細を取得
+    private func fetchSongDetails(_ song: Song) async -> Song {
+        let raw = song.id.rawValue
+        // ライブラリ（プレイリスト）楽曲はカタログAPIを叩かない
+        if raw.hasPrefix("i.") {
+            return song
+        }
+        do {
+            let req  = MusicCatalogResourceRequest<Song>(matching:\.id, equalTo: song.id)
+            let resp = try await req.response()
+            let first = resp.items.first ?? song
+            return first
+        } catch {
+            print("⚠️ fetchSongDetails error: \(error.localizedDescription)")
+            return song
+        }
+    }
+    
+    private func fetchArtwork(from art: Artwork?) async -> Image {
+        let placeholder = Image(systemName: "music.note")
+        guard let art = art,
+              let url = art.url(width: Int(Constants.MusicPlayer.artworkSize),
+                                height: Int(Constants.MusicPlayer.artworkSize))
+        else {
+            return placeholder
+        }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let ui = UIImage(data: data) {
+                return Image(uiImage: ui)
+            } else {
+            }
+        } catch {
+            print("⚠️ Artwork Download Error: \(error.localizedDescription)")
+        }
+        return placeholder
+    }
+    
+    /// カタログまたはローカルライブラリのartworkを取得
+    private func getArtwork(for song: Song?) async -> Image {
+        let placeholder = Image(systemName: "music.note")
+        guard let song = song else {
+            return placeholder
+        }
+        
+        let detailed = await fetchSongDetails(song)
+        let fromCatalog = await fetchArtwork(from: detailed.artwork)
+        if fromCatalog != placeholder {
+            return fromCatalog
+        }
+        
+        let fromOriginal = await fetchArtwork(from: song.artwork)
+        if fromOriginal != placeholder {
+            return fromOriginal
+        }
+        
+        return placeholder
     }
 }

@@ -5,7 +5,9 @@ import Combine
 
 @MainActor
 final class MusicPlayerViewModel: ObservableObject {
-    private var songs: [Song] = []
+    @Published private(set) var musicPlayerQueue: [Song] = []
+    @Published private(set) var currentIndex: Int = 0
+    @Published private(set) var history: [Song] = []
     
     @Published private(set) var title: String      = "—"
     @Published private(set) var artist: String     = "—"
@@ -25,6 +27,35 @@ final class MusicPlayerViewModel: ObservableObject {
         self.service = service
         bindService()
     }
+    
+    func setQueue(_ songs: [Song], startAt idx: Int) {
+        Task { await service.setQueue(songs: songs, startAt: idx) }
+    }
+    func moveQueueItem(from src: Int, to dst: Int) {
+        Task {
+            await service.moveItem(from: src, to: dst)
+        }
+    }
+    func removeQueueItem(at idx: Int) {
+        Task { await service.removeItem(at: idx) }
+    }
+    func playNow(_ song: Song) {
+        Task {
+            await service.playNow(song)
+        }
+    }
+    func insertNext(_ song: Song) {
+        Task {
+            await service.insertNext(song)
+            self.musicPlayerQueue = service.musicPlayerQueue
+            self.currentIndex = service.nowPlayingIndex
+        }
+    }
+    func clearHistory() {
+        Task { await service.clearHistory() }
+    }
+    
+    
     func playPauseTrack()  { Task { await isPlaying ? service.pause() : service.play() } }
     func nextTrack()       { Task { await service.next()     } }
     func previousTrack()   { Task { await service.previous() } }
@@ -73,6 +104,9 @@ final class MusicPlayerViewModel: ObservableObject {
                 self.duration    = snap.duration
                 self.rate        = snap.rate
                 self.isPlaying   = snap.isPlaying
+                self.musicPlayerQueue = self.service.musicPlayerQueue
+                self.currentIndex = self.service.nowPlayingIndex
+                self.history = self.service.playHistory
             }
             .store(in: &cancellables)
     }
