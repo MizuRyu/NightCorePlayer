@@ -19,6 +19,15 @@ final class MusicPlayerViewModel: ObservableObject {
 
     private var skipSeconds: Double = Constants.MusicPlayer.skipSeconds
     
+    var remainingTimeString: String {
+        Self.formatRemainingTime(
+            currentTime: currentTime,
+            duration: duration,
+            upcomingDurations: upcomingTracksDuration,
+            rate: rate
+            )
+    }
+    
     // MARK: - Dependencies
     private let service: MusicPlayerService
     private var cancellables = Set<AnyCancellable>()
@@ -92,6 +101,27 @@ final class MusicPlayerViewModel: ObservableObject {
             await service.setQueue(songs: songs, startAt: index)
             if autoPlay { await service.play() }
         }
+    }
+    
+    private var upcomingTracksDuration: Double {
+        musicPlayerQueue
+            .dropFirst(currentIndex + 1)
+            .map(\.duration!)
+            .reduce(0, +)
+    }
+
+    static func formatRemainingTime(
+        currentTime: Double,
+        duration: Double,
+        upcomingDurations: Double,
+        rate: Double
+    ) -> String {
+        let currentRemaining = max(duration - currentTime, 0)
+        let safeRate = rate > 0 ? rate : 1.0
+        let totalSec = (currentRemaining + upcomingDurations) / safeRate
+        let m = Int(totalSec) / 60
+        let s = Int(totalSec) % 60
+        return String(format: "%02d:%02d", m, s)
     }
     
     // MARK: - Private

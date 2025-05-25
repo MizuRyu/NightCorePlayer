@@ -375,4 +375,70 @@ struct MusicPlayerViewModelTests {
         #expect(vm.isPlaying   == true,                     "isPlaying更新")
         cancel.cancel()
     }
+    
+    @Test("formatRemainingTime: 現在トラックのみ、rate=1.0 のとき正しく計算されること")
+    func testFormatRemainingTime_onlyCurrent() {
+        // 残り = 90 - 30 = 60 秒 → rate=1 で 60 秒 → "01:00"
+        let result = MusicPlayerViewModel.formatRemainingTime(
+            currentTime: 30,
+            duration: 90,
+            upcomingDurations: 0,
+            rate: 1.0
+        )
+        #expect(result == "01:00", "残り60秒が “01:00” になる")
+    }
+    
+    @Test("formatRemainingTime: 今後のトラックも含め、rate=2.0 のとき正しく計算されること")
+    func testFormatRemainingTime_withUpcomingAndRate() {
+        // 現在残り = 70 - 10 = 60 秒、今後 120 秒 → 合計 180 秒
+        // rate=2 で 90 秒 → "01:30"
+        let result = MusicPlayerViewModel.formatRemainingTime(
+            currentTime: 10,
+            duration: 70,
+            upcomingDurations: 120,
+            rate: 2.0
+        )
+        #expect(result == "01:30", "180 秒 / rate 2 = 90 秒 が “01:30” になる")
+    }
+    
+    @Test("formatRemainingTime: rate=0 のときゼロ除算せずに安全に動くこと")
+    func testFormatRemainingTime_zeroRate() {
+        // (50 - 10) + 30 = 70 秒 → rate がクリップされて 70 秒 → "01:10"
+        let result = MusicPlayerViewModel.formatRemainingTime(
+            currentTime: 10,
+            duration: 50,
+            upcomingDurations: 30,
+            rate: 0.0
+        )
+        #expect(result == "01:10", "rate=0 でも “01:10” になる")
+    }
+    
+    @Test("remainingTimeString: ServiceSnapshot を受け取ったあと ViewModel.remainingTimeString が正しく更新されること")
+    func testRemainingTimeString_afterSnapshot() async {
+        let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
+        // モックサービスにキューとインデックスをセット
+        let songs = [
+            makeDummySong(id: "A", duration: 60),
+            makeDummySong(id: "B", duration: 120)
+        ]
+        svc.musicPlayerQueue = songs
+        svc.nowPlayingIndex = 0
+        
+        // スナップショット送信: currentTime=30, duration=60, rate=1.5
+        svc.snapshotSubject.send(
+            MusicPlayerSnapshot(
+                title: "", artist: "",
+                artwork: Image(systemName: "music.note"),
+                currentTime: 30,
+                duration: 60,
+                rate: 1.5,
+                isPlaying: false
+            )
+        )
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        
+        // 残り = (60-30) + 120 = 150 秒 → rate=1.5 で 100 秒 → "01:40"
+        #expect(vm.remainingTimeString == "01:40", "remainingTimeString が “01:40” になる")
+        cancel.cancel()
+    }
 }

@@ -87,17 +87,6 @@ struct NowPlayingHeaderView: View {
 struct PlayingQueueView: View {
     @EnvironmentObject private var vm: MusicPlayerViewModel
     @Environment(\.dismiss) private var dismiss
-    private var remainingTime: String {
-        return "16min"
-//        let remaining = vm.musicPlayerQueue
-//            .enumerated()
-//            .filter { $0.offset >= vm.currentIndex }
-//            .map(\.element.duration)
-//            .reduce(0, +) / vm.playbackRate
-//        let m = Int(remaining) / 60
-//        let s = Int(remaining) % 60
-//        return String(format: "%02d:%02d", m, s)
-    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -116,7 +105,7 @@ struct PlayingQueueView: View {
                 Spacer()
                 Text("\(vm.musicPlayerQueue.count) items")
                 Spacer()
-                Text(remainingTime)
+                Text(vm.remainingTimeString)
                 Spacer()
             }
             .padding(.horizontal)
