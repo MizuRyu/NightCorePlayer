@@ -10,6 +10,9 @@ public protocol PlayerControllable: Sendable {
     var nowPlayingItem: MPMediaItem? { get }
     var indexOfNowPlayingItem: Int { get }
     var playbackRate: Double { get set }
+    
+    var shuffleMode: MPMusicShuffleMode { get set }
+    var repeatMode: MPMusicRepeatMode { get set }
 
     func play()
     func pause()
@@ -53,6 +56,8 @@ final class MPMusicPlayerAdapter: PlayerControllable {
     init(defaultRate: Double) {
         player.beginGeneratingPlaybackNotifications()
         player.currentPlaybackRate = Float(defaultRate)
+        player.shuffleMode = .off
+        player.repeatMode = .none
     }
 
     deinit {
@@ -66,6 +71,14 @@ final class MPMusicPlayerAdapter: PlayerControllable {
     var playbackRate: Double {
         get { Double(player.currentPlaybackRate) }
         set { player.currentPlaybackRate = Float(newValue) }
+    }
+    var shuffleMode: MPMusicShuffleMode {
+        get { player.shuffleMode }
+        set { player.shuffleMode = newValue }
+    }
+    var repeatMode: MPMusicRepeatMode {
+        get { player.repeatMode }
+        set { player.repeatMode = newValue }
     }
 
     func play() { player.play() }
@@ -203,6 +216,11 @@ protocol MusicPlayerService: Sendable {
     func removeItem(at idx: Int) async
     func insertNext(_ song: Song) async
     func playNow(_ song: Song) async
+
+    var isShuffled: Bool { get }
+    var repeatMode: Constants.RepeatMode { get }
+    func toggleShuffle() async
+    func cycleRepeatMode() async
         
     var musicPlayerQueue: [Song] { get }
     var nowPlayingIndex: Int { get }
@@ -214,6 +232,11 @@ protocol MusicPlayerService: Sendable {
 @MainActor
 public final class MusicPlayerServiceImpl: MusicPlayerService {
     @Published public private(set) var snapshot: MusicPlayerSnapshot = .empty
+    @Published public private(set) var isShuffled: Bool = false
+    @Published public private(set) var repeatMode: Constants.RepeatMode = .none
+
+    private var originalQueue: [Song] = []
+    
     public var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> {
         $snapshot.eraseToAnyPublisher()
     }
@@ -331,6 +354,33 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     
     public func clearHistory() {
         history.removeAll()
+    }
+    
+    public func toggleShuffle() async {
+        let newShuffle: MPMusicShuffleMode = (player.shuffleMode == .off) ? .songs : .off
+        player.shuffleMode = newShuffle
+        isShuffled = (newShuffle != .off)
+    }
+    
+    public func cycleRepeatMode() async {
+        let next: MPMusicRepeatMode
+        switch player.repeatMode {
+        case .none: next = .all
+        case .all:  next = .one
+        case .one:  next = .none
+        case .default: next = .none
+        @unknown default: next = .none
+        }
+        player.repeatMode = next
+        
+        // UI 用 enum にマッピング
+        switch next {
+        case .none: repeatMode = .none
+        case .all:  repeatMode = .all
+        case .one:  repeatMode = .one
+        case .default: repeatMode = .none
+        @unknown default: repeatMode = .none
+        }
     }
 
     private func handleQueueAction(_ action: QueueUpdateAction) async {

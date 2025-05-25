@@ -11,6 +11,9 @@ final class PlayerControllableMock: PlayerControllable {
     var nowPlayingItem: MPMediaItem? = nil
     var indexOfNowPlayingItem: Int = 0
     var playbackRate: Double = 1.0
+    
+    var shuffleMode: MPMusicShuffleMode = .off
+    var repeatMode: MPMusicRepeatMode = .none
 
     // 呼び出し回数／引数を記録
     private(set) var playCount = 0
@@ -168,7 +171,6 @@ final class MusicPlayerServiceMock: MusicPlayerService {
     private(set) var removeArgs: [Int]         = []
     private(set) var playNowArgs: [Song]       = []
     private(set) var insertNextArgs: [Song]    = []
-
     // テストから send できる Subject
     public let snapshotSubject = PassthroughSubject<MusicPlayerSnapshot, Never>()
     public var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> {
@@ -179,6 +181,11 @@ final class MusicPlayerServiceMock: MusicPlayerService {
     public var musicPlayerQueue: [Song] = []
     public var nowPlayingIndex: Int     = 0
     public var playHistory: [Song]      = []
+    
+    // ★ ここを追加
+    public private(set) var isShuffled: Bool       = false
+    public private(set) var repeatMode: Constants.RepeatMode = .none
+    
 
     public func setQueue(songs: [Song], startAt index: Int) async {
         setQueueArgs.append((songs, index))
@@ -245,6 +252,18 @@ final class MusicPlayerServiceMock: MusicPlayerService {
     public func clearHistory() {
         clearHistoryCounted += 1
         playHistory.removeAll()
+    }
+    
+    public func toggleShuffle() async {
+        isShuffled.toggle()
+    }
+    
+    public func cycleRepeatMode() async {
+        switch repeatMode {
+        case .none: repeatMode = .all
+        case .all:  repeatMode = .one
+        case .one:  repeatMode = .none
+        }
     }
 }
 

@@ -540,4 +540,39 @@ struct MusicPlayerServiceImplTests {
         // Then: playHistory.countが1になる
         #expect(service.playHistory.count == 1, "履歴が1件追加される")
     }
+    @Test("toggleShuffle: shuffleModeが切り替わること")
+    func testToggleShuffle() async {
+        let sut = SUT.make()
+        // 初期状態はoff
+        #expect(sut.adapter.shuffleMode == .off)
+        #expect(!sut.service.isShuffled)
+        // トグル ON
+        await sut.service.toggleShuffle()
+        #expect(sut.adapter.shuffleMode == .songs, "shuffleMode が .songs になる")
+        #expect(sut.service.isShuffled, "isShuffled が true になる")
+        // トグル OFF
+        await sut.service.toggleShuffle()
+        #expect(sut.adapter.shuffleMode == .off, "shuffleMode が .off に戻る")
+        #expect(!sut.service.isShuffled, "isShuffled が false に戻る")
+    }
+    
+    @Test("cycleRepeatMode: none→all→one→none の順に切り替わること")
+    func testCycleRepeatMode() async {
+        let sut = SUT.make()
+        // 初期状態は.none
+        #expect(sut.adapter.repeatMode == .none)
+        #expect(sut.service.repeatMode == .none)
+        // none → all
+        await sut.service.cycleRepeatMode()
+        #expect(sut.adapter.repeatMode == .all,  "adapter.repeatMode が .all に")
+        #expect(sut.service.repeatMode == .all,  "service.repeatMode が .all に")
+        // all → one
+        await sut.service.cycleRepeatMode()
+        #expect(sut.adapter.repeatMode == .one,  "adapter.repeatMode が .one に")
+        #expect(sut.service.repeatMode == .one,  "service.repeatMode が .one に")
+        // one → none
+        await sut.service.cycleRepeatMode()
+        #expect(sut.adapter.repeatMode == .none, "adapter.repeatMode が .none に戻る")
+        #expect(sut.service.repeatMode == .none, "service.repeatMode が .none に戻る")
+    }
 }

@@ -43,7 +43,11 @@ struct PlaylistDetailView: View {
                     // Action Buttons
                     HStack(spacing: 16) {
                         Button {
-                            // TODO: 再生処理
+                            playerVM.loadPlaylist(
+                                songs: vm.songs,
+                                startAt: 0,
+                                autoPlay: true
+                            )
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "play.fill")
@@ -57,7 +61,11 @@ struct PlaylistDetailView: View {
                         .cornerRadius(8)
 
                         Button {
-                            // TODO: シャッフル処理
+                            playerVM.loadPlaylist(
+                                songs: vm.songs.shuffled(),
+                                startAt: 0,
+                                autoPlay: true
+                            )
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "shuffle")
