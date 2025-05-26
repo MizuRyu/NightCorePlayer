@@ -27,7 +27,6 @@ public protocol PlayerControllable: Sendable {
 public enum QueueUpdateAction: Sendable {
     case playNewQueue // 新しいキューで再生開始
     case updatePlayerQueueOnly // プレイヤーのキューのみ更新（View）
-    case playCurrentTrack // 現在のトラックを再生
     case playerShouldStop // プレイヤーを停止
     case noAction
 }
@@ -327,6 +326,8 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
 
     public func moveItem(from src: Int, to dst: Int) async {
         let _ = await queue.moveItem(from: src, to: dst)
+        needsQueueRefresh = true
+        updateSnapshot()
     }
 
     public func removeItem(at idx: Int) async {
@@ -338,7 +339,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         case .updatePlayerQueueOnly:
             needsQueueRefresh = true
             updateSnapshot()
-        case .noAction, .playCurrentTrack:
+        case .noAction:
             break
         }
     }
@@ -414,9 +415,6 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
                 player.playbackRate = currentPlaybackRate
             }
             updateSnapshot()
-            case .playCurrentTrack:
-                player.play()
-                updateSnapshot()
             case .playerShouldStop:
                 player.stop()
                 updateSnapshot()
@@ -481,7 +479,6 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     private func trackChanged() {
         let playerIndex = player.indexOfNowPlayingItem
         let currentQueueIndex = queue.currentIndex
-
         if needsQueueRefresh {
             needsQueueRefresh = false
             Task { [weak self] in

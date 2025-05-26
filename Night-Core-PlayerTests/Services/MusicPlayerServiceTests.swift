@@ -111,6 +111,24 @@ struct MusicQueueManagerTests {
         #expect(mgr.items.map(\.id.rawValue) == ["B","C","A"])
     }
 
+    @Test("moveItem: 非再生中の曲を移動すると即時再生操作は呼ばれず、フラグだけ立つ")
+    func testMoveItemNonCurrent() async {
+        let sut = SUT.make()
+        let A = makeDummySong(id: "A")
+        let B = makeDummySong(id: "B")
+        let C = makeDummySong(id: "C")
+        // A(0) 再生中
+        await sut.service.setQueue(songs: [A,B,C], startAt: 0)
+        let beforeSet = sut.adapter.setQueueDescriptors.count
+        let beforeSeek = sut.adapter.seekArgs.count
+        // C(2) を 1 に移動
+        await sut.service.moveItem(from: 2, to: 1)
+        // すぐには adapter.setQueue も seek も呼ばれない
+        #expect(sut.adapter.setQueueDescriptors.count == beforeSet)
+        #expect(sut.adapter.seekArgs.count == beforeSeek)
+    }
+
+
     @Test("removeItem: 1曲のみなら playerShouldStop")
     func testRemoveItemSingle() async {
         // Given: 1曲だけのキュー
@@ -139,6 +157,37 @@ struct MusicQueueManagerTests {
         #expect(mgr.items.map(\.id.rawValue) == ["A","C"])
         #expect(mgr.currentIndex == 1)
     }
+
+    @Test("removeItem: 範囲外のインデックスなら noAction で何も呼ばれない")
+    func testRemoveItemOutOfBounds() async {
+        let A = makeDummySong(id: "A")
+        let B = makeDummySong(id: "B")
+        let C = makeDummySong(id: "C")
+        
+        let adapter   = PlayerControllableMock()
+        let queueMock = QueueManagingMock()
+        queueMock.items = [A, B, C]
+        queueMock.currentIndex = 0
+        
+        let service = MusicPlayerServiceImpl(
+            playerAdapter: adapter,
+            queueManager:  queueMock
+        )
+        
+        // 4) 前後のコール数をキャプチャ
+        let beforeSet  = adapter.setQueueDescriptors.count
+        let beforeStop = adapter.stopCount
+        
+        // — 実行 —
+        await service.removeItem(at: 5)   // 範囲外
+        
+        // — 検証 —
+        #expect(adapter.setQueueDescriptors.count == beforeSet,
+                "範囲外なら setQueue(with:) が呼ばれない")
+        #expect(adapter.stopCount == beforeStop,
+                "範囲外なら stop() も呼ばれない")
+    }
+
 
     @Test("insertNext: 空キューに追加すると playNewQueue")
     func testInsertNextEmpty() async {
@@ -470,21 +519,38 @@ struct MusicPlayerServiceImplTests {
         #expect(sut.adapter.playCount == beforePlay + 1)
     }
 
-    @Test("removeItem: 非再生中の曲を削除するとキューのみ更新（adapter.setQueue）のみ呼ばれること")
-    func testRemoveItemNonCurrent() async {
-        // Given: 3曲セット、A(0)が再生中
-        let sut = SUT.make()
-        let A = makeDummySong(id: "A")
-        let B = makeDummySong(id: "B")
-        let C = makeDummySong(id: "C")
-        await sut.service.setQueue(songs: [A,B,C], startAt: 0)
-        let beforeSet = sut.adapter.setQueueDescriptors.count
+    @Test("removeItem: 非再生中の曲を削除すると、trackChanged 後に adapter.setQueue + seek が呼ばれる")
+    func testRemoveItemNonCurrentWithTrackChanged() async {
+        //-- Setup
+        let sut   = SUT.make()
+        let A     = makeDummySong(id: "A")
+        let B     = makeDummySong(id: "B")
+        let C     = makeDummySong(id: "C")
+        // A(0) を再生中としてセット
+        await sut.service.setQueue(songs: [A, B, C], startAt: 0)
+        
+        let beforeSet  = sut.adapter.setQueueDescriptors.count
         let beforeSeek = sut.adapter.seekArgs.count
-        // When: C(2)を削除
+        
+        //-- 実行：非再生中の曲を削除（フラグだけ立つ）
         await sut.service.removeItem(at: 2)
-        // Then: setQueueDescriptorsが1増・seek(0)が呼ばれる
-        #expect(sut.adapter.setQueueDescriptors.count == beforeSet + 1, "adapter.setQueue が呼ばれる")
-        #expect(sut.adapter.seekArgs.last == 0, "seek(0) が呼ばれる（現在位置0を維持）")
+        
+        //-- trackChanged() をシミュレートするための通知発火
+        // 1) adapterの indexOfNowPlayingItem が queueMock.currentIndex と一致するようにする
+        sut.adapter.indexOfNowPlayingItem = sut.queueMock.currentIndex
+        // 2) 曲変更通知をポスト
+        NotificationCenter.default.post(
+            name: .MPMusicPlayerControllerNowPlayingItemDidChange,
+            object: nil
+        )
+        // 非同期後処理が回るのを少しだけ待機
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        
+        //-- 検証
+        #expect(sut.adapter.setQueueDescriptors.count == beforeSet + 1,
+                "非再生中 remove 後の trackChanged で adapter.setQueue(with:) が呼ばれる")
+        #expect(sut.adapter.seekArgs.last == 0,
+                "seek(0) が呼ばれる（現在位置0を維持）")
     }
 
     @Test("removeItem: 再生中の曲を削除すると再生開始されること")
@@ -517,7 +583,7 @@ struct MusicPlayerServiceImplTests {
         #expect(sut.adapter.stopCount == beforeStop + 1, "stop() が呼ばれる")
     }
 
-    @Test("trackChanged通知で履歴が追加されること")
+    @Test("trackChanged: trackChanged通知で履歴が追加されること")
     func testTrackChangedHistory() async {
         // Given: 1曲セット済みのadapter, queue, service
         let adapter = PlayerControllableMock()
@@ -540,6 +606,33 @@ struct MusicPlayerServiceImplTests {
         // Then: playHistory.countが1になる
         #expect(service.playHistory.count == 1, "履歴が1件追加される")
     }
+
+    @Test("trackChanged: moveItem 後に trackChanged 発火で実際に setQueue/seek が呼ばれる")
+    func testMoveThenTrackChanged() async {
+        let sut = SUT.make()
+        let A = makeDummySong(id: "A")
+        let B = makeDummySong(id: "B")
+        let C = makeDummySong(id: "C")
+        // A(0) 再生中
+        await sut.service.setQueue(songs: [A,B,C], startAt: 0)
+        let beforeSet = sut.adapter.setQueueDescriptors.count
+        // C(2) → 1 に移動
+        await sut.service.moveItem(from: 2, to: 1)
+        // nowPlayingItem／indexOfNowPlayingItem を合わせておく
+        sut.adapter.indexOfNowPlayingItem = 0
+        // 曲変更通知をポスト
+        NotificationCenter.default.post(
+        name: .MPMusicPlayerControllerNowPlayingItemDidChange,
+        object: nil
+        )
+        // 少し待つか、async で待機
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        // adapter.setQueue(with:) が１回増えている
+        #expect(sut.adapter.setQueueDescriptors.count == beforeSet + 1)
+        // seek(0) も呼ばれている
+        #expect(sut.adapter.seekArgs.last == 0)
+    }
+
     @Test("toggleShuffle: shuffleModeが切り替わること")
     func testToggleShuffle() async {
         let sut = SUT.make()
