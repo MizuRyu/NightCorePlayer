@@ -14,6 +14,7 @@ private struct TextWidthKey: PreferenceKey {
 struct MarqueeText: View {
     let text: String
     let font: Font
+    let idleTextAlignment: Alignment
     let visibleWidth: CGFloat
     let speed: Double               // pt／秒
     let spacingBetweenTexts: CGFloat
@@ -25,6 +26,7 @@ struct MarqueeText: View {
     init(
         text: String,
         font: Font = .body,
+        idleTextAlignment: Alignment = .center,
         visibleWidth: CGFloat,
         speed: Double = Constants.MarqueeText.defaultSpeed,
         spacingBetweenTexts: CGFloat = Constants.MarqueeText.defaultSpacing,
@@ -32,6 +34,7 @@ struct MarqueeText: View {
     ) {
         self.text = text
         self.font = font
+        self.idleTextAlignment = idleTextAlignment
         self.visibleWidth = visibleWidth
         self.speed = speed
         self.spacingBetweenTexts = spacingBetweenTexts
@@ -101,16 +104,16 @@ struct MarqueeText: View {
                         value: isAnimating
                     )
                 } else {
-                    // 幅内に収まる場合は中央固定表示
+                    // 幅内に収まる場合、アイドル状態の場合
                     Text(text)
                         .font(font)
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
-                        .frame(width: currentVisibleWidth, alignment: .center)
+                        .frame(width: currentVisibleWidth, alignment: idleTextAlignment)
                 }
             }
             .id(text)
-            .frame(width: currentVisibleWidth, alignment: .leading)
+            .frame(maxHeight: .infinity, alignment: .center)
             .clipped()
             .onPreferenceChange(TextWidthKey.self) { newWidth in
                 // 計測結果を受け取って状態更新

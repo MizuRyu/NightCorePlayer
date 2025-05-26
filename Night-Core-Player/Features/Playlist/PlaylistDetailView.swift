@@ -6,6 +6,7 @@ struct PlaylistDetailView: View {
     @ObserveInjection var inject
     @StateObject private var vm: PlaylistDetailViewModel
     @EnvironmentObject private var nav: PlayerNavigator
+    @EnvironmentObject private var playerVM: MusicPlayerViewModel
 
     init(pl: Playlist,
          musicKitService: MusicKitService = MusicKitServiceImpl()) {
@@ -42,7 +43,11 @@ struct PlaylistDetailView: View {
                     // Action Buttons
                     HStack(spacing: 16) {
                         Button {
-                            // TODO: 再生処理
+                            playerVM.loadPlaylist(
+                                songs: vm.songs,
+                                startAt: 0,
+                                autoPlay: true
+                            )
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "play.fill")
@@ -56,7 +61,11 @@ struct PlaylistDetailView: View {
                         .cornerRadius(8)
 
                         Button {
-                            // TODO: シャッフル処理
+                            playerVM.loadPlaylist(
+                                songs: vm.songs.shuffled(),
+                                startAt: 0,
+                                autoPlay: true
+                            )
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "shuffle")
@@ -74,8 +83,15 @@ struct PlaylistDetailView: View {
                     // Song List
                     List(vm.songs, id: \.id) { song in
                         Button {
+                            let idx = vm.songs.firstIndex { $0.id == song.id } ?? 0
+                            playerVM.loadPlaylist(
+                                songs: vm.songs,
+                                startAt: idx,
+                                autoPlay: true
+                            )
+
                             nav.songs = vm.songs
-                            nav.initialIndex = vm.songs.firstIndex(where: { $0.id == song.id }) ?? 0
+                            nav.initialIndex = idx
                             nav.selectedTab = .player
                         } label: {
                             SongRowView(song: song)

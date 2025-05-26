@@ -5,7 +5,9 @@ import Combine
 
 @MainActor
 final class MusicPlayerViewModel: ObservableObject {
-    private var songs: [Song] = []
+    @Published private(set) var musicPlayerQueue: [Song] = []
+    @Published private(set) var currentIndex: Int = 0
+    @Published private(set) var history: [Song] = []
     
     @Published private(set) var title: String      = "—"
     @Published private(set) var artist: String     = "—"
@@ -17,6 +19,15 @@ final class MusicPlayerViewModel: ObservableObject {
 
     private var skipSeconds: Double = Constants.MusicPlayer.skipSeconds
     
+    var remainingTimeString: String {
+        Self.formatRemainingTime(
+            currentTime: currentTime,
+            duration: duration,
+            upcomingDurations: upcomingTracksDuration,
+            rate: rate
+            )
+    }
+    
     // MARK: - Dependencies
     private let service: MusicPlayerService
     private var cancellables = Set<AnyCancellable>()
@@ -25,6 +36,47 @@ final class MusicPlayerViewModel: ObservableObject {
         self.service = service
         bindService()
     }
+    
+    func setQueue(_ songs: [Song], startAt idx: Int) {
+        Task { await service.setQueue(songs: songs, startAt: idx) }
+    }
+    func moveQueueItem(from src: Int, to dst: Int) {
+        Task {
+            await service.moveItem(from: src, to: dst)
+        }
+    }
+    func removeQueueItems(at offsets: IndexSet) {
+        Task {
+            for idx in offsets.sorted(by: >) {
+                removeQueueItem(at: idx)
+            }
+        }
+    }
+
+    func removeQueueItem(at idx: Int) {
+        Task { await service.removeItem(at: idx) }
+    }
+    
+    func playNow(_ song: Song) {
+        Task {
+            await service.playNow(song)
+        }
+    }
+    func insertNext(_ song: Song) {
+        Task {
+            await service.insertNext(song)
+            self.musicPlayerQueue = service.musicPlayerQueue
+            self.currentIndex = service.nowPlayingIndex
+        }
+    }
+    func clearHistory() {
+        Task { 
+            await service.clearHistory()
+            self.history = []
+            }
+    }
+    
+    
     func playPauseTrack()  { Task { await isPlaying ? service.pause() : service.play() } }
     func nextTrack()       { Task { await service.next()     } }
     func previousTrack()   { Task { await service.previous() } }
@@ -60,6 +112,27 @@ final class MusicPlayerViewModel: ObservableObject {
         }
     }
     
+    private var upcomingTracksDuration: Double {
+        musicPlayerQueue
+            .dropFirst(currentIndex + 1)
+            .map(\.duration!)
+            .reduce(0, +)
+    }
+
+    static func formatRemainingTime(
+        currentTime: Double,
+        duration: Double,
+        upcomingDurations: Double,
+        rate: Double
+    ) -> String {
+        let currentRemaining = max(duration - currentTime, 0)
+        let safeRate = rate > 0 ? rate : 1.0
+        let totalSec = (currentRemaining + upcomingDurations) / safeRate
+        let m = Int(totalSec) / 60
+        let s = Int(totalSec) % 60
+        return String(format: "%02d:%02d", m, s)
+    }
+    
     // MARK: - Private
     private func bindService() {
         service.snapshotPublisher
@@ -73,6 +146,9 @@ final class MusicPlayerViewModel: ObservableObject {
                 self.duration    = snap.duration
                 self.rate        = snap.rate
                 self.isPlaying   = snap.isPlaying
+                self.musicPlayerQueue = self.service.musicPlayerQueue
+                self.currentIndex = self.service.nowPlayingIndex
+                self.history = self.service.playHistory
             }
             .store(in: &cancellables)
     }

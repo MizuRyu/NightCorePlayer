@@ -4,6 +4,8 @@ import MusicKit
 
 struct SearchRowView: View {
     let song: Song
+    @EnvironmentObject private var playerVM: MusicPlayerViewModel
+    
     @State private var isShowingPopover = false
     
     var body: some View {
@@ -34,7 +36,13 @@ struct SearchRowView: View {
             Spacer()
             Menu {
                 Button("再生を次に追加") {
-                    // TODO: 再生キューに追加ロジック
+                    playerVM.insertNext(song)
+                    // デバッグ用ログ
+                    print("🎯 insertNext called for: \(song.title) — \(song.artistName)")
+                    print("📦 current queue:")
+                    for (i, s) in playerVM.musicPlayerQueue.enumerated() {
+                        print("   [\(i)] \(s.title) — \(s.artistName)")
+                    }
                 }
                 Button("ライブラリに追加") {
                     // TODO: ライブラリに追加ロジック
@@ -49,6 +57,9 @@ struct SearchRowView: View {
                     .padding(8)
             }
             .menuStyle(BorderlessButtonMenuStyle())
+            .onTapGesture {
+                playerVM.playNow(song)
+            }
         }
         .padding(.vertical, 4)
     }
@@ -57,7 +68,8 @@ struct SearchView: View {
     @ObserveInjection var inject
     @StateObject private var vm = SearchViewModel()
     @EnvironmentObject private var nav: PlayerNavigator
-    
+    @EnvironmentObject private var playerVM: MusicPlayerViewModel
+        
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -81,6 +93,8 @@ struct SearchView: View {
                 } else if !vm.songs.isEmpty {
                     List(vm.songs, id: \.id) { song in
                         Button {
+                            let idx = vm.songs.firstIndex(where: { $0.id == song.id}) ?? 0
+                            playerVM.loadPlaylist(songs: vm.songs, startAt: idx, autoPlay: true)
                             nav.songs = vm.songs
                             nav.initialIndex = vm.songs.firstIndex(where: { $0.id == song.id }) ?? 0
                             nav.selectedTab = .player
@@ -90,12 +104,6 @@ struct SearchView: View {
                     }
                 
                     .listStyle(PlainListStyle())
-                    .navigationDestination(for: Song.self) { song in
-                        MusicPlayerView(
-                            songs: vm.songs,
-                            initialIndex: vm.songs.firstIndex { $0.id == song.id} ?? 0
-                        )
-                    }
                 }
                 
                 Spacer()
