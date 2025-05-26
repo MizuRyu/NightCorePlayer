@@ -460,6 +460,15 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         )
         
         guard isNewSong else { return }
+
+        // 履歴更新
+        if let current = queue.currentSong {
+            if history.last?.id != current.id {
+                history.append(current)
+                let titles = history.map{ $0.title }
+            }
+        }
+
         Task { [weak self] in
             guard let self = self else { return }
             let fetchedArt = await self.getArtwork(for: song)
@@ -508,15 +517,6 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
                 }
             }
         }
-        
-        // 履歴更新
-        if let current = queue.currentSong {
-            if history.last?.id != current.id {
-                history.append(current)
-                let titles = history.map{ $0.title }
-            }
-        }
-        
         updateSnapshot()
     }
 
