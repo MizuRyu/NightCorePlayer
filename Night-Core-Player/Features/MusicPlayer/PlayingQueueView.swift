@@ -1,5 +1,6 @@
 import SwiftUI
 import Inject
+import MusicKit
 
 struct MusicPlayerControlsView: View {
     @ObserveInjection var inject
@@ -84,23 +85,104 @@ struct NowPlayingHeaderView: View {
     }
 }
 
+struct HistorySectionView: View {
+    @EnvironmentObject private var vm: MusicPlayerViewModel
+    
+    var body: some View {
+        // history が空ならセクション自体を表示しない
+        if !vm.history.isEmpty {
+            Text("再生履歴")
+                .font(.body).bold()
+                .foregroundStyle(.primary)
+                .padding(.vertical, 8)
+            
+            ForEach(Array(vm.history.enumerated()), id: \.offset) { idx, song in
+                PlayingQueueItemRowView(
+                    song: song,
+                    isCurrent: idx == vm.currentIndex
+                )
+            }
+        }
+    }
+}
+
+struct QueueSectionView: View {
+    @EnvironmentObject private var vm: MusicPlayerViewModel
+    
+    var body: some View {
+        // スクロールのターゲットとしてidを設定
+        Text("次に再生")
+            .font(.body).bold()
+            .foregroundStyle(.primary)
+            .padding(.vertical, 8)
+            .id("queueHeader")
+        
+        ForEach(Array(vm.musicPlayerQueue.enumerated()), id: \.element.id) { idx, song in
+            PlayingQueueItemRowView(
+                song: song,
+                isCurrent: idx == vm.currentIndex
+            )
+            .overlay(alignment: .trailing) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .padding(.trailing, 8)
+            }
+            // ③ タップ領域全体を拾う
+            .contentShape(Rectangle())
+            // ④ 背景のハイライト
+            .listRowBackground(
+                idx == vm.currentIndex
+                ? Color.indigo.opacity(0.1)
+                : Color.clear
+            )
+        }
+        .onMove { indices, newOffset in
+            guard let src = indices.first else { return }
+            let dst = newOffset > src ? newOffset - 1 : newOffset
+            vm.moveQueueItem(from: src, to: dst)
+        }
+        .onDelete(perform: vm.removeQueueItems)
+    }
+}
+
+struct CombinedListView: View {
+    @EnvironmentObject private var vm: MusicPlayerViewModel
+    
+    var body: some View {
+        ScrollViewReader { proxy in
+            List {
+                // 履歴セクション（ヘッダ、行ともにSectionに含まれる）
+                HistorySectionView()
+                    .environmentObject(vm)
+                
+                // 再生キューセクション
+                QueueSectionView()
+                    .environmentObject(vm)
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .onAppear {
+                // 最初に必ず「次に再生」セクションを先頭に表示
+                proxy.scrollTo("queueHeader", anchor: .top)
+            }
+        }
+    }
+}
+
 struct PlayingQueueView: View {
     @EnvironmentObject private var vm: MusicPlayerViewModel
-    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         VStack(spacing: 0) {
-            
-            // グレーのバー
             Capsule()
                 .frame(width: 40, height: 5)
                 .foregroundColor(Color.secondary.opacity(0.6))
-                .padding(.top, 8)
-                .padding(.bottom, 4)
+                .padding(.vertical, 8)
             
-            // 現在再生中の楽曲
             NowPlayingHeaderView()
-            // — Header
+                .environmentObject(vm)
+            
             HStack {
                 Spacer()
                 Text("\(vm.musicPlayerQueue.count) items")
@@ -109,55 +191,17 @@ struct PlayingQueueView: View {
                 Spacer()
             }
             .padding(.horizontal)
-            .padding(.top, 12)
             .foregroundColor(.secondary)
-            Text("次に再生")
-                .font(.body)
-                .fontWeight(.bold)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 4)
-                        
-            // — List
-            List {
-                ForEach(Array(vm.musicPlayerQueue.enumerated()), id: \.element.id) { idx, song in
-                    PlayingQueueItemRowView(
-                        song: song,
-                        isCurrent: idx == vm.currentIndex
-                    )
-                    .overlay(alignment: .trailing) {
-                        Image(systemName: "line.3.horizontal")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .padding(.trailing, 8)
-                    }
-                    .contentShape(Rectangle())
-                    .listRowBackground(
-                        idx == vm.currentIndex
-                        ? Color.indigo.opacity(0.1)
-                        : Color.clear
-                    )
-                }
-                .onMove { indices, newOffset in
-                    guard let src = indices.first else { return }
-                    let dst = newOffset > src
-                    ? newOffset - 1
-                    : newOffset
-                    vm.moveQueueItem(from: src, to:  dst)
-                }
-                .onDelete(perform: vm.removeQueueItems)
-            }
-            .listStyle(.plain)
+            
+            CombinedListView()
+                .environmentObject(vm)
             
             Spacer()
             
             MusicPlayerControlsView()
                 .environmentObject(vm)
-                .padding(.top, 8)
-                .padding(.bottom, 60)
+                .padding(.vertical, 60)
         }
         .background(Color(.systemBackground))
-        .enableInjection()
     }
-    
 }
