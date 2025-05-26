@@ -45,9 +45,18 @@ final class MusicPlayerViewModel: ObservableObject {
             await service.moveItem(from: src, to: dst)
         }
     }
+    func removeQueueItems(at offsets: IndexSet) {
+        Task {
+            for idx in offsets.sorted(by: >) {
+                removeQueueItem(at: idx)
+            }
+        }
+    }
+
     func removeQueueItem(at idx: Int) {
         Task { await service.removeItem(at: idx) }
     }
+    
     func playNow(_ song: Song) {
         Task {
             await service.playNow(song)

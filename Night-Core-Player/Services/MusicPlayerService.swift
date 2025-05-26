@@ -256,6 +256,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     
     private var timerCancellable: AnyCancellable?
     private var lastPlayerIndex: Int? = nil
+    private var needsQueueRefresh: Bool = false
         
     
     public init(
@@ -330,7 +331,16 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
 
     public func removeItem(at idx: Int) async {
         let (action, _) = await queue.removeItem(at: idx)
-        await handleQueueAction(action)
+        switch action {
+        case .playNewQueue, .playerShouldStop:
+            // キューが空になった場合はプレイヤーを停止
+            await handleQueueAction(action)
+        case .updatePlayerQueueOnly:
+            needsQueueRefresh = true
+            updateSnapshot()
+        case .noAction, .playCurrentTrack:
+            break
+        }
     }
 
     public func playNow(_ song: Song) async {
@@ -471,6 +481,13 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     private func trackChanged() {
         let playerIndex = player.indexOfNowPlayingItem
         let currentQueueIndex = queue.currentIndex
+
+        if needsQueueRefresh {
+            needsQueueRefresh = false
+            Task { [weak self] in
+                await self?.handleQueueAction(.updatePlayerQueueOnly)
+                }
+        }
         
         guard playerIndex != lastPlayerIndex else { return }
         lastPlayerIndex = playerIndex

@@ -125,6 +125,13 @@ struct PlayingQueueView: View {
                         song: song,
                         isCurrent: idx == vm.currentIndex
                     )
+                    .overlay(alignment: .trailing) {
+                        Image(systemName: "line.3.horizontal")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .padding(.trailing, 8)
+                    }
+                    .contentShape(Rectangle())
                     .listRowBackground(
                         idx == vm.currentIndex
                         ? Color.indigo.opacity(0.1)
@@ -138,10 +145,9 @@ struct PlayingQueueView: View {
                     : newOffset
                     vm.moveQueueItem(from: src, to:  dst)
                 }
-                .deleteDisabled(true)
+                .onDelete(perform: vm.removeQueueItems)
             }
             .listStyle(.plain)
-            .environment(\.editMode, .constant(.active))
             
             Spacer()
             
