@@ -80,10 +80,8 @@ final class MusicPlayerViewModel: ObservableObject {
         }
     }
     func clearHistory() {
-        Task { 
-            await service.clearHistory()
-            self.history = []
-            }
+        service.clearHistory()
+        self.history = []
     }
     
     

@@ -87,24 +87,44 @@ struct NowPlayingHeaderView: View {
 
 struct HistorySectionView: View {
     @EnvironmentObject private var vm: MusicPlayerViewModel
-    
+    @State private var showDeleteAlert = false
+
     var body: some View {
         // history が空ならセクション自体を表示しない
         if !vm.history.isEmpty {
-            Text("再生履歴")
-                .font(.body).bold()
-                .foregroundStyle(.primary)
-                .padding(.vertical, 8)
-            
-            ForEach(Array(vm.history.enumerated()), id: \.offset) { idx, song in
-                PlayingQueueItemRowView(
-                    song: song,
-                    isCurrent: false
-                )
+            HStack {
+                Text("再生履歴")
+                    .font(.body).bold()
+                    .foregroundStyle(.primary)
+                    .padding(.vertical, 8)
+                Spacer()
+                Button {
+                    showDeleteAlert = true
+                } label: {
+                    Label("履歴を削除", systemImage: "trash")
+                        .labelStyle(.titleAndIcon)
+                }
+                .buttonStyle(.plain)
+                .font(.subheadline)
+                .foregroundColor(.red)
+                .disabled(vm.history.isEmpty)
+            }
+            .padding(.vertical, 8)
+            .alert("履歴をすべて削除しますか？", isPresented: $showDeleteAlert) {
+                Button("削除", role: .destructive) {
+                    vm.clearHistory()
+                }
+                Button("キャンセル", role: .cancel) { }
+            }
+                ForEach(Array(vm.history.enumerated()), id: \.offset) { idx, song in
+                    PlayingQueueItemRowView(
+                        song: song,
+                        isCurrent: false
+                    )
+                }
             }
         }
     }
-}
 
 struct QueueSectionView: View {
     @EnvironmentObject private var vm: MusicPlayerViewModel
