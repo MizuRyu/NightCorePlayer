@@ -75,7 +75,7 @@ struct MarqueeText: View {
                 if shouldScroll {
                     HStack(spacing: spacingBetweenTexts) {
                         // 実際に流すテキスト
-                        Text(text).font(font).lineLimit(1).fixedSize()
+                        Text(text).font(font).lineLimit(1).fixedSize(horizontal: true, vertical: false)
                         // ループ用にコピーを並べる
                         Text(text).font(font).lineLimit(1).fixedSize()
                     }
