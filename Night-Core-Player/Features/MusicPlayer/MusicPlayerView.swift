@@ -197,7 +197,7 @@ struct MusicPlayerView: View {
                             vm.changeRate(by: Constants.MusicPlayer.rateStepSmall)
                         }
                         SpeedControlButton(label: "+\(Constants.MusicPlayer.rateStepLarge)", color: .green) {
-                            vm.changeRate(by: Constants.MusicPlayer.rateStepSmall)
+                            vm.changeRate(by: Constants.MusicPlayer.rateStepLarge)
                         }
                     }
                 }
