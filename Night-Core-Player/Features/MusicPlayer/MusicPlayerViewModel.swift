@@ -18,6 +18,11 @@ final class MusicPlayerViewModel: ObservableObject {
     @Published private(set) var isPlaying: Bool     = false
 
     private var skipSeconds: Double = Constants.MusicPlayer.skipSeconds
+
+    // 次に再生される楽曲キュー配列
+    var currentQueue: [Song] {
+        Array(musicPlayerQueue.dropFirst(currentIndex + 1))
+    }
     
     var remainingTimeString: String {
         Self.formatRemainingTime(
@@ -40,23 +45,28 @@ final class MusicPlayerViewModel: ObservableObject {
     func setQueue(_ songs: [Song], startAt idx: Int) {
         Task { await service.setQueue(songs: songs, startAt: idx) }
     }
-    func moveQueueItem(from src: Int, to dst: Int) {
+
+    // 再生キューの操作をグローバルなqueueに反映する
+    func moveQueueItem(_ offsets: IndexSet, to newLocalIndex: Int) {
+        guard let localSrc = offsets.first else { return }
+        let srcGlobal = currentIndex + 1 + localSrc
+
+        let localDst = newLocalIndex > localSrc
+            ? newLocalIndex - 1
+            : newLocalIndex
+        let dstGlobal = currentIndex + 1 + localDst
         Task {
-            await service.moveItem(from: src, to: dst)
+            await service.moveItem(from: srcGlobal, to: dstGlobal)
         }
     }
-    func removeQueueItems(at offsets: IndexSet) {
+    func removeQueueItem(at offsets: IndexSet) {
         Task {
-            for idx in offsets.sorted(by: >) {
-                removeQueueItem(at: idx)
+            let absIndices = offsets.map { $0 + currentIndex + 1 }.sorted(by: >)
+            for idx in absIndices {
+                await service.removeItem(at: idx)
             }
         }
     }
-
-    func removeQueueItem(at idx: Int) {
-        Task { await service.removeItem(at: idx) }
-    }
-    
     func playNow(_ song: Song) {
         Task {
             await service.playNow(song)
