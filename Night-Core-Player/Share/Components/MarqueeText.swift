@@ -22,6 +22,8 @@ struct MarqueeText: View {
     
     @State private var contentWidth: CGFloat = 0
     @State private var isAnimating: Bool = false
+
+    @EnvironmentObject private var nav: PlayerNavigator
     
     init(
         text: String,
@@ -73,16 +75,11 @@ struct MarqueeText: View {
                 if shouldScroll {
                     HStack(spacing: spacingBetweenTexts) {
                         // 実際に流すテキスト
-                        Text(text)
-                            .font(font)
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
+                        Text(text).font(font).lineLimit(1).fixedSize()
                         // ループ用にコピーを並べる
-                        Text(text)
-                            .font(font)
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
+                        Text(text).font(font).lineLimit(1).fixedSize()
                     }
+                    .id("\(text)-\(nav.selectedTab)") // tab切り替えでアニメーションがリセットされるように
                     .offset(x: isAnimating ? -(contentWidth + spacingBetweenTexts) : 0)
                     .frame(width: currentVisibleWidth, alignment: .leading)
                     .clipped()
@@ -93,9 +90,6 @@ struct MarqueeText: View {
                         restartAnimation()
                     }
                     .onChange(of: text) {
-                        withAnimation(.none) {
-                            isAnimating = false
-                        }
                         contentWidth = 0
                     }
                 } else {
