@@ -445,9 +445,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             Holder.lastSongID = currentID
         }
         
-        let artworkToShow: Image = isNewSong
-        ? Image(systemName: "music.note")
-        : snapshot.artwork
+        let artworkToShow: Image = snapshot.artwork
         
         snapshot = MusicPlayerSnapshot(
             title:       title,
