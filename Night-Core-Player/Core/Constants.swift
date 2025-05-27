@@ -119,6 +119,12 @@ public enum Constants {
             public static let systemImage = "gearshape"
         }
     }
+
+    public enum RepeatMode: Sendable{
+        case none // ループなし
+        case one // 現在の曲をループ
+        case all // 再生キュー全体をリピート
+    }
     
     public enum Localization {
         public static let playingNow = "Playing Now"
