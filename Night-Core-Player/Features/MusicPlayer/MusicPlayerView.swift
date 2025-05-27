@@ -81,7 +81,7 @@ struct MusicPlayerView: View {
                 vm.artwork
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 300, height: 300)
+                    .frame(width: 250, height: 250)
                     .cornerRadius(12)
                     .padding(.horizontal)
                 // ⏮️ 曲情報 + ⏭️
@@ -197,7 +197,7 @@ struct MusicPlayerView: View {
                             vm.changeRate(by: Constants.MusicPlayer.rateStepSmall)
                         }
                         SpeedControlButton(label: "+\(Constants.MusicPlayer.rateStepLarge)", color: .green) {
-                            vm.changeRate(by: Constants.MusicPlayer.rateStepSmall)
+                            vm.changeRate(by: Constants.MusicPlayer.rateStepLarge)
                         }
                     }
                 }

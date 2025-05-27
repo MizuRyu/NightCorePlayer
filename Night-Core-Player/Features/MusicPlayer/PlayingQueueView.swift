@@ -87,24 +87,44 @@ struct NowPlayingHeaderView: View {
 
 struct HistorySectionView: View {
     @EnvironmentObject private var vm: MusicPlayerViewModel
-    
+    @State private var showDeleteAlert = false
+
     var body: some View {
         // history が空ならセクション自体を表示しない
         if !vm.history.isEmpty {
-            Text("再生履歴")
-                .font(.body).bold()
-                .foregroundStyle(.primary)
-                .padding(.vertical, 8)
-            
-            ForEach(Array(vm.history.enumerated()), id: \.offset) { idx, song in
-                PlayingQueueItemRowView(
-                    song: song,
-                    isCurrent: idx == vm.currentIndex
-                )
+            HStack {
+                Text("再生履歴")
+                    .font(.body).bold()
+                    .foregroundStyle(.primary)
+                    .padding(.vertical, 8)
+                Spacer()
+                Button {
+                    showDeleteAlert = true
+                } label: {
+                    Label("履歴を削除", systemImage: "trash")
+                        .labelStyle(.titleAndIcon)
+                }
+                .buttonStyle(.plain)
+                .font(.subheadline)
+                .foregroundColor(.red)
+                .disabled(vm.history.isEmpty)
+            }
+            .padding(.vertical, 8)
+            .alert("履歴をすべて削除しますか？", isPresented: $showDeleteAlert) {
+                Button("削除", role: .destructive) {
+                    vm.clearHistory()
+                }
+                Button("キャンセル", role: .cancel) { }
+            }
+                ForEach(Array(vm.history.enumerated()), id: \.offset) { idx, song in
+                    PlayingQueueItemRowView(
+                        song: song,
+                        isCurrent: false
+                    )
+                }
             }
         }
     }
-}
 
 struct QueueSectionView: View {
     @EnvironmentObject private var vm: MusicPlayerViewModel
@@ -116,11 +136,11 @@ struct QueueSectionView: View {
             .foregroundStyle(.primary)
             .padding(.vertical, 8)
             .id("queueHeader")
-        
-        ForEach(Array(vm.musicPlayerQueue.enumerated()), id: \.element.id) { idx, song in
+                
+        ForEach(Array(vm.currentQueue.enumerated()), id: \.element.id) { _, song in
             PlayingQueueItemRowView(
                 song: song,
-                isCurrent: idx == vm.currentIndex
+                isCurrent: false
             )
             .overlay(alignment: .trailing) {
                 Image(systemName: "line.3.horizontal")
@@ -131,18 +151,10 @@ struct QueueSectionView: View {
             // ③ タップ領域全体を拾う
             .contentShape(Rectangle())
             // ④ 背景のハイライト
-            .listRowBackground(
-                idx == vm.currentIndex
-                ? Color.indigo.opacity(0.1)
-                : Color.clear
-            )
+            .listRowBackground(Color.clear)
         }
-        .onMove { indices, newOffset in
-            guard let src = indices.first else { return }
-            let dst = newOffset > src ? newOffset - 1 : newOffset
-            vm.moveQueueItem(from: src, to: dst)
-        }
-        .onDelete(perform: vm.removeQueueItems)
+        .onMove(perform: vm.moveQueueItem)
+        .onDelete(perform: vm.removeQueueItem)
     }
 }
 
@@ -155,10 +167,10 @@ struct CombinedListView: View {
                 // 履歴セクション（ヘッダ、行ともにSectionに含まれる）
                 HistorySectionView()
                     .environmentObject(vm)
-                
                 // 再生キューセクション
                 QueueSectionView()
                     .environmentObject(vm)
+                
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
@@ -166,10 +178,20 @@ struct CombinedListView: View {
                 // 最初に必ず「次に再生」セクションを先頭に表示
                 proxy.scrollTo("queueHeader", anchor: .top)
             }
+            .onChange(of: vm.currentIndex) {
+                withAnimation {
+                    proxy.scrollTo(vm.currentIndex, anchor: .center)
+                }
+            }
+            .onChange(of: vm.history.count) {
+                withAnimation(.none) {
+                    proxy.scrollTo("queueHeader", anchor: .top)
+                }
+            }
         }
     }
 }
-
+    
 struct PlayingQueueView: View {
     @EnvironmentObject private var vm: MusicPlayerViewModel
     
@@ -191,6 +213,7 @@ struct PlayingQueueView: View {
                 Spacer()
             }
             .padding(.horizontal)
+            .padding(.bottom, 12)
             .foregroundColor(.secondary)
             
             CombinedListView()

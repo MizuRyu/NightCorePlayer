@@ -302,39 +302,53 @@ struct MusicPlayerViewModelTests {
     func testMoveQueueItem() async {
         // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // When
-        vm.moveQueueItem(from: 1, to: 2)
+        // currentIndex が 0、queue に最低 4 曲入っている前提
+        
+        // When (ローカル offset = 1 を newLocalIndex = 2 に移動)
+        vm.moveQueueItem(IndexSet(integer: 1), to: 2)
         try? await Task.sleep(nanoseconds: 50_000_000)
+        
         // Then
-        #expect(svc.moveArgs.contains { $0 == (1, 2) },
-                "moveItem(from:1,to:2) が呼ばれること")
+        // ローカル src = 1 → global src = currentIndex(0) + 1 + 1 = 2
+        // newLocalIndex(2) > src(1) → localDst = 2 - 1 = 1 → global dst = 0 + 1 + 1 = 2
+        #expect(svc.moveArgs.contains(where: { $0 == (2, 2) }),
+                "moveItem(from:2, to:2) が呼ばれること")
         cancel.cancel()
     }
-
+    
     @Test("removeQueueItem: service.removeItem(at:) が呼ばれること")
     func testRemoveQueueItem() async {
         // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // When
-        vm.removeQueueItem(at: 2)
+        // currentIndex が 0、queue に最低 4 曲入っている前提
+        
+        // When (ローカル offset = 2 を削除)
+        vm.removeQueueItem(at: IndexSet(integer: 2))
         try? await Task.sleep(nanoseconds: 50_000_000)
+        
         // Then
-        #expect(svc.removeArgs.last == 2, "removeItem(at:2) が呼ばれること")
-        cancel.cancel()
-    }
-
-    @Test("removeQueueItems: 複数のオフセットから降順で service.removeItem(at:) が呼ばれること")
-    func testRemoveQueueItemsBatch() async {
-        // Given
-        let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // When: IndexSet([1, 3, 2]) を渡すと、3→2→1 の順で呼び出されるはず
-        vm.removeQueueItems(at: IndexSet([1, 3, 2]))
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then
-        #expect(svc.removeArgs == [3, 2, 1], "removeArgs が降順 [3,2,1] で呼ばれること")
+        // global idx = currentIndex(0) + 1 + 2 = 3
+        #expect(svc.removeArgs.last == 3,
+                "removeItem(at:3) が呼ばれること")
         cancel.cancel()
     }
     
+    @Test("removeQueueItem (batch): 複数のオフセットから降順で service.removeItem(at:) が呼ばれること")
+    func testRemoveQueueItemsBatch() async {
+        // Given
+        let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
+        // currentIndex が 0、queue に最低 5 曲入っている前提
+        
+        // When (ローカル offsets [1,3,2] → global [2,4,3] → 降順 [4,3,2])
+        vm.removeQueueItem(at: IndexSet([1, 3, 2]))
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        
+        // Then
+        #expect(svc.removeArgs == [4, 3, 2],
+                "removeArgs が降順 [4,3,2] で呼ばれること")
+        cancel.cancel()
+    }
+
     @Test("playNow: 実行後に単一曲キューとなり currentIndex==0 になること")
     func testPlayNowUpdatesQueueAndIndex() async {
         // Given: キューにAをセット、currentIndex=0

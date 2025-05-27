@@ -22,6 +22,8 @@ struct MarqueeText: View {
     
     @State private var contentWidth: CGFloat = 0
     @State private var isAnimating: Bool = false
+
+    @EnvironmentObject private var nav: PlayerNavigator
     
     init(
         text: String,
@@ -73,36 +75,23 @@ struct MarqueeText: View {
                 if shouldScroll {
                     HStack(spacing: spacingBetweenTexts) {
                         // 実際に流すテキスト
-                        Text(text)
-                            .font(font)
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
+                        Text(text).font(font).lineLimit(1).fixedSize(horizontal: true, vertical: false)
                         // ループ用にコピーを並べる
-                        Text(text)
-                            .font(font)
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
+                        Text(text).font(font).lineLimit(1).fixedSize()
                     }
+                    .id("\(text)-\(nav.selectedTab)") // tab切り替えでアニメーションがリセットされるように
                     .offset(x: isAnimating ? -(contentWidth + spacingBetweenTexts) : 0)
                     .frame(width: currentVisibleWidth, alignment: .leading)
                     .clipped()
                     .onAppear {
-                        // 初回：リセットしてから1フレーム後に開始
-                        isAnimating = false
-                        DispatchQueue.main.async { isAnimating = true }
+                        restartAnimation()
                     }
-                    .onChange(of: contentWidth) { _, newWidth in
-                        // 幅が計測され直したら再トリガ
-                        guard newWidth > visibleWidth else { return }
-                        isAnimating = false
-                        DispatchQueue.main.async { isAnimating = true }
+                    .onChange(of: contentWidth) {
+                        restartAnimation()
                     }
-                    .animation(
-                        Animation.linear(duration: animationDuration)
-                            .delay(delayBeforeScroll)      // 3秒停止
-                            .repeatForever(autoreverses: false),
-                        value: isAnimating
-                    )
+                    .onChange(of: text) {
+                        contentWidth = 0
+                    }
                 } else {
                     // 幅内に収まる場合、アイドル状態の場合
                     Text(text)
@@ -115,14 +104,26 @@ struct MarqueeText: View {
             .id(text)
             .frame(maxHeight: .infinity, alignment: .center)
             .clipped()
-            .onPreferenceChange(TextWidthKey.self) { newWidth in
+            .onPreferenceChange(TextWidthKey.self) {
                 // 計測結果を受け取って状態更新
-                contentWidth = newWidth
+                contentWidth = $0
             }
-            .onChange(of: text) { _, _ in
-                // テキスト変更時はリセット
-                contentWidth = 0
-                isAnimating = false
+        }
+    }
+    
+    // アニメーションがリセットするように、一度offにしてから開始する
+    private func restartAnimation() {
+        guard contentWidth > visibleWidth, speed > 0 else { return }
+        withAnimation(.none) {
+            isAnimating = false
+        }
+        DispatchQueue.main.async {
+            withAnimation(
+                Animation.linear(duration: animationDuration)
+                    .delay(delayBeforeScroll)
+                    .repeatForever(autoreverses: false)
+            ) {
+                isAnimating = true
             }
         }
     }
