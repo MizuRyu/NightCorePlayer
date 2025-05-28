@@ -200,8 +200,54 @@ struct MusicQueueManagerTests {
         #expect(mgr.items.count == 1)
         #expect(mgr.currentIndex == 0)
     }
-
-     @Test("advanceToNextTrack: 次の曲がない場合は何もしないこと")
+    
+    @Test("playNextAndPlay: キュー内の曲を移動して再生する")
+    func testPlayNextAndPlayWhenSongInQueue() async {
+        // Given
+        let sut = SUT.make()
+        let A = makeDummySong(id: "A")
+        let B = makeDummySong(id: "B")
+        let C = makeDummySong(id: "C")
+        sut.queueMock.items = [A, B, C]
+        sut.queueMock.currentIndex = 1
+        
+        // When
+        await sut.service.playNextAndPlay(B)
+        
+        // Then: QueueManagingMock にセットされたキューと index を検証
+        #expect(sut.queueMock.items.map(\.id.rawValue) == ["A", "C", "B"])
+        #expect(sut.queueMock.currentIndex == 2)
+        // PlayerControllableMock の呼び出しも検証
+        #expect(sut.adapter.setQueueDescriptors.count == 1,
+                "1回 setQueue(with:) が呼ばれる")
+        #expect(sut.adapter.playCount == 1,
+                "1回 play() が呼ばれる")
+    }
+    
+    @Test("playNextAndPlay: キュー外の曲を挿入して再生する")
+    func testPlayNextAndPlayWhenSongNotInQueue() async {
+        // Given
+        let sut = SUT.make()
+        let A = makeDummySong(id: "A")
+        let B = makeDummySong(id: "B")
+        let C = makeDummySong(id: "C")
+        let D = makeDummySong(id: "D")
+        sut.queueMock.items = [A, B, C]
+        sut.queueMock.currentIndex = 0
+        
+        // When
+        await sut.service.playNextAndPlay(D)
+        
+        // Then: QueueManagingMock にセットされたキューと index を検証
+        #expect(sut.queueMock.items.map(\.id.rawValue) == ["A", "D", "B", "C"])
+        #expect(sut.queueMock.currentIndex == 1)
+        #expect(sut.adapter.setQueueDescriptors.count == 1,
+                "1回 setQueue(with:) が呼ばれる")
+        #expect(sut.adapter.playCount == 1,
+                "1回 play() が呼ばれる")
+    }
+    
+    @Test("advanceToNextTrack: 次の曲がない場合は何もしないこと")
     func testAdvanceOutOfRange() async {
         // Given: 1曲だけのキュー
         let mgr = MusicQueueManager()
