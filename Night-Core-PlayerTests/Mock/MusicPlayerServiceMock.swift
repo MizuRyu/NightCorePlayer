@@ -171,6 +171,7 @@ final class MusicPlayerServiceMock: MusicPlayerService {
     private(set) var removeArgs: [Int]         = []
     private(set) var playNowArgs: [Song]       = []
     private(set) var insertNextArgs: [Song]    = []
+    private(set) var playNextAndPlayArgs: [Song] = []
     // テストから send できる Subject
     public let snapshotSubject = PassthroughSubject<MusicPlayerSnapshot, Never>()
     public var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> {
@@ -241,6 +242,10 @@ final class MusicPlayerServiceMock: MusicPlayerService {
         }
         // ViewModel に反映されるように snapshot を送る
         snapshotSubject.send(.empty)
+    }
+    public func playNextAndPlay(_ song: Song) async {
+        playNextAndPlayArgs.append(song)
+        snapshotSubject.send(.empty.withPlaying(true))
     }
     public func playNow(_ song: Song) async {
         playNowArgs.append(song)

@@ -215,6 +215,7 @@ protocol MusicPlayerService: Sendable {
     func removeItem(at idx: Int) async
     func insertNext(_ song: Song) async
     func playNow(_ song: Song) async
+    func playNextAndPlay(_ song: Song) async
 
     var isShuffled: Bool { get }
     var repeatMode: Constants.RepeatMode { get }
@@ -359,6 +360,20 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         if let pp = try? makePlayParameters(for: song) {
             player.prepend(MPMusicPlayerPlayParametersQueueDescriptor(playParametersQueue: [pp]))
         }
+    }
+    
+    public func playNextAndPlay(_ song: Song) async {
+        var items = queue.items
+        // 再生キューに含まれる楽曲が再生された場合、idxを移動
+        if let oldIdx = items.firstIndex(where: { $0.id == song.id }) {
+            items.remove(at: oldIdx)
+        }
+        
+        let insertionIndex = min(queue.currentIndex + 1, items.count)
+        items.insert(song, at: insertionIndex)
+        
+        let action = await queue.setQueue(items, startAt: insertionIndex)
+        await handleQueueAction(action)
     }
     
     public var playHistory: [Song] { history }

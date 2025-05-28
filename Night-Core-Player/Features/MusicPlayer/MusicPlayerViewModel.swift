@@ -72,6 +72,12 @@ final class MusicPlayerViewModel: ObservableObject {
             await service.playNow(song)
         }
     }
+    // キューの先頭に楽曲を挿入し、再生を開始
+    func playNowNext(_ song: Song) {
+        Task {
+            await service.playNextAndPlay(song)
+        }
+    }
     func insertNext(_ song: Song) {
         Task {
             await service.insertNext(song)

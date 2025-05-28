@@ -121,6 +121,10 @@ struct HistorySectionView: View {
                         song: song,
                         isCurrent: false
                     )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        vm.playNowNext(song)
+                    }
                 }
             }
         }
@@ -150,6 +154,7 @@ struct QueueSectionView: View {
             }
             // ③ タップ領域全体を拾う
             .contentShape(Rectangle())
+            .onTapGesture{ vm.playNowNext(song) }
             // ④ 背景のハイライト
             .listRowBackground(Color.clear)
         }

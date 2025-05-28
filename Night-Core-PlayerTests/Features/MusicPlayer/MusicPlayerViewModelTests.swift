@@ -366,6 +366,40 @@ struct MusicPlayerViewModelTests {
         cancel.cancel()
     }
     
+    @Test("playNowNext: playNextAndPlay() が呼び出されること")
+    func testPlayNowNextCallsService() async {
+        let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
+        let song = makeDummySong(id: "X")
+        
+        // When
+        vm.playNowNext(song)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        
+        // Then
+        #expect(svc.playNextAndPlayArgs == [song],
+                "playNextAndPlay(_:) が１回だけ呼ばれること")
+        cancel.cancel()
+    }
+    
+    @Test("playNowNext: サービスの状態を VM に反映すること")
+    func testPlayNowNextUpdatesQueueAndIndex() async {
+        let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
+        let song = makeDummySong(id: "Y")
+        // Given: モックサービスが返すキューとインデックス
+        svc.musicPlayerQueue = [makeDummySong(id: "A"), song, makeDummySong(id: "B")]
+        svc.nowPlayingIndex  = 1
+        
+        // When
+        vm.playNowNext(song)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        // Then: ViewModel のキューとインデックスがサービスと一致
+        #expect(vm.musicPlayerQueue == svc.musicPlayerQueue,
+                "VM.musicPlayerQueue がサービスのキューと一致すること")
+        #expect(vm.currentIndex == svc.nowPlayingIndex,
+                "VM.currentIndex がサービスのインデックスと一致すること")
+        cancel.cancel()
+    }
+    
     @Test("insertNext: 次の曲に割り込みで追加されること")
     func testInsertNextUpdatesQueueAndIndex() async {
         // Given: キューに[A, B]、currentIndex=0
