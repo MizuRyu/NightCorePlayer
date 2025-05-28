@@ -2,6 +2,7 @@ import Combine
 import MediaPlayer
 import MusicKit
 import SwiftUI
+import AVFoundation
 
 @MainActor
 public protocol PlayerControllable: Sendable {
@@ -266,6 +267,14 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         self.player   = playerAdapter ?? MPMusicPlayerAdapter(defaultRate: Constants.MusicPlayer.defaultPlaybackRate)
         self.queue    = queueManager ?? MusicQueueManager()
         
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default)
+            try session.setActive(true)
+        } catch {
+            print("AVAudioSession error: \(error)")
+        }
+        
         // 0.5秒ごとにcurrentTimeを更新
         timerCancellable = Timer.publish(every: 0.5, on: .main, in: .common)
             .autoconnect()
@@ -277,11 +286,46 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             object: nil,
             queue: .main
         ) { [weak self] _ in self?.trackChanged() }
+
+        // 再生状態変更通知
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handlePlaybackStateChange(_:)),
+            name: .MPMusicPlayerControllerPlaybackStateDidChange,
+            object: nil
+        )
     }
     
     deinit {
         timerCancellable?.cancel()
         NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func handleAudioRouteChange(_ notification: Notification) {
+        guard
+            let userInfo   = notification.userInfo,
+            let reasonRaw  = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+            let reason     = AVAudioSession.RouteChangeReason(rawValue: reasonRaw),
+            reason == .oldDeviceUnavailable,
+            let prevRoute  = userInfo[AVAudioSessionRouteChangePreviousRouteKey] as? AVAudioSessionRouteDescription
+        else { return }
+        
+        // 抜き差し前の出力デバイスが次のいずれかなら「有線イヤホン抜き」とみなす
+        let wiredPorts: [AVAudioSession.Port] = [
+            .headphones,    // ヘッドホン（マイクなしモデル）
+            .headsetMic,    // マイク付きイヤホン（EarPods 等）
+            .lineOut        // ライトニング→イヤホンアダプタなど
+        ]
+        let wasWired = prevRoute.outputs.contains { wiredPorts.contains($0.portType) }
+        guard wasWired else { return }
+        
+        Task { [weak self] in await self?.pause() }
+    }
+    // Bluetoothで再生している際にも、再生速度を維持するため
+    @objc private func handlePlaybackStateChange(_ notification: Notification) {
+        if player.playbackState == .playing {
+            player.playbackRate = currentPlaybackRate
+        }
     }
     
     public func setQueue(songs: [Song], startAt idx: Int) async {
