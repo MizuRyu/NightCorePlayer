@@ -2,6 +2,7 @@ import Combine
 import MediaPlayer
 import MusicKit
 import SwiftUI
+import AVFoundation
 
 @MainActor
 public protocol PlayerControllable: Sendable {
@@ -277,11 +278,25 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             object: nil,
             queue: .main
         ) { [weak self] _ in self?.trackChanged() }
+
+        // 再生状態変更通知
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handlePlaybackStateChange(_:)),
+            name: .MPMusicPlayerControllerPlaybackStateDidChange,
+            object: nil
+        )
     }
     
     deinit {
         timerCancellable?.cancel()
         NotificationCenter.default.removeObserver(self)
+    }
+    // Bluetoothで再生している際にも、再生速度を維持するため
+    @objc private func handlePlaybackStateChange(_ notification: Notification) {
+        if player.playbackState == .playing {
+            player.playbackRate = currentPlaybackRate
+        }
     }
     
     public func setQueue(songs: [Song], startAt idx: Int) async {
