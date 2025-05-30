@@ -3,6 +3,7 @@ import MediaPlayer
 import MusicKit
 import SwiftUI
 import AVFoundation
+import SwiftData
 
 @MainActor
 public protocol PlayerControllable: Sendable {
@@ -211,7 +212,7 @@ protocol MusicPlayerService: Sendable {
     func seek(to time: TimeInterval) async
     func changeRate(to newRate: Double) async
     
-    func setQueue(songs: [Song], startAt index: Int) async
+    func setQueue(songs: [Song], startAt index: Int, autoPlay: Bool) async
     func moveItem(from src: Int, to dst: Int) async
     func removeItem(at idx: Int) async
     func insertNext(_ song: Song) async
@@ -235,7 +236,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     @Published public private(set) var snapshot: MusicPlayerSnapshot = .empty
     @Published public private(set) var isShuffled: Bool = false
     @Published public private(set) var repeatMode: Constants.RepeatMode = .none
-
+    
     private var originalQueue: [Song] = []
     
     public var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> {
@@ -249,6 +250,10 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     public var queue: QueueManaging
     private var history: [Song] = []
     
+    private let historyRepo: HistoryRepository
+    private let playerStateRepo: PlayerStateRepository
+    
+    
     private let defaultPlaybackRate: Double = Constants.MusicPlayer.defaultPlaybackRate
     var currentPlaybackRate: Double = Constants.MusicPlayer.defaultPlaybackRate
     private let minPlaybackRate: Double = Constants.MusicPlayer.minPlaybackRate
@@ -258,14 +263,21 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     private var timerCancellable: AnyCancellable?
     private var lastPlayerIndex: Int? = nil
     private var needsQueueRefresh: Bool = false
-        
+    private var detailCache: [MusicItemID: Song] = [:]
     
     public init(
         playerAdapter : PlayerControllable? = nil,
         queueManager : QueueManaging? = nil
     ) {
+        let context = PersistenceController.shared.container.mainContext
+        self.historyRepo = HistoryRepository(context: context)
+        self.playerStateRepo   = PlayerStateRepository(context: context)
+        
+        
         self.player   = playerAdapter ?? MPMusicPlayerAdapter(defaultRate: Constants.MusicPlayer.defaultPlaybackRate)
         self.queue    = queueManager ?? MusicQueueManager()
+        
+        Task { await self.restore() }
         
         do {
             let session = AVAudioSession.sharedInstance()
@@ -286,7 +298,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             object: nil,
             queue: .main
         ) { [weak self] _ in self?.trackChanged() }
-
+        
         // 再生状態変更通知
         NotificationCenter.default.addObserver(
             self,
@@ -328,9 +340,9 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         }
     }
     
-    public func setQueue(songs: [Song], startAt idx: Int) async {
+    public func setQueue(songs: [Song], startAt idx: Int, autoPlay: Bool = true) async {
         let action = await queue.setQueue(songs, startAt: idx)
-        await handleQueueAction(action)
+        await handleQueueAction(action, autoPlay: autoPlay)
     }
     
     public func play() async {
@@ -342,7 +354,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     public func pause() async {
         player.pause()
         updateSnapshot()
-
+        
     }
     public func next() async {
         let advanced = await queue.advanceToNextTrack()
@@ -355,7 +367,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         guard regressed else { return }
         await handleQueueAction(.playNewQueue)
     }
-
+    
     // 自動スキップ時
     public func seek(to time: TimeInterval) async {
         let dur = queue.currentSong?.duration ?? player.nowPlayingItem?.playbackDuration ?? 0
@@ -368,13 +380,13 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         player.playbackRate = currentPlaybackRate
         updateSnapshot()
     }
-
+    
     public func moveItem(from src: Int, to dst: Int) async {
         let _ = await queue.moveItem(from: src, to: dst)
         needsQueueRefresh = true
         updateSnapshot()
     }
-
+    
     public func removeItem(at idx: Int) async {
         let (action, _) = await queue.removeItem(at: idx)
         switch action {
@@ -388,12 +400,12 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             break
         }
     }
-
+    
     public func playNow(_ song: Song) async {
         let action = await queue.setQueue([song], startAt: 0)
         await handleQueueAction(action)
     }
-
+    
     public func insertNext(_ song: Song) async {
         let (action, _) = await queue.insertNext(song)
         if action == .playNewQueue {
@@ -452,21 +464,23 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         @unknown default: repeatMode = .none
         }
     }
-
-    private func handleQueueAction(_ action: QueueUpdateAction) async {
+    
+    private func handleQueueAction(_ action: QueueUpdateAction, autoPlay: Bool = true) async {
         switch action {
-            case .playNewQueue:
-                if let descriptor = try? buildQueueDescriptor(from: await queue.items, startAt: queue.currentIndex) {
-                    player.setQueue(with: descriptor)
-                    player.play()
-                    player.playbackRate = currentPlaybackRate
-                } else {
-                    player.stop()
-                }
-            updateSnapshot()
-            case .updatePlayerQueueOnly:
+        case .playNewQueue:
             if let descriptor = try? buildQueueDescriptor(from: await queue.items, startAt: queue.currentIndex) {
-
+                player.setQueue(with: descriptor)
+                if autoPlay {
+                    player.play()
+                }
+                player.playbackRate = currentPlaybackRate
+            } else {
+                player.stop()
+            }
+            updateSnapshot()
+        case .updatePlayerQueueOnly:
+            if let descriptor = try? buildQueueDescriptor(from: await queue.items, startAt: queue.currentIndex) {
+                
                 let currentPos = player.currentTime
                 player.setQueue(with: descriptor)
                 player.seek(to: currentPos)
@@ -474,11 +488,11 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
                 player.playbackRate = currentPlaybackRate
             }
             updateSnapshot()
-            case .playerShouldStop:
-                player.stop()
-                updateSnapshot()
-            case .noAction:
-                break
+        case .playerShouldStop:
+            player.stop()
+            updateSnapshot()
+        case .noAction:
+            break
         }
     }
     
@@ -517,15 +531,22 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         )
         
         guard isNewSong else { return }
-
+        
         // 履歴更新
-        if let current = queue.currentSong {
-            if history.last?.id != current.id {
-                history.append(current)
-                let titles = history.map{ $0.title }
-            }
+        if let newSong = queue.currentSong,
+           history.last?.id.rawValue != newSong.id.rawValue {
+            history.append(newSong)
+            historyRepo.append(songID: newSong.id.rawValue)
+            
         }
-
+        playerStateRepo.save(
+            queueIDs:      queue.items.map { $0.id.rawValue },
+            currentIndex:  queue.currentIndex,
+            playbackRate:  currentPlaybackRate,
+            shuffleModeRaw: Int(player.shuffleMode.rawValue),
+            repeatModeRaw:  Int(player.repeatMode.rawValue)
+        )
+        
         Task { [weak self] in
             guard let self = self else { return }
             let fetchedArt = await self.getArtwork(for: song)
@@ -541,7 +562,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             self.snapshot = updated
         }
     }
-
+    
     private func trackChanged() {
         let playerIndex = player.indexOfNowPlayingItem
         let currentQueueIndex = queue.currentIndex
@@ -549,12 +570,12 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             needsQueueRefresh = false
             Task { [weak self] in
                 await self?.handleQueueAction(.updatePlayerQueueOnly)
-                }
+            }
         }
         
         guard playerIndex != lastPlayerIndex else { return }
         lastPlayerIndex = playerIndex
-
+        
         if playerIndex >= 0 && playerIndex < queue.items.count {
             let actualIndex = (queue.currentIndex + playerIndex) % queue.items.count
             
@@ -576,7 +597,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         }
         updateSnapshot()
     }
-
+    
     // プレイリスト（ローカル）からPlayeParametersを抽出するため
     private func makePlayParameters(for song: Song) throws -> MPMusicPlayerPlayParameters? {
         guard let playParams = song.playParameters else {
@@ -591,12 +612,12 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     private func buildQueueDescriptor(from songs: [Song], startAt index: Int) throws -> MPMusicPlayerPlayParametersQueueDescriptor {
         guard !songs.isEmpty, songs.indices.contains(index) else {
             throw NSError(domain: "MusicPlayerUtils", code: -2, userInfo: nil)
- }
+        }
         let rotated = Array(songs[index...] + songs[..<index])
         let params = try rotated.compactMap { try makePlayParameters(for: $0) }
         guard !params.isEmpty else {
             throw NSError(domain: "MusicPlayerUtils", code: -2, userInfo: nil)
- }
+        }
         return MPMusicPlayerPlayParametersQueueDescriptor(playParametersQueue: params)
     }
     
@@ -657,5 +678,45 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         }
         
         return placeholder
+    }
+    /// 履歴復元 → Song 配列（最大100件まで、一度にバッチ取得）
+    func fetchCatalogSongs(_ ids: [String]) async -> [Song] {
+        let itemIDs = ids.map { MusicItemID($0) }
+        let batchIDs = Array(itemIDs.prefix(100))
+        
+        let req = MusicCatalogResourceRequest<Song>(
+            matching: \.id,
+            memberOf: batchIDs
+        )
+        do {
+            let response = try await req.response()
+            return Array(response.items)
+        } catch {
+            return []
+        }
+    }
+    private func restore() async {
+        let st = playerStateRepo.load()
+        
+        do {
+            let songs = try await fetchCatalogSongs(st.queueIDs)
+            await self.setQueue(songs: songs, startAt: st.currentIndex, autoPlay: false)
+        } catch {
+            await self.setQueue(songs: [], startAt: 0, autoPlay: false)
+        }
+        
+        let ht = historyRepo.loadAll()
+        do {
+            let historySongs = try await fetchCatalogSongs(ht)
+            history = historySongs
+        } catch {
+            history = []
+        }
+        
+        currentPlaybackRate = st.playbackRate
+        player.playbackRate = st.playbackRate
+        player.shuffleMode  = MPMusicShuffleMode(rawValue: st.shuffleModeRaw) ?? .off
+        player.repeatMode   = MPMusicRepeatMode(rawValue: st.repeatModeRaw)  ?? .none
+        isShuffled = player.shuffleMode != .off
     }
 }
