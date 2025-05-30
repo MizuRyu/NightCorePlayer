@@ -42,8 +42,8 @@ final class MusicPlayerViewModel: ObservableObject {
         bindService()
     }
     
-    func setQueue(_ songs: [Song], startAt idx: Int) {
-        Task { await service.setQueue(songs: songs, startAt: idx) }
+    func setQueue(_ songs: [Song], startAt idx: Int, autoPlay: Bool = true) {
+        Task { await service.setQueue(songs: songs, startAt: idx, autoPlay: autoPlay) }
     }
 
     // 再生キューの操作をグローバルなqueueに反映する
@@ -121,8 +121,7 @@ final class MusicPlayerViewModel: ObservableObject {
     
     func loadPlaylist(songs: [Song], startAt index: Int = 0, autoPlay: Bool = true) {
         Task {
-            await service.setQueue(songs: songs, startAt: index)
-            if autoPlay { await service.play() }
+            await service.setQueue(songs: songs, startAt: index, autoPlay: autoPlay)
         }
     }
     
