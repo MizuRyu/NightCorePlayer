@@ -3,6 +3,7 @@ import SwiftData
 
 final class HistoryRepository {
     private let context: ModelContext
+    private let maxHistoryCount = Constants.History.maxHistoryCount
 
     init(context: ModelContext) {
         self.context = context
@@ -12,12 +13,16 @@ final class HistoryRepository {
     func append(songID: String) {
         let entry = History(songID: songID)
         context.insert(entry)
+
+        trimOverflowIfNeeded()
         saveContext()
     }
 
     /// 全履歴を再生日時の新しい順で取得
     func loadAll() -> [String] {
-        let desc = FetchDescriptor<History>(sortBy: [.init(\.playedAt)])
+        var desc = FetchDescriptor<History>(
+            sortBy: [.init(\.playedAt, order: .reverse)])
+        desc.fetchLimit = maxHistoryCount
         return (try? context.fetch(desc))?.map(\.songID) ?? []
     }
 
@@ -37,5 +42,19 @@ final class HistoryRepository {
         } catch {
             print("⚠️ History save error:", error)
         }
+    }
+
+    // 履歴が最大保持数を超えた場合、古い順に削除
+    private func trimOverflowIfNeeded() {
+        var desc = FetchDescriptor<History>(
+            sortBy: [.init(\.playedAt, order: .forward)]
+        )
+        desc.fetchLimit = max(0, maxHistoryCount + 1)
+
+        guard let list = try? context.fetch(desc),
+              list.count > maxHistoryCount else { return }
+
+        let overflow = list.count - maxHistoryCount
+        list.prefix(overflow).forEach(context.delete)
     }
 }

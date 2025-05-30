@@ -258,7 +258,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     var currentPlaybackRate: Double = Constants.MusicPlayer.defaultPlaybackRate
     private let minPlaybackRate: Double = Constants.MusicPlayer.minPlaybackRate
     private let maxPlaybackRate: Double = Constants.MusicPlayer.maxPlaybackRate
-    
+    private let maxHistoryCount: Int = Constants.History.maxHistoryCount
     
     private var timerCancellable: AnyCancellable?
     private var lastPlayerIndex: Int? = nil
@@ -536,6 +536,10 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         if let newSong = queue.currentSong,
            history.last?.id.rawValue != newSong.id.rawValue {
             history.append(newSong)
+
+            if history.count > maxHistoryCount {
+                history.removeFirst(history.count - maxHistoryCount)
+            }
             historyRepo.append(songID: newSong.id.rawValue)
             
         }

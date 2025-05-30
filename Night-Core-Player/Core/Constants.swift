@@ -7,6 +7,10 @@ public enum Constants {
         public static let musicKitSearchLimit: Int = 25
         public static let playlistsLoadLimit: Int = 10
     }
+
+    public enum History {
+        public static let maxHistoryCount: Int = 100
+    }
     
     public enum Timing {
         public static let searchDebounce: Int = 500
