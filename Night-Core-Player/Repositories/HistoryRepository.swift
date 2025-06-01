@@ -18,10 +18,10 @@ final class HistoryRepository {
         saveContext()
     }
 
-    /// 全履歴を再生日時の新しい順で取得
+    /// 再生履歴読み込み
     func loadAll() -> [String] {
         var desc = FetchDescriptor<History>(
-            sortBy: [.init(\.playedAt, order: .reverse)])
+            sortBy: [.init(\.playedAt, order: .forward)])
         desc.fetchLimit = maxHistoryCount
         return (try? context.fetch(desc))?.map(\.songID) ?? []
     }

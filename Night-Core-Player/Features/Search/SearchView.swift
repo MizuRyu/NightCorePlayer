@@ -34,32 +34,7 @@ struct SearchRowView: View {
                     .foregroundColor(.secondary)
             }
             Spacer()
-            Menu {
-                Button("再生を次に追加") {
-                    playerVM.insertNext(song)
-                    // デバッグ用ログ
-                    print("🎯 insertNext called for: \(song.title) — \(song.artistName)")
-                    print("📦 current queue:")
-                    for (i, s) in playerVM.musicPlayerQueue.enumerated() {
-                        print("   [\(i)] \(s.title) — \(s.artistName)")
-                    }
-                }
-                Button("ライブラリに追加") {
-                    // TODO: ライブラリに追加ロジック
-                }
-                Divider()
-                Button("キャンセル", role: .cancel) {
-                }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .rotationEffect(.degrees(90))
-                    .foregroundColor(.secondary)
-                    .padding(8)
-            }
-            .menuStyle(BorderlessButtonMenuStyle())
-            .onTapGesture {
-                playerVM.playNow(song)
-            }
+            SongContextMenu(song: song)
         }
         .padding(.vertical, 4)
     }

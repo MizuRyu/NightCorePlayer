@@ -146,7 +146,6 @@ final class MusicPlayerViewModel: ObservableObject {
         return String(format: "%02d:%02d", m, s)
     }
     
-    // MARK: - Private
     private func bindService() {
         service.snapshotPublisher
             .receive(on: RunLoop.main)

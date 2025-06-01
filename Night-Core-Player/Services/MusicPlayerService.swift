@@ -627,6 +627,9 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     
     /// カタログから楽曲詳細を取得
     private func fetchSongDetails(_ song: Song) async -> Song {
+        guard !song.id.rawValue.isEmpty else {
+            return song
+        }
         let raw = song.id.rawValue
         // ライブラリ（プレイリスト）楽曲はカタログAPIを叩かない
         if raw.hasPrefix("i.") {
@@ -683,16 +686,20 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         
         return placeholder
     }
-    /// 履歴復元 → Song 配列（最大100件まで、一度にバッチ取得）
+    /// 履歴復元 → Song 配列（最大100件まで、一度にバッチ取）
     func fetchCatalogSongs(_ ids: [String]) async -> [Song] {
         let itemIDs = ids.map { MusicItemID($0) }
         let batchIDs = Array(itemIDs.prefix(100))
         
-        let req = MusicCatalogResourceRequest<Song>(
-            matching: \.id,
-            memberOf: batchIDs
-        )
+        if batchIDs.isEmpty {
+            return []
+        }
+        
         do {
+            let req = MusicCatalogResourceRequest<Song>(
+                matching: \.id,
+                memberOf: batchIDs
+            )
             let response = try await req.response()
             return Array(response.items)
         } catch {

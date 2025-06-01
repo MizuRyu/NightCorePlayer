@@ -55,12 +55,7 @@ struct SongRowView: View {
                     .foregroundColor(.secondary)
             }
             Spacer()
-            Button {
-            } label: {
-                Image(systemName: "ellipsis")
-                    .rotationEffect(.degrees(90))
-                    .foregroundColor(.secondary)
-            }
+            SongContextMenu(song: song)
         }
         .padding(.vertical, 8)
         .enableInjection()

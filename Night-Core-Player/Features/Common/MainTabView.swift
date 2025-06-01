@@ -36,14 +36,12 @@ struct MainTabView: View {
             .environmentObject(nav)
             .environmentObject(playerVM)
             
-            // MiniPlayer を下端（safe area）のすぐ上に差し込む
-            // タブバー分の余白は .padding(.bottom) で調整
             if nav.selectedTab != .player && !keyboard.isVisible {
                 MiniMusicPlayerView()
                     .environmentObject(nav)
                     .environmentObject(playerVM)
-                    .frame(height: miniPlayerHeight)    // ★高さ固定
-                    .background(.ultraThinMaterial)    // 背景マテリアル
+                    .frame(height: miniPlayerHeight)
+                    .background(.ultraThinMaterial)
                     .cornerRadius(8)
                     .shadow(radius: 1)
                     .contentShape(Rectangle())
@@ -52,7 +50,7 @@ struct MainTabView: View {
                             nav.selectedTab = .player
                         }
                     }
-                    .padding(.bottom, /* タブバー高さ */ 55)
+                    .padding(.bottom, 55)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .animation(.easeInOut, value: playerVM.isPlaying)
             }
