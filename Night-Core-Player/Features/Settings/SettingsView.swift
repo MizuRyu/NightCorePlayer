@@ -5,7 +5,7 @@ struct SettingsView: View {
     @ObserveInjection var inject
     
     // 各セクションの項目を定義
-    private let soundSettings = ["再生速度", "テンポ"]
+    private let soundSettings = ["再生速度"]
     private let others = [
         "利用規約・プライバシーポリシー",
         "ご意見・お問い合わせ",
@@ -71,10 +71,17 @@ struct SettingsView: View {
             .navigationTitle("設定")
             // TODO: 遷移先ページの実装（サンプル実装）
             .navigationDestination(for: String.self) { name in
-                Text(name)
-                    .font(.title2)
-                    .navigationTitle(name)
-                    .navigationBarTitleDisplayMode(.inline)
+                switch name {
+                case "再生速度":
+                    SettingsPlaybackSpeedView()
+                        .navigationTitle("サウンド設定")
+                        .navigationBarTitleDisplayMode(.inline)
+                default:
+                    Text(name)
+                        .font(.title2)
+                        .navigationTitle(name)
+                        .navigationBarTitleDisplayMode(.inline)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
