@@ -160,7 +160,8 @@ struct MusicPlayerView: View {
                     }
                 }
                 .padding(.vertical, 8)
-                Spacer()
+                
+                Spacer(minLength: 20)
                 
                 // ⚙️ 倍速調整
                 VStack(spacing: 10) {
@@ -201,7 +202,6 @@ struct MusicPlayerView: View {
                         }
                     }
                 }
-                Spacer()
                 
                 // 再生キュー表示
                 Button(action: {
@@ -231,6 +231,3 @@ struct MusicPlayerView: View {
         }
     }
 }
-//#Preview {
-//    MusicPlayerView()
-//}
