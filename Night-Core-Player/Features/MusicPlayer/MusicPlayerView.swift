@@ -51,7 +51,6 @@ struct SliderTickMarksOverlay: View {
     }
 }
 struct MusicPlayerView: View {
-    // Injection 発生を監視するwrapper
     @ObserveInjection var inject
     @EnvironmentObject private var nav: PlayerNavigator
     @EnvironmentObject private var vm: MusicPlayerViewModel
