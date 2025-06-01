@@ -21,7 +21,7 @@ final class HistoryRepository {
     /// 全履歴を再生日時の新しい順で取得
     func loadAll() -> [String] {
         var desc = FetchDescriptor<History>(
-            sortBy: [.init(\.playedAt, order: .reverse)])
+            sortBy: [.init(\.playedAt, order: .forward)])
         desc.fetchLimit = maxHistoryCount
         return (try? context.fetch(desc))?.map(\.songID) ?? []
     }
