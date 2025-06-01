@@ -6,7 +6,7 @@ final class PlayerNavigator: ObservableObject {
         case player, search, playlist, settings
     }
     
-    @Published var selectedTab: Tab = .search
+    @Published var selectedTab: Tab = .player
     @Published var songs: [Song] = []
     @Published var initialIndex: Int = 0
 }
