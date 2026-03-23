@@ -4,14 +4,15 @@ import MusicKit
 
 struct PlaylistView: View {
     @ObserveInjection var inject
-    @StateObject private var vm = PlaylistViewModel()
+    @Environment(PlaylistViewModel.self) private var vm
+    @Environment(\.musicKitService) private var musicKitService
     
     var body: some View {
         NavigationStack {
             content
                 .navigationTitle("プレイリスト")
                 .navigationDestination(for: Playlist.self) { pl in
-                    PlaylistDetailView(pl: pl)
+                    PlaylistDetailView(pl: pl, musicKitService: musicKitService)
                 }
         }
         .task { await vm.load() }

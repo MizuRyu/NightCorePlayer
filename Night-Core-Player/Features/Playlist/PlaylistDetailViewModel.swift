@@ -1,18 +1,19 @@
 import Foundation
 import MusicKit
+import Observation
 
+@Observable
 @MainActor
-class PlaylistDetailViewModel: ObservableObject {
+final class PlaylistDetailViewModel {
     let playlist: Playlist
-    @Published var tracks: [Track] = []
-    @Published private(set) var songs: [Song] = []
-    @Published private(set) var isLoading = false
-    @Published private(set) var errorMessage: String?
+    private(set) var songs: [Song] = []
+    private(set) var isLoading = false
+    private(set) var errorMessage: String?
     
     private var musicKitService: MusicKitService
     
     init(playlist: Playlist,
-         musicKitService: MusicKitService = MusicKitServiceImpl()) {
+         musicKitService: MusicKitService) {
         self.playlist = playlist
         self.musicKitService = musicKitService
     }

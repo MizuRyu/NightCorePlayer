@@ -4,7 +4,7 @@ import MusicKit
 
 struct MusicPlayerControlsView: View {
     @ObserveInjection var inject
-    @EnvironmentObject private var vm: MusicPlayerViewModel
+    @Environment(MusicPlayerViewModel.self) private var vm
     
     var body: some View {
         VStack(spacing: 16) {
@@ -59,11 +59,11 @@ struct MusicPlayerControlsView: View {
 }
 
 struct NowPlayingHeaderView: View {
-    @EnvironmentObject private var vm: MusicPlayerViewModel
+    @Environment(MusicPlayerViewModel.self) private var vm
     
     var body: some View {
         HStack {
-            vm.artwork
+            vm.artworkImage
                 .resizable()
                 .scaledToFit()
                 .frame(width: 70, height: 70)
@@ -86,7 +86,7 @@ struct NowPlayingHeaderView: View {
 }
 
 struct HistorySectionView: View {
-    @EnvironmentObject private var vm: MusicPlayerViewModel
+    @Environment(MusicPlayerViewModel.self) private var vm
     @State private var showDeleteAlert = false
 
     var body: some View {
@@ -131,7 +131,7 @@ struct HistorySectionView: View {
     }
 
 struct QueueSectionView: View {
-    @EnvironmentObject private var vm: MusicPlayerViewModel
+    @Environment(MusicPlayerViewModel.self) private var vm
     
     var body: some View {
         // スクロールのターゲットとしてidを設定
@@ -164,17 +164,13 @@ struct QueueSectionView: View {
 }
 
 struct CombinedListView: View {
-    @EnvironmentObject private var vm: MusicPlayerViewModel
+    @Environment(MusicPlayerViewModel.self) private var vm
     
     var body: some View {
         ScrollViewReader { proxy in
             List {
-                // 履歴セクション（ヘッダ、行ともにSectionに含まれる）
                 HistorySectionView()
-                    .environmentObject(vm)
-                // 再生キューセクション
                 QueueSectionView()
-                    .environmentObject(vm)
                 
             }
             .listStyle(.plain)
@@ -198,7 +194,7 @@ struct CombinedListView: View {
 }
     
 struct PlayingQueueView: View {
-    @EnvironmentObject private var vm: MusicPlayerViewModel
+    @Environment(MusicPlayerViewModel.self) private var vm
     
     var body: some View {
         VStack(spacing: 0) {
@@ -208,7 +204,6 @@ struct PlayingQueueView: View {
                 .padding(.vertical, 8)
             
             NowPlayingHeaderView()
-                .environmentObject(vm)
             
             HStack {
                 Spacer()
@@ -222,12 +217,10 @@ struct PlayingQueueView: View {
             .foregroundColor(.secondary)
             
             CombinedListView()
-                .environmentObject(vm)
             
             Spacer()
             
             MusicPlayerControlsView()
-                .environmentObject(vm)
                 .padding(.vertical, 60)
         }
         .background(Color(.systemBackground))

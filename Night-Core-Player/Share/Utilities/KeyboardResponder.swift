@@ -1,9 +1,11 @@
 import SwiftUI
 import Combine
+import Observation
 
 /// キーボード表示状態を監視
-final class KeyboardResponder: ObservableObject {
-    @Published var isVisible: Bool = false
+@Observable
+final class KeyboardResponder {
+    var isVisible: Bool = false
     private var cancellables = Set<AnyCancellable>()
     
     init() {
@@ -14,10 +16,9 @@ final class KeyboardResponder: ObservableObject {
             .publisher(for: UIResponder.keyboardWillHideNotification)
             .map { _ in false }
         
-        // show／hide イベントどちらも受けて isVisible を更新
         Publishers.Merge(willShow, willHide)
             .receive(on: RunLoop.main)
-            .assign(to: \.isVisible, on: self)
+            .sink { [weak self] in self?.isVisible = $0 }
             .store(in: &cancellables)
     }
 }

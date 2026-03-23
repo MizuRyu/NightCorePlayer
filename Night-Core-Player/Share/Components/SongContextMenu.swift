@@ -4,15 +4,20 @@ import MusicKit
 /// 楽曲のコンテキストメニュー
 struct SongContextMenu: View {
     let song: Song
-    @EnvironmentObject private var playerVM: MusicPlayerViewModel
+    @Environment(MusicPlayerViewModel.self) private var playerVM
     
     var body: some View {
         Menu {
-            Button("再生を次に追加") {
-                playerVM.insertNext(song)
+            Button {
+                playerVM.playNow(song)
+            } label: {
+                Label("この曲を再生", systemImage: "play.fill")
             }
-            Divider()
-            Button("キャンセル", role: .cancel) {}
+            Button {
+                playerVM.insertNext(song)
+            } label: {
+                Label("次に再生", systemImage: "text.line.first.and.arrowtriangle.forward")
+            }
         } label: {
             Image(systemName: "ellipsis")
                 .rotationEffect(.degrees(90))
@@ -20,8 +25,5 @@ struct SongContextMenu: View {
                 .padding(8)
         }
         .menuStyle(BorderlessButtonMenuStyle())
-        .onTapGesture {
-            playerVM.playNow(song)
-        }
     }
 }

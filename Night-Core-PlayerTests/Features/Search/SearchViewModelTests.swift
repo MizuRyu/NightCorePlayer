@@ -4,7 +4,7 @@ import SwiftUI
 import MusicKit
 @testable import Night_Core_Player
 
-@Suite
+@Suite(.serialized)
 @MainActor
 struct SearchViewModelTests {
     
@@ -26,7 +26,7 @@ struct SearchViewModelTests {
         #expect(vm.query == "", "query が空文字であること")
         #expect(vm.songs.isEmpty, "songs が空配列であること")
         #expect(vm.isLoading == false, "isLoading が false であること")
-        #expect(vm.error == nil, "error が nil であること")
+        #expect(vm.errorMessage == nil, "errorMessage が nil であること")
     }
     
     @Test("空白クエリ: searchSongs を呼ばず songs をクリアすること")
@@ -81,7 +81,7 @@ struct SearchViewModelTests {
         // Given
         struct DummyErr: Error {}
         let (vm, svc) = SearchViewModelTests.setUp()
-        svc.stubError = DummyErr()
+        svc.searchError = DummyErr()
         
         // When
         vm.query = "Error"
@@ -89,7 +89,7 @@ struct SearchViewModelTests {
         
         // Then
         #expect(svc.searchCallArgs.count == 1, "searchSongs が呼ばれること")
-        #expect(vm.error != nil, "error がセットされること")
+        #expect(vm.errorMessage != nil, "errorMessage がセットされること")
         #expect(vm.songs.isEmpty, "songs がクリアされること")
         #expect(vm.isLoading == false, "完了後 isLoading が false であること")
     }
