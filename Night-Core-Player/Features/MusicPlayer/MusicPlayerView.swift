@@ -52,19 +52,13 @@ struct SliderTickMarksOverlay: View {
 }
 struct MusicPlayerView: View {
     @ObserveInjection var inject
-    @EnvironmentObject private var nav: PlayerNavigator
-    @EnvironmentObject private var vm: MusicPlayerViewModel
+    @Environment(PlayerNavigator.self) private var nav
+    @Environment(MusicPlayerViewModel.self) private var vm
     @State private var isQueuePresented = false
     
     init() {
         let clearImage = UIImage()
         UISlider.appearance().setThumbImage(clearImage, for: .normal)
-    }
-    
-    init(songs: [Song], initialIndex: Int = 0) {
-        let clearImage = UIImage()
-        UISlider.appearance().setThumbImage(clearImage, for: .normal)
-        vm.loadPlaylist(songs: songs, startAt: initialIndex)
     }
     
     var body: some View {
@@ -77,7 +71,7 @@ struct MusicPlayerView: View {
                 Spacer()
                 
                 // 🖼️ アートワーク
-                vm.artwork
+                vm.artworkImage
                     .resizable()
                     .scaledToFit()
                     .frame(width: 250, height: 250)
@@ -100,7 +94,8 @@ struct MusicPlayerView: View {
                             visibleWidth: 100,
                             speed: 30,
                             spacingBetweenTexts: 20,
-                            delayBeforeScroll: 3
+                            delayBeforeScroll: 3,
+                            selectedTab: nav.selectedTab
                         )
                         .frame(width: 100, height: titleHeight)
                         .clipped()
@@ -110,7 +105,8 @@ struct MusicPlayerView: View {
                             visibleWidth: 100,
                             speed: Constants.MarqueeText.defaultSpeed,
                             spacingBetweenTexts: Constants.MarqueeText.defaultSpacing,
-                            delayBeforeScroll: Constants.MarqueeText.defaultDelay
+                            delayBeforeScroll: Constants.MarqueeText.defaultDelay,
+                            selectedTab: nav.selectedTab
                         )
                         .foregroundColor(.secondary)
                         .frame(width: 100, height: subtitleHeight)
@@ -172,7 +168,6 @@ struct MusicPlayerView: View {
                         in: Constants.MusicPlayer.minPlaybackRate...Constants.MusicPlayer.maxPlaybackRate,
                         step: 0.01
                     ) { editing in
-                        if !editing { vm.setRate(to: vm.rate) }
                     }
                     
                     .frame(width: 340)
@@ -183,10 +178,10 @@ struct MusicPlayerView: View {
                     
                     HStack(spacing: 12) {
                         SpeedControlButton(label: "-\(Constants.MusicPlayer.rateStepLarge)", color: .red) {
-                            vm.changeRate(by: -Constants.MusicPlayer.rateStepLarge)
+                            vm.adjustRate(by: -Constants.MusicPlayer.rateStepLarge)
                         }
                         SpeedControlButton(label: "-\(Constants.MusicPlayer.rateStepSmall)", color: .red) {
-                            vm.changeRate(by: -Constants.MusicPlayer.rateStepSmall)
+                            vm.adjustRate(by: -Constants.MusicPlayer.rateStepSmall)
                         }
                         Text(String(format: "%.2fx", vm.rate))
                             .font(.callout)
@@ -194,10 +189,10 @@ struct MusicPlayerView: View {
                             .padding(.horizontal, 8)
                             .frame(minWidth: 40)
                         SpeedControlButton(label: "+\(Constants.MusicPlayer.rateStepSmall)", color: .green) {
-                            vm.changeRate(by: Constants.MusicPlayer.rateStepSmall)
+                            vm.adjustRate(by: Constants.MusicPlayer.rateStepSmall)
                         }
                         SpeedControlButton(label: "+\(Constants.MusicPlayer.rateStepLarge)", color: .green) {
-                            vm.changeRate(by: Constants.MusicPlayer.rateStepLarge)
+                            vm.adjustRate(by: Constants.MusicPlayer.rateStepLarge)
                         }
                     }
                 }
@@ -217,7 +212,6 @@ struct MusicPlayerView: View {
             }
             .sheet(isPresented: $isQueuePresented) {
                 PlayingQueueView()
-                    .environmentObject(vm)
             }
             .onChange(of: nav.songs) { _, songs in
                 vm.loadPlaylist(

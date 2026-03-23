@@ -4,7 +4,7 @@ import MusicKit
 
 struct SearchRowView: View {
     let song: Song
-    @EnvironmentObject private var playerVM: MusicPlayerViewModel
+    @Environment(MusicPlayerViewModel.self) private var playerVM
     
     @State private var isShowingPopover = false
     
@@ -41,11 +41,12 @@ struct SearchRowView: View {
 }
 struct SearchView: View {
     @ObserveInjection var inject
-    @StateObject private var vm = SearchViewModel()
-    @EnvironmentObject private var nav: PlayerNavigator
-    @EnvironmentObject private var playerVM: MusicPlayerViewModel
+    @Environment(SearchViewModel.self) private var vm
+    @Environment(PlayerNavigator.self) private var nav
+    @Environment(MusicPlayerViewModel.self) private var playerVM
         
     var body: some View {
+        @Bindable var vm = vm
         NavigationStack {
             VStack(spacing: 0) {
                 HStack {
@@ -88,6 +89,14 @@ struct SearchView: View {
             .background(Color(.systemBackground))
             .navigationTitle("検索")
             .navigationBarTitleDisplayMode(.large)
+            .alert("エラー", isPresented: Binding<Bool>(
+                get: { vm.errorMessage != nil },
+                set: { if !$0 { vm.errorMessage = nil } }
+            )) {
+                Button("OK") { vm.errorMessage = nil }
+            } message: {
+                Text(vm.errorMessage ?? "")
+            }
             .enableInjection()
         }
     }

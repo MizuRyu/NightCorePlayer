@@ -2,20 +2,31 @@ import SwiftUI
 import MusicKit
 import MediaPlayer
 import Combine
+import Observation
 
+@Observable
 @MainActor
-final class MusicPlayerViewModel: ObservableObject {
-    @Published private(set) var musicPlayerQueue: [Song] = []
-    @Published private(set) var currentIndex: Int = 0
-    @Published private(set) var history: [Song] = []
+final class MusicPlayerViewModel {
+    private(set) var musicPlayerQueue: [Song] = []
+    private(set) var currentIndex: Int = 0
+    private(set) var history: [Song] = []
     
-    @Published private(set) var title: String      = "—"
-    @Published private(set) var artist: String     = "—"
-    @Published private(set) var artwork: Image     = Image(systemName: "music.note")
-    @Published private(set) var currentTime: Double = 0
-    @Published private(set) var duration: Double    = 0
-    @Published private(set) var rate: Double        = Constants.MusicPlayer.defaultPlaybackRate
-    @Published private(set) var isPlaying: Bool     = false
+    private(set) var title: String      = "—"
+    private(set) var artist: String     = "—"
+    private(set) var artworkData: Data?  = nil
+    private(set) var currentTime: Double = 0
+
+    /// artworkData から SwiftUI.Image を生成する（View 層で利用）
+    var artworkImage: Image {
+        if let data = artworkData, let ui = UIImage(data: data) {
+            return Image(uiImage: ui)
+        }
+        return Image(systemName: "music.note")
+    }
+    private(set) var duration: Double    = 0
+    private(set) var rate: Double        = Constants.MusicPlayer.defaultPlaybackRate
+    private(set) var isPlaying: Bool     = false
+    var errorMessage: String?
 
     private var skipSeconds: Double = Constants.MusicPlayer.skipSeconds
 
@@ -43,7 +54,11 @@ final class MusicPlayerViewModel: ObservableObject {
     }
     
     func setQueue(_ songs: [Song], startAt idx: Int, autoPlay: Bool = true) {
-        Task { await service.setQueue(songs: songs, startAt: idx, autoPlay: autoPlay) }
+        Task {
+            await service.setQueue(songs: songs, startAt: idx, autoPlay: autoPlay)
+            self.musicPlayerQueue = service.musicPlayerQueue
+            self.currentIndex = service.nowPlayingIndex
+        }
     }
 
     // 再生キューの操作をグローバルなqueueに反映する
@@ -70,12 +85,16 @@ final class MusicPlayerViewModel: ObservableObject {
     func playNow(_ song: Song) {
         Task {
             await service.playNow(song)
+            self.musicPlayerQueue = service.musicPlayerQueue
+            self.currentIndex = service.nowPlayingIndex
         }
     }
     // キューの先頭に楽曲を挿入し、再生を開始
     func playNowNext(_ song: Song) {
         Task {
             await service.playNextAndPlay(song)
+            self.musicPlayerQueue = service.musicPlayerQueue
+            self.currentIndex = service.nowPlayingIndex
         }
     }
     func insertNext(_ song: Song) {
@@ -86,8 +105,12 @@ final class MusicPlayerViewModel: ObservableObject {
         }
     }
     func clearHistory() {
-        service.clearHistory()
-        self.history = []
+        do {
+            try service.clearHistory()
+            self.history = []
+        } catch {
+            errorMessage = (error as? AppError)?.errorDescription ?? error.localizedDescription
+        }
     }
     
     
@@ -113,9 +136,9 @@ final class MusicPlayerViewModel: ObservableObject {
                           Constants.MusicPlayer.minPlaybackRate),
                       Constants.MusicPlayer.maxPlaybackRate)
         rate = tmp
-        Task { await service.changeRate(to: tmp) }
+        Task { await service.setSessionRate(tmp) }
     }
-    func changeRate(by delta: Double) {
+    func adjustRate(by delta: Double) {
         setRate(to: rate + delta)
     }
     
@@ -148,12 +171,12 @@ final class MusicPlayerViewModel: ObservableObject {
     
     private func bindService() {
         service.snapshotPublisher
-            .receive(on: RunLoop.main)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] snap in
-                guard let self = self else { return }
+                guard let self else { return }
                 self.title       = snap.title
                 self.artist      = snap.artist
-                self.artwork     = snap.artwork
+                self.artworkData = snap.artworkData
                 self.currentTime = snap.currentTime
                 self.duration    = snap.duration
                 self.rate        = snap.rate

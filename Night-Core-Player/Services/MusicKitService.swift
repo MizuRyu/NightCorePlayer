@@ -1,7 +1,20 @@
 import Foundation
 import MusicKit
+import SwiftUI
 
-// MusicKit のラッパー
+// MARK: - Protocol
+
+/// Apple Music カタログとの対話を担当する（Catalog コンテキスト）
+protocol MusicKitService: Sendable {
+    func ensureAuth() async throws -> Void
+    func searchSongs(keyword: String, limit: Int) async throws -> [Song]
+    func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist]
+    func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song]
+}
+
+// MARK: - MusicKitClient
+
+/// MusicKit API の低レベルラッパー
 protocol MusicKitClient: Sendable {
     func requestAuthorization() async -> MusicAuthorization.Status
     func searchCatalogSongs(term: String, limit: Int) async throws -> [Song]
@@ -9,7 +22,6 @@ protocol MusicKitClient: Sendable {
     func fetchSongs(in playlist: Playlist) async throws -> [Song]
 }
 
-// 実体
 struct DefaultMusicKitClient: MusicKitClient {
     func requestAuthorization() async -> MusicAuthorization.Status {
         await MusicAuthorization.request()
@@ -37,16 +49,11 @@ struct DefaultMusicKitClient: MusicKitClient {
     }
 }
 
-protocol MusicKitService: Sendable {
-    func ensureAuth() async throws -> Void
-    func searchSongs(keyword: String, limit: Int) async throws -> [Song]
-    func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist]
-    func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song]
-}
+// MARK: - MusicKitServiceImpl
 
 final class MusicKitServiceImpl: MusicKitService {
     private let client: MusicKitClient
-    
+
     init(client: MusicKitClient = DefaultMusicKitClient()) {
         self.client = client
     }
@@ -60,11 +67,6 @@ final class MusicKitServiceImpl: MusicKitService {
             )
         }
     }
-    /// カタログから曲をキーワード検索
-    /// - Parameters:
-    ///   - keyword: 検索ワード
-    ///   - limit: 最大取得件数
-    /// - Returns: 検索結果の Song 配列
     func searchSongs(
         keyword: String,
         limit: Int = Constants.MusicAPI.musicKitSearchLimit
@@ -72,23 +74,25 @@ final class MusicKitServiceImpl: MusicKitService {
         try await ensureAuth()
         return try await client.searchCatalogSongs(term: keyword, limit: limit)
     }
-    
-    /// ライブラリ内のプレイリスト取得
-    /// - Parameters:
-    ///   - limit: 最大取得件数
-    /// - Returns: ユーザーライブラリ内のプレイリスト配列
-    /// - Returns: 検索結果の Song 配列
     func fetchLibraryPlaylists(limit: Int = 10) async throws -> [Playlist] {
         try await ensureAuth()
         return try await client.fetchLibraryPlaylists(limit: limit)
     }
-    
-    /// 指定ライブラリプレイリストの中身を取得
-    /// - Parameters:
-    ///   - playlist: 曲目を取得するプレイリスト
-    /// - Returns: プレイリスト内の Song 配列
     func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song] {
         try await ensureAuth()
         return try await client.fetchSongs(in: playlist)
+    }
+}
+
+// MARK: - SwiftUI Environment 対応
+
+private struct MusicKitServiceKey: EnvironmentKey {
+    static let defaultValue: any MusicKitService = MusicKitServiceImpl()
+}
+
+extension EnvironmentValues {
+    var musicKitService: any MusicKitService {
+        get { self[MusicKitServiceKey.self] }
+        set { self[MusicKitServiceKey.self] = newValue }
     }
 }

@@ -23,7 +23,7 @@ struct MarqueeText: View {
     @State private var contentWidth: CGFloat = 0
     @State private var isAnimating: Bool = false
 
-    @EnvironmentObject private var nav: PlayerNavigator
+    let selectedTab: PlayerNavigator.Tab
     
     init(
         text: String,
@@ -32,7 +32,8 @@ struct MarqueeText: View {
         visibleWidth: CGFloat,
         speed: Double = Constants.MarqueeText.defaultSpeed,
         spacingBetweenTexts: CGFloat = Constants.MarqueeText.defaultSpacing,
-        delayBeforeScroll: Double = Constants.MarqueeText.defaultDelay
+        delayBeforeScroll: Double = Constants.MarqueeText.defaultDelay,
+        selectedTab: PlayerNavigator.Tab = .player
     ) {
         self.text = text
         self.font = font
@@ -41,6 +42,7 @@ struct MarqueeText: View {
         self.speed = speed
         self.spacingBetweenTexts = spacingBetweenTexts
         self.delayBeforeScroll = delayBeforeScroll
+        self.selectedTab = selectedTab
     }
     
     private var shouldScroll: Bool {
@@ -79,7 +81,7 @@ struct MarqueeText: View {
                         // ループ用にコピーを並べる
                         Text(text).font(font).lineLimit(1).fixedSize()
                     }
-                    .id("\(text)-\(nav.selectedTab)") // tab切り替えでアニメーションがリセットされるように
+                    .id("\(text)-\(selectedTab)") // tab切り替えでアニメーションがリセットされるように
                     .offset(x: isAnimating ? -(contentWidth + spacingBetweenTexts) : 0)
                     .frame(width: currentVisibleWidth, alignment: .leading)
                     .clipped()

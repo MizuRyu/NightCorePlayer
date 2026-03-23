@@ -1,19 +1,21 @@
 import Foundation
 import SwiftUI
 import MusicKit
+import Observation
 
+@Observable
 @MainActor
-class PlaylistViewModel: ObservableObject {
+final class PlaylistViewModel {
     
-    @Published var playlists: [Playlist] = []
-    @Published var rows: [PlaylistRowModel] = []
-    @Published var isLoading = false
-    @Published var errorMessage: String?
+    var playlists: [Playlist] = []
+    var rows: [PlaylistRowModel] = []
+    var isLoading = false
+    var errorMessage: String?
     
     private var artworkCache: [MusicItemID: UIImage] = [:]
     private let musicKitService: MusicKitService
     
-    init(musicKitService: MusicKitService = MusicKitServiceImpl()) {
+    init(musicKitService: MusicKitService) {
         self.musicKitService = musicKitService
     }
     
@@ -28,7 +30,6 @@ class PlaylistViewModel: ObservableObject {
                 PlaylistRowModel(
                     id: pl.id,
                     title: pl.name,
-                    subtitle: pl.curatorName,
                     artwork: pl.artwork,
                     playlist: pl
                 )
@@ -61,7 +62,6 @@ class PlaylistViewModel: ObservableObject {
                 rows[idx] = PlaylistRowModel(
                     id: rows[idx].id,
                     title: rows[idx].title,
-                    subtitle: rows[idx].subtitle,
                     artwork: rows[idx].artwork,
                     playlist: rows[idx].playlist
                 )

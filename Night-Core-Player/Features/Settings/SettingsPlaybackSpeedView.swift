@@ -3,8 +3,14 @@ import Inject
 
 struct SettingsPlaybackSpeedView: View {
     @ObserveInjection var inject
+    var settingsVM: SettingsViewModel
 
-    @State private var currentSpeed: Double = 1.00
+    @State private var currentSpeed: Double
+
+    init(settingsVM: SettingsViewModel) {
+        self.settingsVM = settingsVM
+        _currentSpeed = State(initialValue: settingsVM.defaultRate)
+    }
     
     var body: some View {
         List {
@@ -30,6 +36,9 @@ struct SettingsPlaybackSpeedView: View {
                     step: Constants.MusicPlayer.rateStepSmall
                 ) {
                     EmptyView()
+                }
+                .onChange(of: currentSpeed) { _, newVal in
+                    settingsVM.updateDefaultRate(to: newVal)
                 }
                 .labelsHidden()
                 

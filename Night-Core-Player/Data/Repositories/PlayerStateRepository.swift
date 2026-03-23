@@ -16,33 +16,29 @@ final class PlayerStateRepository {
         playbackRate: Double,
         shuffleModeRaw: Int,
         repeatModeRaw: Int
-    ) {
-        let entity = fetch() ?? PlayerState()
-        do {
-            entity.queueIDsData = try JSONEncoder().encode(queueIDs)
-        } catch {
-            print("⚠️ PlayerState encode error:", error)
-        }
+    ) throws {
+        let entity = try fetch() ?? PlayerStateEntity()
+        entity.queueIDs      = queueIDs
         entity.currentIndex  = currentIndex
         entity.playbackRate  = playbackRate
         entity.shuffleModeRaw = shuffleModeRaw
         entity.repeatModeRaw  = repeatModeRaw
 
-        if fetch() == nil {
+        if try fetch() == nil {
             context.insert(entity)
         }
-        saveContext()
+        try context.save()
     }
 
     /// 読み込み
-    func load() -> (
+    func load() throws -> (
         queueIDs: [String],
         currentIndex: Int,
         playbackRate: Double,
         shuffleModeRaw: Int,
         repeatModeRaw: Int
     ) {
-        guard let e = fetch() else {
+        guard let e = try fetch() else {
             return (
                 [], 0,
                 Constants.MusicPlayer.defaultPlaybackRate,
@@ -52,20 +48,11 @@ final class PlayerStateRepository {
         }
         return (e.queueIDs, e.currentIndex, e.playbackRate, e.shuffleModeRaw, e.repeatModeRaw)
     }
-    
 
-    private func fetch() -> PlayerState? {
-        let descriptor = FetchDescriptor<PlayerState>(
+    private func fetch() throws -> PlayerStateEntity? {
+        let descriptor = FetchDescriptor<PlayerStateEntity>(
             predicate: #Predicate { $0.id == "default" }
         )
-        return (try? context.fetch(descriptor))?.first
-    }
-
-    private func saveContext() {
-        do {
-            try context.save()
-        } catch {
-            print("⚠️ PlayerState save error:", error)
-        }
+        return try context.fetch(descriptor).first
     }
 }
