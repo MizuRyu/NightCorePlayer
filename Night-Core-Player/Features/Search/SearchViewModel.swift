@@ -7,6 +7,7 @@ import Observation
 final class SearchViewModel {
 
     private let musicKitService: MusicKitService
+    private let userDefaults: UserDefaults
 
     var query: String = "" {
         didSet { scheduleSearch() }
@@ -18,16 +19,39 @@ final class SearchViewModel {
     private(set) var hasMoreSongs = false
     var errorMessage: String?
 
+    // MARK: - Search History
+
+    private(set) var searchHistory: [String] = []
+    private let historyKey = "searchHistory"
+    private let maxHistoryCount = 20
+
     private var searchTask: Task<Void, Never>?
     private var lastSearchedQuery: String = ""
     private var currentOffset: Int = 0
 
-    init(musicKitService: MusicKitService) {
+    init(musicKitService: MusicKitService, userDefaults: UserDefaults = .standard) {
         self.musicKitService = musicKitService
+        self.userDefaults = userDefaults
+        self.searchHistory = userDefaults.stringArray(forKey: historyKey) ?? []
     }
+
+    // MARK: - Search
 
     private func scheduleSearch() {
         let current = query
+        let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // 空クエリは debounce せず即座にクリア → 履歴表示に切り替わる
+        if trimmed.isEmpty {
+            searchTask?.cancel()
+            songs = []
+            artists = []
+            hasMoreSongs = false
+            currentOffset = 0
+            lastSearchedQuery = ""
+            return
+        }
+
         guard current != lastSearchedQuery else { return }
         searchTask?.cancel()
         searchTask = Task {
@@ -62,6 +86,7 @@ final class SearchViewModel {
             artists = try await fetchedArtists
             currentOffset = songs.count
             hasMoreSongs = songs.count >= Constants.MusicAPI.musicKitSearchLimit
+            saveToHistory(trimmed)
         } catch {
             if Task.isCancelled || error is CancellationError
                 || (error as NSError).code == NSURLErrorCancelled {
@@ -91,8 +116,33 @@ final class SearchViewModel {
             songs.append(contentsOf: more)
             currentOffset += more.count
             hasMoreSongs = more.count >= Constants.MusicAPI.musicKitSearchLimit
-        } catch {
-            // 追加読み込みのエラーは握りつぶす（メインの結果は残す）
+        } catch {}
+    }
+
+    // MARK: - History
+
+    func selectHistoryItem(_ keyword: String) {
+        lastSearchedQuery = ""
+        query = keyword
+    }
+
+    func removeHistoryItem(at index: Int) {
+        guard searchHistory.indices.contains(index) else { return }
+        searchHistory.remove(at: index)
+        userDefaults.set(searchHistory, forKey: historyKey)
+    }
+
+    func clearSearchHistory() {
+        searchHistory.removeAll()
+        userDefaults.removeObject(forKey: historyKey)
+    }
+
+    private func saveToHistory(_ keyword: String) {
+        searchHistory.removeAll { $0 == keyword }
+        searchHistory.insert(keyword, at: 0)
+        if searchHistory.count > maxHistoryCount {
+            searchHistory = Array(searchHistory.prefix(maxHistoryCount))
         }
+        userDefaults.set(searchHistory, forKey: historyKey)
     }
 }

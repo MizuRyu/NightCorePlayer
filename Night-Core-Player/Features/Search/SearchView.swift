@@ -104,6 +104,8 @@ struct SearchView: View {
                         }
                     }
                     .listStyle(PlainListStyle())
+                } else if vm.query.isEmpty && !vm.searchHistory.isEmpty {
+                    searchHistoryView
                 }
 
                 Spacer()
@@ -125,6 +127,53 @@ struct SearchView: View {
                 Text(vm.errorMessage ?? "")
             }
             .enableInjection()
+        }
+    }
+
+    // MARK: - Search History
+
+    private var searchHistoryView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("最近の検索")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                Spacer()
+                Button("すべて削除") {
+                    vm.clearSearchHistory()
+                }
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            }
+            .padding(.horizontal)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
+
+            List {
+                ForEach(Array(vm.searchHistory.enumerated()), id: \.element) { index, keyword in
+                    HStack {
+                        Text(keyword)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Button {
+                            vm.removeHistoryItem(at: index)
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .accessibilityLabel("履歴を削除")
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        vm.selectHistoryItem(keyword)
+                    }
+                }
+            }
+            .listStyle(.plain)
         }
     }
 }
