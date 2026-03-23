@@ -3,16 +3,11 @@ import MusicKit
 
 // MARK: - Protocol
 
-/// 再生履歴の管理を担当する（Playback コンテキスト サブモジュール）
 @MainActor
 protocol PlayHistoryManaging: Sendable {
-    /// 現在の再生履歴
     var history: [Song] { get }
-    /// 履歴に曲を追加する（重複チェック + 上限トリミング付き）
     func append(_ song: Song) throws
-    /// 履歴をクリアする
     func clearHistory() throws
-    /// 履歴を復元する（起動時）
     func restoreHistory(_ songs: [Song])
 }
 

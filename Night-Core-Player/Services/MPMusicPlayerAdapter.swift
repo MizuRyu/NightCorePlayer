@@ -1,6 +1,5 @@
 import MediaPlayer
 
-/// MPMusicPlayerController を PlayerControllable に適合させるアダプタ
 @MainActor
 final class MPMusicPlayerAdapter: PlayerControllable {
     private let player = MPMusicPlayerController.applicationQueuePlayer

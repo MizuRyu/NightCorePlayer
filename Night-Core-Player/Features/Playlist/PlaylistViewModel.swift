@@ -55,7 +55,6 @@ final class PlaylistViewModel {
             let (data, _) = try await URLSession.shared.data(from: url)
             guard let uiImage = UIImage(data: data) else { return }
             
-            // キャッシュに保存しておく
             artworkCache[playlist.id] = uiImage
             
             if let idx = rows.firstIndex(where: { $0.id == playlist.id }) {
@@ -68,7 +67,6 @@ final class PlaylistViewModel {
             }
             
         } catch {
-            // 取得失敗時、プレースホルダーのまま表示
         }
     }
 }

@@ -1,6 +1,5 @@
 import Foundation
 
-/// アプリ全体で使用する統一エラー型
 enum AppError: LocalizedError {
     case musicKit(underlying: Error)
     case player(String)

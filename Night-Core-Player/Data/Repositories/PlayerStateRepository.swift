@@ -9,7 +9,6 @@ final class PlayerStateRepository {
         self.context = context
     }
 
-    /// 保存 or 更新
     func save(
         queueIDs: [String],
         currentIndex: Int,
@@ -30,7 +29,6 @@ final class PlayerStateRepository {
         try context.save()
     }
 
-    /// 読み込み
     func load() throws -> (
         queueIDs: [String],
         currentIndex: Int,

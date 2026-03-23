@@ -25,7 +25,6 @@ struct AppDataStore {
         }
     }
 
-    /// 既存の SwiftData ストアファイルを削除する
     private static func deleteStoreFiles() {
         let appSupport = FileManager.default.urls(
             for: .applicationSupportDirectory, in: .userDomainMask

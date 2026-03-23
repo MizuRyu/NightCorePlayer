@@ -45,7 +45,6 @@ extension Constants {
         }
 
         public enum Font {
-            // Add public static let as needed
         }
 
         public enum Opacity {

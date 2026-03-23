@@ -2,14 +2,9 @@ import Foundation
 
 // MARK: - Protocol
 
-/// 再生速度のデフォルト値を管理する（Preference コンテキスト）
-/// - Session Rate（一時的）は MusicPlayerService が管理
-/// - Default Rate（永続化）は本プロトコルが管理
 @MainActor
 protocol PlaybackRateManager: Sendable {
-    /// 永続化されたデフォルト再生速度
     var defaultRate: Double { get }
-    /// デフォルト再生速度を更新し、永続化する
     func setDefaultRate(_ rate: Double) throws
 }
 

@@ -9,7 +9,6 @@ final class HistoryRepository {
         self.context = context
     }
 
-    /// 再生ごとにレコード追加
     func append(songID: String) throws {
         let entry = HistoryEntity(songID: songID)
         context.insert(entry)
@@ -18,7 +17,6 @@ final class HistoryRepository {
         try context.save()
     }
 
-    /// 再生履歴読み込み（新しい順）
     func loadAll() throws -> [String] {
         var desc = FetchDescriptor<HistoryEntity>(
             sortBy: [.init(\.playedAt, order: .reverse)])
@@ -26,7 +24,6 @@ final class HistoryRepository {
         return try context.fetch(desc).map(\.songID)
     }
 
-    /// 全履歴クリア
     func clear() throws {
         let descriptor = FetchDescriptor<HistoryEntity>()
         let list = try context.fetch(descriptor)
@@ -34,7 +31,6 @@ final class HistoryRepository {
         try context.save()
     }
 
-    // 履歴が最大保持数を超えた場合、古い順に削除
     private func trimOverflowIfNeeded() throws {
         var desc = FetchDescriptor<HistoryEntity>(
             sortBy: [.init(\.playedAt, order: .forward)]

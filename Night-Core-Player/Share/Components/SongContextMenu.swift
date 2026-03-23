@@ -1,7 +1,6 @@
 import SwiftUI
 import MusicKit
 
-/// 楽曲のコンテキストメニュー
 struct SongContextMenu: View {
     let song: Song
     @Environment(MusicPlayerViewModel.self) private var playerVM

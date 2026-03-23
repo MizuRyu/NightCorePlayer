@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// 文字幅計測
 /// https://qiita.com/takehilo/items/2499c632c2e0e5cdcb06
 private struct TextWidthKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
@@ -9,8 +8,6 @@ private struct TextWidthKey: PreferenceKey {
     }
 }
 
-/// テキスト幅が visibleWidth を超える場合、自動横スクロールするコンポーネント
-/// 幅を超えなければ中央固定、超えたら3秒停止→リニアで左へエンドレススクロール
 struct MarqueeText: View {
     let text: String
     let font: Font
@@ -56,11 +53,9 @@ struct MarqueeText: View {
     
     var body: some View {
         GeometryReader { geo in
-            // 親 View の幅が visibleWidth より小さい場合に合わせる
             let currentVisibleWidth = min(visibleWidth, geo.size.width)
             
             ZStack(alignment: .leading) {
-                // hidden でコンテンツ幅を計測
                 Text(text)
                     .font(font)
                     .lineLimit(1)
@@ -76,12 +71,10 @@ struct MarqueeText: View {
                 
                 if shouldScroll {
                     HStack(spacing: spacingBetweenTexts) {
-                        // 実際に流すテキスト
                         Text(text).font(font).lineLimit(1).fixedSize(horizontal: true, vertical: false)
-                        // ループ用にコピーを並べる
                         Text(text).font(font).lineLimit(1).fixedSize()
                     }
-                    .id("\(text)-\(selectedTab)") // tab切り替えでアニメーションがリセットされるように
+                    .id("\(text)-\(selectedTab)")
                     .offset(x: isAnimating ? -(contentWidth + spacingBetweenTexts) : 0)
                     .frame(width: currentVisibleWidth, alignment: .leading)
                     .clipped()
@@ -95,7 +88,6 @@ struct MarqueeText: View {
                         contentWidth = 0
                     }
                 } else {
-                    // 幅内に収まる場合、アイドル状態の場合
                     Text(text)
                         .font(font)
                         .lineLimit(1)
@@ -107,13 +99,11 @@ struct MarqueeText: View {
             .frame(maxHeight: .infinity, alignment: .center)
             .clipped()
             .onPreferenceChange(TextWidthKey.self) {
-                // 計測結果を受け取って状態更新
                 contentWidth = $0
             }
         }
     }
     
-    // アニメーションがリセットするように、一度offにしてから開始する
     private func restartAnimation() {
         guard contentWidth > visibleWidth, speed > 0 else { return }
         withAnimation(.none) {

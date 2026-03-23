@@ -8,7 +8,6 @@ struct MusicPlayerControlsView: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            // 📊 シークバー
             VStack(spacing: 4) {
                 Slider(
                     value: Binding(
@@ -28,7 +27,6 @@ struct MusicPlayerControlsView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 15)
-            // ▶️ 再生コントロール
             HStack(spacing: 32) {
                 Button { vm.rewind15() } label: {
                     Image(systemName: "gobackward.15")
@@ -90,7 +88,6 @@ struct HistorySectionView: View {
     @State private var showDeleteAlert = false
 
     var body: some View {
-        // history が空ならセクション自体を表示しない
         if !vm.history.isEmpty {
             HStack {
                 Text("再生履歴")
@@ -134,7 +131,6 @@ struct QueueSectionView: View {
     @Environment(MusicPlayerViewModel.self) private var vm
     
     var body: some View {
-        // スクロールのターゲットとしてidを設定
         Text("次に再生")
             .font(.body).bold()
             .foregroundStyle(.primary)
@@ -152,10 +148,8 @@ struct QueueSectionView: View {
                     .foregroundColor(.secondary)
                     .padding(.trailing, 8)
             }
-            // ③ タップ領域全体を拾う
             .contentShape(Rectangle())
             .onTapGesture{ vm.playNowNext(song) }
-            // ④ 背景のハイライト
             .listRowBackground(Color.clear)
         }
         .onMove(perform: vm.moveQueueItem)
@@ -176,7 +170,6 @@ struct CombinedListView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .onAppear {
-                // 最初に必ず「次に再生」セクションを先頭に表示
                 proxy.scrollTo("queueHeader", anchor: .top)
             }
             .onChange(of: vm.currentIndex) {

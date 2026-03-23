@@ -2,7 +2,6 @@ import SwiftUI
 import Combine
 import Observation
 
-/// キーボード表示状態を監視
 @Observable
 final class KeyboardResponder {
     var isVisible: Bool = false

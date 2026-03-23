@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// 利用規約・プライバシーポリシー表示画面
 struct TermsView: View {
     private let markdownContent: String
 

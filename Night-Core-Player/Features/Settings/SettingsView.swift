@@ -17,7 +17,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                // ──────────── サウンド設定 ────────────
                 Section {
                     ForEach(soundSettings, id: \.self) { name in
                         VStack(spacing: 0) {
@@ -42,7 +41,6 @@ struct SettingsView: View {
                         .padding(.top, 8)
                 }
                 
-                // ──────────── その他 ────────────
                 Section {
                     ForEach(others, id: \.self) { name in
                         VStack(spacing: 0) {
@@ -121,7 +119,6 @@ struct SettingsView: View {
         .enableInjection()
     }
 
-    /// お問い合わせ用メール URL
     private var contactMailURL: URL {
         let subject = "NightCore Player お問い合わせ"
         let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""

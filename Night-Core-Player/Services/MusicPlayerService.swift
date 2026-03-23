@@ -55,7 +55,6 @@ public protocol QueueManaging: Sendable {
 
 // MARK: - MusicPlayerSnapshot
 
-/// 音楽プレイヤーの現在の状態（Playback コンテキスト）
 public struct MusicPlayerSnapshot: Sendable, Equatable {
     public let title: String
     public let artist: String
@@ -78,7 +77,6 @@ public struct MusicPlayerSnapshot: Sendable, Equatable {
 
 // MARK: - MusicPlayerService
 
-/// 音楽プレイヤーの再生操作を提供する（Playback コンテキスト）
 @MainActor
 protocol MusicPlayerService: Sendable {
     var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> { get }
