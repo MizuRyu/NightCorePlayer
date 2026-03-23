@@ -30,8 +30,8 @@ public enum Constants {
     }
 
     public enum RepeatMode: Sendable {
-        case none // ループなし
-        case one // 現在の曲をループ
-        case all // 再生キュー全体をリピート
+        case none
+        case one
+        case all
     }
 }

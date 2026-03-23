@@ -11,8 +11,8 @@ struct PlaylistView: View {
         NavigationStack {
             content
                 .navigationTitle("プレイリスト")
-                .navigationDestination(for: Playlist.self) { pl in
-                    PlaylistDetailView(pl: pl, musicKitService: musicKitService)
+                .navigationDestination(for: PlaylistRowModel.self) { row in
+                    PlaylistDetailView(pl: row.playlist, musicKitService: musicKitService)
                 }
         }
         .task { await vm.load() }
@@ -56,7 +56,7 @@ struct PlaylistView: View {
         List {
             ForEach(vm.rows) { row in
                 VStack(spacing: 0) {
-                    NavigationLink(value: row.playlist) {
+                    NavigationLink(value: row) {
                         HStack(spacing: 12) {
                             if let artwork = row.artwork {
                                 ArtworkImage(artwork, width: 56, height: 56)
@@ -74,16 +74,13 @@ struct PlaylistView: View {
                         }
                         .padding(.vertical, 12)
                     }
-                    // 下線のみ描画
                     Divider()
                         .padding(.leading, 36)
                 }
-                // セル自体の罫線は非表示
                 .listRowSeparator(.hidden)
             }
         }
         .listStyle(.plain)
-        // List全体の左余白にも背景色が乗らないように
         .scrollContentBackground(.hidden)
         .background(Color(.systemBackground))
     }

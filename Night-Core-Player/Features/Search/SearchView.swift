@@ -5,9 +5,7 @@ import MusicKit
 struct SearchRowView: View {
     let song: Song
     @Environment(MusicPlayerViewModel.self) private var playerVM
-    
-    @State private var isShowingPopover = false
-    
+
     var body: some View {
         HStack {
             if let url = song.artwork?.url(width: 48, height: 48) {
@@ -24,7 +22,7 @@ struct SearchRowView: View {
                     .background(Color(.secondarySystemBackground))
                     .cornerRadius(8)
             }
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(song.title)
                     .font(.body)
@@ -39,12 +37,15 @@ struct SearchRowView: View {
         .padding(.vertical, 4)
     }
 }
+
 struct SearchView: View {
     @ObserveInjection var inject
     @Environment(SearchViewModel.self) private var vm
     @Environment(PlayerNavigator.self) private var nav
     @Environment(MusicPlayerViewModel.self) private var playerVM
-        
+    @Environment(\.musicKitService) private var musicKitService
+    @FocusState private var isSearchBarFocused: Bool
+
     var body: some View {
         @Bindable var vm = vm
         NavigationStack {
@@ -52,6 +53,7 @@ struct SearchView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                     TextField("曲名・アーティスト名", text: $vm.query)
+                        .focused($isSearchBarFocused)
                         .textInputAutocapitalization(.never)
                         .disableAutocorrection(true)
                         .submitLabel(.search)
@@ -63,25 +65,47 @@ struct SearchView: View {
                 .cornerRadius(10)
                 .padding(.horizontal)
                 .padding(.top, 8)
-                
+                .onChange(of: nav.searchBarFocusRequested) { _, requested in
+                    if requested {
+                        isSearchBarFocused = true
+                        nav.searchBarFocusRequested = false
+                    }
+                }
+
                 if vm.isLoading {
                     ProgressView().padding(.top, 40)
-                } else if !vm.songs.isEmpty {
-                    List(vm.songs, id: \.id) { song in
-                        Button {
-                            let idx = vm.songs.firstIndex(where: { $0.id == song.id}) ?? 0
-                            playerVM.loadPlaylist(songs: vm.songs, startAt: idx, autoPlay: true)
-                            nav.songs = vm.songs
-                            nav.initialIndex = vm.songs.firstIndex(where: { $0.id == song.id }) ?? 0
-                            nav.selectedTab = .player
-                        } label: {
-                            SearchRowView(song: song)
+                } else if !vm.artists.isEmpty || !vm.songs.isEmpty {
+                    List {
+                        ForEach(vm.artists, id: \.id) { artist in
+                            NavigationLink(value: artist) {
+                                ArtistRowView(artist: artist)
+                            }
+                        }
+
+                        ForEach(vm.songs, id: \.id) { song in
+                            Button {
+                                let idx = vm.songs.firstIndex(where: { $0.id == song.id }) ?? 0
+                                playerVM.loadPlaylist(songs: vm.songs, startAt: idx, autoPlay: true)
+                                nav.selectedTab = .player
+                            } label: {
+                                SearchRowView(song: song)
+                            }
+                            .onAppear {
+                                Task { await vm.loadMoreSongsIfNeeded(currentSong: song) }
+                            }
+                        }
+
+                        if vm.isLoadingMore {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                Spacer()
+                            }
                         }
                     }
-                
                     .listStyle(PlainListStyle())
                 }
-                
+
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -89,6 +113,9 @@ struct SearchView: View {
             .background(Color(.systemBackground))
             .navigationTitle("検索")
             .navigationBarTitleDisplayMode(.large)
+            .navigationDestination(for: Artist.self) { artist in
+                ArtistDetailView(artist: artist, musicKitService: musicKitService)
+            }
             .alert("エラー", isPresented: Binding<Bool>(
                 get: { vm.errorMessage != nil },
                 set: { if !$0 { vm.errorMessage = nil } }
@@ -101,4 +128,3 @@ struct SearchView: View {
         }
     }
 }
-

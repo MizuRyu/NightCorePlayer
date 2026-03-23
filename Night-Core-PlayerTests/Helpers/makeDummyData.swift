@@ -29,6 +29,19 @@ public func makeDummySong(
 }
 
 
+public func makeDummyArtist(
+    id: String = "AR1",
+    name: String = "DummyArtist"
+) -> Artist {
+    let data = """
+    { "id":"\(id)",
+      "type":"artists",
+      "attributes": { "name":"\(name)" }
+    }
+    """.data(using: .utf8)!
+    return try! JSONDecoder().decode(Artist.self, from: data)
+}
+
 public func makeDummyPlaylist(
     id: String,
     name: String = "DummyList",

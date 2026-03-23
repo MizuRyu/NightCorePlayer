@@ -16,17 +16,19 @@ struct PlayingQueueItemRowView: View {
                             .scaledToFit()
                     default:
                         Image(systemName: "music.note")
-                            .resizable()
+                            .font(.title2)
+                            .foregroundColor(.secondary)
+                            .frame(width: 44, height: 44)
+                            .background(Color(.secondarySystemBackground))
                     }
                 }
                 .frame(width: 44, height: 44)
                 .cornerRadius(6)
-                
-                // artworkがなければDefautアイコン
+
             } else {
                 Image(systemName: "music.note")
-                    .resizable()
-                    .scaledToFit()
+                    .font(.title2)
+                    .foregroundColor(.secondary)
                     .frame(width: 44, height: 44)
                     .background(Color(.secondarySystemBackground))
                     .cornerRadius(6)

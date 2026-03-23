@@ -7,8 +7,11 @@ final class PlayerNavigator {
     enum Tab: Hashable {
         case player, search, playlist, settings
     }
-    
+
     var selectedTab: Tab = .player
     var songs: [Song] = []
     var initialIndex: Int = 0
+
+    var searchBarFocusRequested: Bool = false
+    var isScrolling: Bool = false
 }
