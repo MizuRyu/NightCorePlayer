@@ -162,7 +162,7 @@ final class MusicPlayerViewModel {
     private var upcomingTracksDuration: Double {
         musicPlayerQueue
             .dropFirst(currentIndex + 1)
-            .map(\.duration!)
+            .compactMap(\.duration)
             .reduce(0, +)
     }
 

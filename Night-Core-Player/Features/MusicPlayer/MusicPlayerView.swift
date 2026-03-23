@@ -158,20 +158,6 @@ struct MusicPlayerView: View {
                 }
                 .padding(.vertical, 8)
                 
-                HStack(spacing: 40) {
-                    Button { vm.toggleShuffle() } label: {
-                        Image(systemName: "shuffle")
-                            .font(.title3)
-                            .foregroundColor(vm.isShuffled ? .indigo : .secondary)
-                    }
-                    
-                    Button { vm.cycleRepeatMode() } label: {
-                        Image(systemName: vm.repeatMode == .one ? "repeat.1" : "repeat")
-                            .font(.title3)
-                            .foregroundColor(vm.repeatMode != .none ? .indigo : .secondary)
-                    }
-                }
-                
                 Spacer(minLength: 20)
                 
                 VStack(spacing: 10) {

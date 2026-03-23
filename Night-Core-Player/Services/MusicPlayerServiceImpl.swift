@@ -306,6 +306,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     private func handleQueueAction(_ action: QueueUpdateAction, autoPlay: Bool = true) async {
         switch action {
         case .playNewQueue:
+            lastPlayerIndex = nil
             if let descriptor = try? buildQueueDescriptor(from: await queue.items, startAt: queue.currentIndex) {
                 player.setQueue(with: descriptor)
                 if autoPlay {
@@ -317,6 +318,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             }
             updateSnapshot()
         case .updatePlayerQueueOnly:
+            lastPlayerIndex = nil
             if let descriptor = try? buildQueueDescriptor(from: await queue.items, startAt: queue.currentIndex) {
                 let currentPos = player.currentTime
                 player.setQueue(with: descriptor)
@@ -406,6 +408,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
 
     private func trackChanged() {
         let playerIndex = player.indexOfNowPlayingItem
+
         if needsQueueRefresh {
             needsQueueRefresh = false
             Task { [weak self] in
@@ -413,28 +416,39 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             }
         }
 
+        // 明示的なキュー更新直後（next/previous/setQueue経由）は
+        // lastPlayerIndex が nil にリセットされている。
+        // currentIndex は既に正しいので、ベースラインだけ記録して終了。
+        if lastPlayerIndex == nil {
+            lastPlayerIndex = playerIndex
+            updateSnapshot()
+            return
+        }
+
         guard playerIndex != lastPlayerIndex else { return }
+
+        let previousPlayerIndex = lastPlayerIndex!
         lastPlayerIndex = playerIndex
 
-        if playerIndex >= 0 && playerIndex < queue.items.count {
-            let actualIndex = (queue.currentIndex + playerIndex) % queue.items.count
-
-            if actualIndex != queue.currentIndex {
-                queue.currentIndex = actualIndex
-            } else {
-                if let now = player.nowPlayingItem {
-                    let pid = now.persistentID
-                    if let idx = queue.items.firstIndex(where: { song in
-                        let songId = UInt64(song.id.rawValue)
-                        return songId == pid
-                    }) {
-                        if idx != queue.currentIndex {
-                            queue.currentIndex = idx
-                        }
-                    }
-                }
-            }
+        // 自然なトラック遷移（曲の終了による自動進行）のみここに到達する。
+        // playerIndex はローテーション済みのディスクリプタ上のインデックス。
+        // delta を使って queue.currentIndex を進める。
+        guard playerIndex >= 0, !queue.items.isEmpty else {
+            updateSnapshot()
+            return
         }
+
+        let delta = playerIndex - previousPlayerIndex
+        if delta > 0 {
+            let newIndex = min(queue.currentIndex + delta, queue.items.count - 1)
+            queue.currentIndex = newIndex
+        } else if delta < 0 {
+            // プレイヤーがラップアラウンドした場合（リピートAll等）
+            let remaining = queue.items.count - 1 - previousPlayerIndex
+            let newIndex = (queue.currentIndex + remaining + playerIndex + 1) % queue.items.count
+            queue.currentIndex = newIndex
+        }
+
         updateSnapshot()
     }
 

@@ -28,11 +28,6 @@ struct MusicPlayerControlsView: View {
             .padding(.horizontal)
             .padding(.vertical, 15)
             HStack(spacing: 20) {
-                Button { vm.toggleShuffle() } label: {
-                    Image(systemName: "shuffle")
-                        .font(.body)
-                        .foregroundColor(vm.isShuffled ? .indigo : .secondary)
-                }
                 Button { vm.rewind15() } label: {
                     Image(systemName: "gobackward.15")
                         .font(.title2)
@@ -52,11 +47,6 @@ struct MusicPlayerControlsView: View {
                 Button { vm.forward15() } label: {
                     Image(systemName: "goforward.15")
                         .font(.title2)
-                }
-                Button { vm.cycleRepeatMode() } label: {
-                    Image(systemName: vm.repeatMode == .one ? "repeat.1" : "repeat")
-                        .font(.body)
-                        .foregroundColor(vm.repeatMode != .none ? .indigo : .secondary)
                 }
             }
             .foregroundColor(.indigo)
@@ -210,7 +200,7 @@ struct PlayingQueueView: View {
             
             HStack {
                 Spacer()
-                Text("\(vm.musicPlayerQueue.count) items")
+                Text("\(vm.currentQueue.count) items")
                 Spacer()
                 Text(vm.remainingTimeString)
                 Spacer()
@@ -219,8 +209,40 @@ struct PlayingQueueView: View {
             .padding(.bottom, 4)
             .foregroundColor(.secondary)
             
-            HStack {
+            HStack(spacing: 12) {
                 Spacer()
+                Button { vm.toggleShuffle() } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "shuffle")
+                            .font(.subheadline)
+                        Text("シャッフル")
+                            .font(.subheadline)
+                    }
+                    .foregroundColor(vm.isShuffled ? .indigo : .secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(vm.isShuffled ? Color.indigo.opacity(0.15) : Color.secondary.opacity(0.1))
+                    )
+                }
+
+                Button { vm.cycleRepeatMode() } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: vm.repeatMode == .one ? "repeat.1" : "repeat")
+                            .font(.subheadline)
+                        Text("リピート")
+                            .font(.subheadline)
+                    }
+                    .foregroundColor(vm.repeatMode != .none ? .indigo : .secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(vm.repeatMode != .none ? Color.indigo.opacity(0.15) : Color.secondary.opacity(0.1))
+                    )
+                }
+
                 Button { vm.toggleAutoPlay() } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "infinity")
@@ -229,7 +251,7 @@ struct PlayingQueueView: View {
                             .font(.subheadline)
                     }
                     .foregroundColor(vm.isAutoPlayEnabled ? .indigo : .secondary)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(
                         Capsule()
