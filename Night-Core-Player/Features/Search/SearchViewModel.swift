@@ -7,6 +7,7 @@ import Observation
 final class SearchViewModel {
 
     private let musicKitService: MusicKitService
+    private let userDefaults: UserDefaults
 
     var query: String = "" {
         didSet { scheduleSearch() }
@@ -28,15 +29,29 @@ final class SearchViewModel {
     private var lastSearchedQuery: String = ""
     private var currentOffset: Int = 0
 
-    init(musicKitService: MusicKitService) {
+    init(musicKitService: MusicKitService, userDefaults: UserDefaults = .standard) {
         self.musicKitService = musicKitService
-        self.searchHistory = UserDefaults.standard.stringArray(forKey: historyKey) ?? []
+        self.userDefaults = userDefaults
+        self.searchHistory = userDefaults.stringArray(forKey: historyKey) ?? []
     }
 
     // MARK: - Search
 
     private func scheduleSearch() {
         let current = query
+        let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // 空クエリは debounce せず即座にクリア → 履歴表示に切り替わる
+        if trimmed.isEmpty {
+            searchTask?.cancel()
+            songs = []
+            artists = []
+            hasMoreSongs = false
+            currentOffset = 0
+            lastSearchedQuery = ""
+            return
+        }
+
         guard current != lastSearchedQuery else { return }
         searchTask?.cancel()
         searchTask = Task {
@@ -101,26 +116,25 @@ final class SearchViewModel {
             songs.append(contentsOf: more)
             currentOffset += more.count
             hasMoreSongs = more.count >= Constants.MusicAPI.musicKitSearchLimit
-        } catch {
-            // 追加読み込みのエラーは握りつぶす
-        }
+        } catch {}
     }
 
     // MARK: - History
 
     func selectHistoryItem(_ keyword: String) {
+        lastSearchedQuery = ""
         query = keyword
     }
 
     func removeHistoryItem(at index: Int) {
         guard searchHistory.indices.contains(index) else { return }
         searchHistory.remove(at: index)
-        UserDefaults.standard.set(searchHistory, forKey: historyKey)
+        userDefaults.set(searchHistory, forKey: historyKey)
     }
 
     func clearSearchHistory() {
         searchHistory.removeAll()
-        UserDefaults.standard.removeObject(forKey: historyKey)
+        userDefaults.removeObject(forKey: historyKey)
     }
 
     private func saveToHistory(_ keyword: String) {
@@ -129,6 +143,6 @@ final class SearchViewModel {
         if searchHistory.count > maxHistoryCount {
             searchHistory = Array(searchHistory.prefix(maxHistoryCount))
         }
-        UserDefaults.standard.set(searchHistory, forKey: historyKey)
+        userDefaults.set(searchHistory, forKey: historyKey)
     }
 }

@@ -9,13 +9,16 @@ import MusicKit
 struct SearchViewModelTests {
     
     /// 共通セットアップ
+    static let testSuiteName = "SearchViewModelTests"
+
     static func setUp() -> (
         vm: SearchViewModel,
         svc: MusicKitServiceMock_Search
     ) {
-        UserDefaults.standard.removeObject(forKey: "searchHistory")
+        let defaults = UserDefaults(suiteName: testSuiteName)!
+        defaults.removePersistentDomain(forName: testSuiteName)
         let svc = MusicKitServiceMock_Search()
-        let vm  = SearchViewModel(musicKitService: svc)
+        let vm  = SearchViewModel(musicKitService: svc, userDefaults: defaults)
         return (vm, svc)
     }
     
@@ -176,7 +179,6 @@ struct SearchViewModelTests {
         // Given
         let (vm, svc) = SearchViewModelTests.setUp()
         svc.stubSongs = [makeDummySong(id: "S1")]
-        UserDefaults.standard.removeObject(forKey: "searchHistory")
 
         // When
         await vm.performSearch(keyword: "ONE OK ROCK")
@@ -190,7 +192,6 @@ struct SearchViewModelTests {
         // Given
         let (vm, svc) = SearchViewModelTests.setUp()
         svc.stubSongs = [makeDummySong(id: "S1")]
-        UserDefaults.standard.removeObject(forKey: "searchHistory")
 
         // When
         await vm.performSearch(keyword: "Alpha")
@@ -208,7 +209,6 @@ struct SearchViewModelTests {
         // Given
         let (vm, svc) = SearchViewModelTests.setUp()
         svc.stubSongs = [makeDummySong(id: "S1")]
-        UserDefaults.standard.removeObject(forKey: "searchHistory")
 
         // When
         for i in 0..<25 {
@@ -225,7 +225,6 @@ struct SearchViewModelTests {
         // Given
         let (vm, svc) = SearchViewModelTests.setUp()
         svc.stubSongs = [makeDummySong(id: "S1")]
-        UserDefaults.standard.removeObject(forKey: "searchHistory")
         await vm.performSearch(keyword: "AAA")
         await vm.performSearch(keyword: "BBB")
         let countBefore = vm.searchHistory.count
@@ -242,7 +241,6 @@ struct SearchViewModelTests {
         // Given
         let (vm, svc) = SearchViewModelTests.setUp()
         svc.stubSongs = [makeDummySong(id: "S1")]
-        UserDefaults.standard.removeObject(forKey: "searchHistory")
         await vm.performSearch(keyword: "AAA")
 
         // When
@@ -262,5 +260,22 @@ struct SearchViewModelTests {
 
         // Then
         #expect(vm.query == "YOASOBI")
+    }
+
+    @Test("重複キーワード検索: 先頭に移動し履歴数は増えない")
+    func history_duplicateMovesToFront() async {
+        // Given
+        let (vm, svc) = SearchViewModelTests.setUp()
+        svc.stubSongs = [makeDummySong(id: "S1")]
+
+        // When
+        await vm.performSearch(keyword: "Alpha")
+        await vm.performSearch(keyword: "Beta")
+        await vm.performSearch(keyword: "Alpha")
+
+        // Then
+        #expect(vm.searchHistory.first == "Alpha")
+        #expect(vm.searchHistory.count == 2)
+        #expect(vm.searchHistory.contains("Beta"))
     }
 }

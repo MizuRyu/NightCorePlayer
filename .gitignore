@@ -4,3 +4,4 @@ buildServer.json
 xcuserdata/
 __azurite_db_queue__.json
 docs/tasks/
+.claude/plans/
