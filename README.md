@@ -53,6 +53,29 @@ docs/specs/                 # 仕様書
 | [PROJECT-RULES.md](docs/specs/PROJECT-RULES.md) | 運用ルール |
 | [PROJECT-STRUCTURE.md](docs/specs/PROJECT-STRUCTURE.md) | ディレクトリ構造 |
 
+## Legal Pages
+
+GitHub Pages で利用規約・プライバシーポリシーを公開できるように、`privacy-policy/` 配下に MkDocs サイトを置いている。
+
+- 設定: `privacy-policy/mkdocs.yml`
+- markdown 原稿: `privacy-policy/docs/`
+- デプロイ workflow: `.github/workflows/pages.yml`
+
+ローカル確認:
+
+```sh
+pip install mkdocs
+mkdocs serve --config-file privacy-policy/mkdocs.yml
+```
+
+初回のみ、GitHub リポジトリの `Settings > Pages` で `Source` を `GitHub Actions` に設定する。
+
+有効化後の公開 URL 例:
+
+- `https://<user>.github.io/NightCorePlayer/`
+- `https://<user>.github.io/NightCorePlayer/terms/`
+- `https://<user>.github.io/NightCorePlayer/privacy/`
+
 ## Build On Real Device
 
 接続中の iPhone を使って、VS Code のターミナルからビルド、インストール、起動できます。

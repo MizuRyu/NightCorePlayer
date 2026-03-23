@@ -1,0 +1,15 @@
+site_name: NightCore Player Legal
+site_description: NightCore Player の利用規約とプライバシーポリシー
+site_dir: site
+
+theme:
+  name: mkdocs
+  language: ja
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Home: index.md
+  - 利用規約: terms.md
+  - プライバシーポリシー: privacy.md
