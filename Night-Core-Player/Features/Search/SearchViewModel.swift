@@ -18,13 +18,22 @@ final class SearchViewModel {
     private(set) var hasMoreSongs = false
     var errorMessage: String?
 
+    // MARK: - Search History
+
+    private(set) var searchHistory: [String] = []
+    private let historyKey = "searchHistory"
+    private let maxHistoryCount = 20
+
     private var searchTask: Task<Void, Never>?
     private var lastSearchedQuery: String = ""
     private var currentOffset: Int = 0
 
     init(musicKitService: MusicKitService) {
         self.musicKitService = musicKitService
+        self.searchHistory = UserDefaults.standard.stringArray(forKey: historyKey) ?? []
     }
+
+    // MARK: - Search
 
     private func scheduleSearch() {
         let current = query
@@ -62,6 +71,7 @@ final class SearchViewModel {
             artists = try await fetchedArtists
             currentOffset = songs.count
             hasMoreSongs = songs.count >= Constants.MusicAPI.musicKitSearchLimit
+            saveToHistory(trimmed)
         } catch {
             if Task.isCancelled || error is CancellationError
                 || (error as NSError).code == NSURLErrorCancelled {
@@ -92,7 +102,33 @@ final class SearchViewModel {
             currentOffset += more.count
             hasMoreSongs = more.count >= Constants.MusicAPI.musicKitSearchLimit
         } catch {
-            // 追加読み込みのエラーは握りつぶす（メインの結果は残す）
+            // 追加読み込みのエラーは握りつぶす
         }
+    }
+
+    // MARK: - History
+
+    func selectHistoryItem(_ keyword: String) {
+        query = keyword
+    }
+
+    func removeHistoryItem(at index: Int) {
+        guard searchHistory.indices.contains(index) else { return }
+        searchHistory.remove(at: index)
+        UserDefaults.standard.set(searchHistory, forKey: historyKey)
+    }
+
+    func clearSearchHistory() {
+        searchHistory.removeAll()
+        UserDefaults.standard.removeObject(forKey: historyKey)
+    }
+
+    private func saveToHistory(_ keyword: String) {
+        searchHistory.removeAll { $0 == keyword }
+        searchHistory.insert(keyword, at: 0)
+        if searchHistory.count > maxHistoryCount {
+            searchHistory = Array(searchHistory.prefix(maxHistoryCount))
+        }
+        UserDefaults.standard.set(searchHistory, forKey: historyKey)
     }
 }

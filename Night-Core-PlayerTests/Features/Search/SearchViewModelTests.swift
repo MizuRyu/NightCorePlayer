@@ -13,6 +13,7 @@ struct SearchViewModelTests {
         vm: SearchViewModel,
         svc: MusicKitServiceMock_Search
     ) {
+        UserDefaults.standard.removeObject(forKey: "searchHistory")
         let svc = MusicKitServiceMock_Search()
         let vm  = SearchViewModel(musicKitService: svc)
         return (vm, svc)
@@ -166,5 +167,100 @@ struct SearchViewModelTests {
 
         // Then: 追加検索は発生しない
         #expect(svc.searchCallArgs.count == initialCount)
+    }
+
+    // MARK: - Search History Tests
+
+    @Test("検索実行後: 履歴にキーワードが保存される")
+    func history_savedAfterSearch() async {
+        // Given
+        let (vm, svc) = SearchViewModelTests.setUp()
+        svc.stubSongs = [makeDummySong(id: "S1")]
+        UserDefaults.standard.removeObject(forKey: "searchHistory")
+
+        // When
+        await vm.performSearch(keyword: "ONE OK ROCK")
+
+        // Then
+        #expect(vm.searchHistory.first == "ONE OK ROCK")
+    }
+
+    @Test("複数キーワード検索: 新しい順に履歴が並ぶ")
+    func history_orderNewestFirst() async {
+        // Given
+        let (vm, svc) = SearchViewModelTests.setUp()
+        svc.stubSongs = [makeDummySong(id: "S1")]
+        UserDefaults.standard.removeObject(forKey: "searchHistory")
+
+        // When
+        await vm.performSearch(keyword: "Alpha")
+        await vm.performSearch(keyword: "Beta")
+        await vm.performSearch(keyword: "Gamma")
+
+        // Then: 新しいものが先頭
+        #expect(vm.searchHistory.first == "Gamma")
+        #expect(vm.searchHistory.last == "Alpha")
+        #expect(vm.searchHistory.count == 3)
+    }
+
+    @Test("上限20件: 超えた分は古いものから削除")
+    func history_maxCount() async {
+        // Given
+        let (vm, svc) = SearchViewModelTests.setUp()
+        svc.stubSongs = [makeDummySong(id: "S1")]
+        UserDefaults.standard.removeObject(forKey: "searchHistory")
+
+        // When
+        for i in 0..<25 {
+            await vm.performSearch(keyword: "keyword\(i)")
+        }
+
+        // Then
+        #expect(vm.searchHistory.count == 20)
+        #expect(vm.searchHistory.first == "keyword24")
+    }
+
+    @Test("個別削除: 指定インデックスの履歴が削除される")
+    func history_removeItem() async {
+        // Given
+        let (vm, svc) = SearchViewModelTests.setUp()
+        svc.stubSongs = [makeDummySong(id: "S1")]
+        UserDefaults.standard.removeObject(forKey: "searchHistory")
+        await vm.performSearch(keyword: "AAA")
+        await vm.performSearch(keyword: "BBB")
+        let countBefore = vm.searchHistory.count
+
+        // When
+        vm.removeHistoryItem(at: 0)
+
+        // Then
+        #expect(vm.searchHistory.count == countBefore - 1)
+    }
+
+    @Test("全削除: 履歴が空になる")
+    func history_clearAll() async {
+        // Given
+        let (vm, svc) = SearchViewModelTests.setUp()
+        svc.stubSongs = [makeDummySong(id: "S1")]
+        UserDefaults.standard.removeObject(forKey: "searchHistory")
+        await vm.performSearch(keyword: "AAA")
+
+        // When
+        vm.clearSearchHistory()
+
+        // Then
+        #expect(vm.searchHistory.isEmpty)
+    }
+
+    @Test("履歴タップ: query にキーワードがセットされる")
+    func history_selectItem() {
+        // Given
+        let (vm, _) = SearchViewModelTests.setUp()
+
+        // When
+        vm.selectHistoryItem("YOASOBI")
+
+        // Then
+        #expect(vm.query == "YOASOBI")
     }
 }
