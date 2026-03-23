@@ -229,9 +229,52 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     // MARK: - Shuffle / Repeat
 
     public func toggleShuffle() async {
-        let newShuffle: MPMusicShuffleMode = (player.shuffleMode == .off) ? .songs : .off
-        player.shuffleMode = newShuffle
-        isShuffled = (newShuffle != .off)
+        if isShuffled {
+            // シャッフル OFF: 元の順序に復元
+            guard !originalQueue.isEmpty else {
+                isShuffled = false
+                player.shuffleMode = .off
+                updateSnapshot()
+                return
+            }
+            let currentSong = queue.currentSong
+            let restoredItems = originalQueue
+            originalQueue = []
+
+            if let song = currentSong,
+               let idx = restoredItems.firstIndex(where: { $0.id == song.id }) {
+                let _ = await queue.setQueue(restoredItems, startAt: idx)
+                await handleQueueAction(.updatePlayerQueueOnly)
+            } else {
+                let _ = await queue.setQueue(restoredItems, startAt: 0)
+                await handleQueueAction(.playNewQueue)
+            }
+            isShuffled = false
+        } else {
+            // シャッフル ON: 現在のキューを保存してシャッフル
+            guard !queue.items.isEmpty else {
+                isShuffled = true
+                updateSnapshot()
+                return
+            }
+            originalQueue = queue.items
+            let currentSong = queue.currentSong
+            var remaining = queue.items
+            // 現在の曲を除外してシャッフルし、先頭に再配置
+            if let song = currentSong,
+               let idx = remaining.firstIndex(where: { $0.id == song.id }) {
+                remaining.remove(at: idx)
+                remaining.shuffle()
+                remaining.insert(song, at: 0)
+            } else {
+                remaining.shuffle()
+            }
+            let _ = await queue.setQueue(remaining, startAt: 0)
+            await handleQueueAction(.updatePlayerQueueOnly)
+            isShuffled = true
+        }
+        player.shuffleMode = .off
+        updateSnapshot()
     }
 
     public func cycleRepeatMode() async {
@@ -252,11 +295,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         case .default: repeatMode = .none
         @unknown default: repeatMode = .none
         }
-
-        // リピート有効時は現在の曲を起点にキューを再構築
-        if next != .none && !queue.isEmpty {
-            await handleQueueAction(.updatePlayerQueueOnly)
-        }
+        updateSnapshot()
     }
 
     public func toggleAutoPlay() async {
@@ -435,23 +474,28 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         let previousPlayerIndex = lastPlayerIndex!
         lastPlayerIndex = playerIndex
 
-        // 自然なトラック遷移（曲の終了による自動進行）のみここに到達する。
-        // playerIndex はローテーション済みのディスクリプタ上のインデックス。
-        // delta を使って queue.currentIndex を進める。
         guard playerIndex >= 0, !queue.items.isEmpty else {
             updateSnapshot()
             return
         }
 
+        // 非ローテーション descriptor では player index の delta が
+        // そのまま queue.currentIndex の delta に対応する。
         let delta = playerIndex - previousPlayerIndex
-        if delta > 0 {
-            let newIndex = min(queue.currentIndex + delta, queue.items.count - 1)
+        let newIndex = queue.currentIndex + delta
+
+        if newIndex >= 0 && newIndex < queue.items.count {
             queue.currentIndex = newIndex
-        } else if delta < 0 {
-            // プレイヤーがラップアラウンドした場合（リピートAll等）
-            let remaining = queue.items.count - 1 - previousPlayerIndex
-            let newIndex = (queue.currentIndex + remaining + playerIndex + 1) % queue.items.count
-            queue.currentIndex = newIndex
+        } else if newIndex < 0 {
+            // repeat all でラップアラウンド: descriptor 先頭に戻る
+            // descriptor は queue.items[descriptorStart...] なので先頭は不明だが、
+            // playerIndex=0 は「descriptor 構築時の currentIndex」に対応。
+            // 現時点の currentIndex - previousPlayerIndex でベースを推定。
+            let baseIndex = queue.currentIndex - previousPlayerIndex
+            let wrapped = max(baseIndex + playerIndex, 0)
+            queue.currentIndex = min(wrapped, queue.items.count - 1)
+        } else {
+            queue.currentIndex = queue.items.count - 1
         }
 
         updateSnapshot()
@@ -470,8 +514,8 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         guard !songs.isEmpty, songs.indices.contains(index) else {
             throw NSError(domain: "MusicPlayerUtils", code: -2, userInfo: nil)
         }
-        let rotated = Array(songs[index...] + songs[..<index])
-        let params = try rotated.compactMap { try makePlayParameters(for: $0) }
+        let remaining = Array(songs[index...])
+        let params = try remaining.compactMap { try makePlayParameters(for: $0) }
         guard !params.isEmpty else {
             throw NSError(domain: "MusicPlayerUtils", code: -2, userInfo: nil)
         }

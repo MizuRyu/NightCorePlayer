@@ -251,6 +251,7 @@ struct PlayingQueueView: View {
                 }
                 Spacer()
             }
+            .padding(.top, 12)
             .padding(.bottom, 4)
             
             MusicPlayerControlsView()
