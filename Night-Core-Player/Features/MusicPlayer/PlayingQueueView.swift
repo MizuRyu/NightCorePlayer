@@ -202,69 +202,56 @@ struct PlayingQueueView: View {
                 Spacer()
                 Text("\(vm.currentQueue.count) items")
                 Spacer()
+                Spacer()
                 Text(vm.remainingTimeString)
                 Spacer()
             }
+            .font(.subheadline)
             .padding(.horizontal)
-            .padding(.bottom, 4)
+            .padding(.bottom, 8)
             .foregroundColor(.secondary)
-            
-            HStack(spacing: 12) {
-                Spacer()
-                Button { vm.toggleShuffle() } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "shuffle")
-                            .font(.subheadline)
-                        Text("シャッフル")
-                            .font(.subheadline)
-                    }
-                    .foregroundColor(vm.isShuffled ? .indigo : .secondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(vm.isShuffled ? Color.indigo.opacity(0.15) : Color.secondary.opacity(0.1))
-                    )
-                }
-
-                Button { vm.cycleRepeatMode() } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: vm.repeatMode == .one ? "repeat.1" : "repeat")
-                            .font(.subheadline)
-                        Text("リピート")
-                            .font(.subheadline)
-                    }
-                    .foregroundColor(vm.repeatMode != .none ? .indigo : .secondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(vm.repeatMode != .none ? Color.indigo.opacity(0.15) : Color.secondary.opacity(0.1))
-                    )
-                }
-
-                Button { vm.toggleAutoPlay() } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "infinity")
-                            .font(.subheadline)
-                        Text("自動再生")
-                            .font(.subheadline)
-                    }
-                    .foregroundColor(vm.isAutoPlayEnabled ? .indigo : .secondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(vm.isAutoPlayEnabled ? Color.indigo.opacity(0.15) : Color.secondary.opacity(0.1))
-                    )
-                }
-                Spacer()
-            }
-            .padding(.bottom, 12)
             
             CombinedListView()
             
             Spacer()
+            
+            HStack(spacing: 16) {
+                Spacer()
+                Button { vm.toggleShuffle() } label: {
+                    Image(systemName: "shuffle")
+                        .font(.title3)
+                        .foregroundColor(vm.isShuffled ? .indigo : .secondary)
+                        .frame(width: 40, height: 40)
+                        .background(
+                            Circle()
+                                .fill(vm.isShuffled ? Color.indigo.opacity(0.15) : Color.clear)
+                        )
+                }
+
+                Button { vm.cycleRepeatMode() } label: {
+                    Image(systemName: vm.repeatMode == .one ? "repeat.1" : "repeat")
+                        .font(.title3)
+                        .foregroundColor(vm.repeatMode != .none ? .indigo : .secondary)
+                        .frame(width: 40, height: 40)
+                        .background(
+                            Circle()
+                                .fill(vm.repeatMode != .none ? Color.indigo.opacity(0.15) : Color.clear)
+                        )
+                }
+
+                Button { vm.toggleAutoPlay() } label: {
+                    Image(systemName: "infinity")
+                        .font(.title3)
+                        .foregroundColor(vm.isAutoPlayEnabled ? .indigo : .secondary)
+                        .frame(width: 40, height: 40)
+                        .background(
+                            Circle()
+                                .fill(vm.isAutoPlayEnabled ? Color.indigo.opacity(0.15) : Color.clear)
+                        )
+                }
+                Spacer()
+            }
+            .padding(.bottom, 4)
             
             MusicPlayerControlsView()
                 .padding(.vertical, 60)

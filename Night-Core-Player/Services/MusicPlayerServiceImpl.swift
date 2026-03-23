@@ -252,6 +252,11 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         case .default: repeatMode = .none
         @unknown default: repeatMode = .none
         }
+
+        // リピート有効時は現在の曲を起点にキューを再構築
+        if next != .none && !queue.isEmpty {
+            await handleQueueAction(.updatePlayerQueueOnly)
+        }
     }
 
     public func toggleAutoPlay() async {
