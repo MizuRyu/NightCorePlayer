@@ -7,36 +7,51 @@ struct MainTabView: View {
     @Environment(MusicPlayerViewModel.self) private var playerVM
     @Environment(SettingsViewModel.self) private var settingsVM
     @Environment(KeyboardResponder.self) private var keyboard
-    
-    // MiniPlayerの要素の高さ
+
     private let miniPlayerHeight: CGFloat = Constants.UI.FrameSize.miniMusicPlayerHeight
-    
+
+    private var showMiniPlayer: Bool {
+        nav.selectedTab != .player && !keyboard.isVisible
+    }
+
     var body: some View {
         @Bindable var nav = nav
+        let tabBinding = Binding<PlayerNavigator.Tab>(
+            get: { nav.selectedTab },
+            set: { newTab in
+                if newTab == nav.selectedTab && newTab == .search {
+                    nav.searchBarFocusRequested = true
+                }
+                nav.selectedTab = newTab
+            }
+        )
         ZStack(alignment: .bottom) {
-            TabView(selection: $nav.selectedTab) {
+            TabView(selection: tabBinding) {
                 MusicPlayerView()
                     .tabItem { Label("Player", systemImage: "music.note") }
                     .tag(PlayerNavigator.Tab.player)
                     .safeAreaPadding(.bottom, miniPlayerHeight)
-                
+
                 SearchView()
                     .tabItem { Label("Search", systemImage: "magnifyingglass") }
                     .tag(PlayerNavigator.Tab.search)
                     .safeAreaPadding(.bottom, miniPlayerHeight)
-                
+
                 PlaylistView()
                     .tabItem { Label("Playlist", systemImage: "list.bullet") }
                     .tag(PlayerNavigator.Tab.playlist)
                     .safeAreaPadding(.bottom, miniPlayerHeight)
-                
+
                 SettingsView()
                     .tabItem { Label("Settings", systemImage: "gearshape") }
                     .tag(PlayerNavigator.Tab.settings)
                     .safeAreaPadding(.bottom, miniPlayerHeight)
             }
-            
-            if nav.selectedTab != .player && !keyboard.isVisible {
+            .onScrollDetected { scrolling in
+                nav.isScrolling = scrolling
+            }
+
+            if showMiniPlayer {
                 MiniMusicPlayerView()
                     .frame(height: miniPlayerHeight)
                     .background(.ultraThinMaterial)
@@ -49,8 +64,8 @@ struct MainTabView: View {
                         }
                     }
                     .padding(.bottom, 55)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .animation(.easeInOut, value: playerVM.isPlaying)
+                    .opacity(nav.isScrolling ? 0.3 : 1.0)
+                    .animation(.easeInOut(duration: 0.2), value: nav.isScrolling)
             }
         }
         .enableInjection()

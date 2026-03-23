@@ -1,6 +1,5 @@
 import MusicKit
 
-/// 再生キューの論理操作を集約
 @MainActor
 public final class MusicQueueManager: QueueManaging {
     public var items: [Song] = []

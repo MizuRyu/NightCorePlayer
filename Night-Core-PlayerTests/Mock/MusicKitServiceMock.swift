@@ -11,6 +11,13 @@ final class MusicKitServiceMock: MusicKitService {
     var stubSongs: [Song] = []
     var searchError: Error?
 
+    // MARK: - Artist トラッキング
+    var searchArtistsCallArgs: [(keyword: String, limit: Int)] = []
+    var stubArtists: [Artist] = []
+    var searchArtistsError: Error?
+    var fetchArtistTopSongsCallCount = 0
+    var fetchArtistTopSongsResult: Result<[Song], Error> = .success([])
+
     // MARK: - Playlist トラッキング
     var fetchLibraryPlaylistsCallCount = 0
     var fetchPlaylistSongsCallCount = 0
@@ -21,10 +28,24 @@ final class MusicKitServiceMock: MusicKitService {
 
     func ensureAuth() async throws { }
 
-    func searchSongs(keyword: String, limit: Int) async throws -> [Song] {
+    func searchSongs(keyword: String, limit: Int, offset: Int) async throws -> [Song] {
         searchCallArgs.append((keyword, limit))
         if let e = searchError { throw e }
         return stubSongs
+    }
+
+    func searchArtists(keyword: String, limit: Int) async throws -> [Artist] {
+        searchArtistsCallArgs.append((keyword, limit))
+        if let e = searchArtistsError { throw e }
+        return stubArtists
+    }
+
+    func fetchArtistTopSongs(artist: Artist) async throws -> [Song] {
+        fetchArtistTopSongsCallCount += 1
+        switch fetchArtistTopSongsResult {
+        case .success(let songs): return songs
+        case .failure(let error): throw error
+        }
     }
 
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist] {

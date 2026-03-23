@@ -20,7 +20,6 @@ struct SpeedControlButton: View {
     }
 }
 
-// Sliderにメモリを表示するOverlay
 struct SliderTickMarksOverlay: View {
     let minValue: Double = Constants.MusicPlayer.minPlaybackRate
     let maxValue: Double = Constants.MusicPlayer.maxPlaybackRate
@@ -35,11 +34,9 @@ struct SliderTickMarksOverlay: View {
                 let xPos   = geo.size.width * ratio
                 
                 VStack(spacing: 4) {
-                    // 数字（上）
                     Text(String(format: "%.1f", value))
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                    // 目盛り（下）
                     Rectangle()
                         .fill(Color.secondary.opacity(0.6))
                         .frame(width: 1, height: 8)
@@ -64,20 +61,27 @@ struct MusicPlayerView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 16) {
-                // 🚀 タイトル
                 Text("Playing Now")
                     .font(.headline)
                     .padding(.top, 8)
                 Spacer()
                 
-                // 🖼️ アートワーク
-                vm.artworkImage
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 250, height: 250)
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-                // ⏮️ 曲情報 + ⏭️
+                if vm.artworkData != nil {
+                    vm.artworkImage
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 250, height: 250)
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                } else {
+                    Image(systemName: "music.note")
+                        .font(.system(size: 80))
+                        .foregroundColor(.secondary)
+                        .frame(width: 250, height: 250)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                }
                 HStack(spacing: 24) {
                     Button { vm.previousTrack() } label: {
                         Image(systemName: "backward.fill")
@@ -118,7 +122,6 @@ struct MusicPlayerView: View {
                             .foregroundColor(.indigo)
                     }
                 }
-                // 📊 シークバー
                 HStack {
                     Text(timeString(from: vm.currentTime))
                         .font(.caption2)
@@ -134,7 +137,6 @@ struct MusicPlayerView: View {
                         .font(.caption2)
                 }
                 .padding(.horizontal)
-                // ▶️ 再生コントロール
                 HStack(spacing: 48) {
                     Button { vm.rewind15() } label: {
                         Image(systemName: "gobackward.15")
@@ -158,7 +160,6 @@ struct MusicPlayerView: View {
                 
                 Spacer(minLength: 20)
                 
-                // ⚙️ 倍速調整
                 VStack(spacing: 10) {
                     Slider(
                         value: Binding(
@@ -197,7 +198,6 @@ struct MusicPlayerView: View {
                     }
                 }
                 
-                // 再生キュー表示
                 Button(action: {
                     isQueuePresented = true
                 }) {

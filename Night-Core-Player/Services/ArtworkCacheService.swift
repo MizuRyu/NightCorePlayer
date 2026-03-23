@@ -4,10 +4,8 @@ import MusicKit
 
 // MARK: - Protocol
 
-/// アートワークの取得とキャッシュを担当する（Catalog コンテキスト）
 @MainActor
 protocol ArtworkCacheService: Sendable {
-    /// 曲のアートワークデータを取得する（カタログ優先 → オリジナル → nil）
     func getArtwork(for song: Song?) async -> Data?
 }
 

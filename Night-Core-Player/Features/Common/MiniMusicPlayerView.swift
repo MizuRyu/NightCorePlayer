@@ -8,7 +8,6 @@ struct MiniMusicPlayerView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // プログレスバー
             GeometryReader { geo in
                 let progress = vm.duration > 0
                 ? vm.currentTime / vm.duration

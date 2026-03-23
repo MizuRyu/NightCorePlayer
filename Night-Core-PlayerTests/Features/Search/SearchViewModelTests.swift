@@ -82,15 +82,89 @@ struct SearchViewModelTests {
         struct DummyErr: Error {}
         let (vm, svc) = SearchViewModelTests.setUp()
         svc.searchError = DummyErr()
-        
+
         // When
         vm.query = "Error"
         try? await Task.sleep(nanoseconds: UInt64(Constants.Timing.searchDebounce + 50) * 1_000_000)
-        
+
         // Then
         #expect(svc.searchCallArgs.count == 1, "searchSongs が呼ばれること")
         #expect(vm.errorMessage != nil, "errorMessage がセットされること")
         #expect(vm.songs.isEmpty, "songs がクリアされること")
         #expect(vm.isLoading == false, "完了後 isLoading が false であること")
+    }
+
+    @Test("検索成功時: アーティストも取得される")
+    func searchIncludesArtists() async {
+        // Given
+        let (vm, svc) = SearchViewModelTests.setUp()
+        svc.stubSongs = [makeDummySong(id: "S1")]
+
+        // When
+        vm.query = "Artist"
+        try? await Task.sleep(nanoseconds: UInt64(Constants.Timing.searchDebounce + 50) * 1_000_000)
+
+        // Then
+        #expect(svc.searchArtistsCallArgs.count == 1)
+        #expect(svc.searchArtistsCallArgs.first?.keyword == "Artist")
+    }
+
+    @Test("キャンセルエラー: errorMessage に表示されない")
+    func cancellationError_notShown() async {
+        // Given
+        let (vm, svc) = SearchViewModelTests.setUp()
+        svc.stubSongs = [makeDummySong(id: "S1")]
+
+        // When: 素早く連続で query を変更（前のタスクがキャンセルされる）
+        vm.query = "First"
+        vm.query = "Second"
+        try? await Task.sleep(nanoseconds: UInt64(Constants.Timing.searchDebounce + 100) * 1_000_000)
+
+        // Then: キャンセルエラーは表示されない
+        #expect(vm.errorMessage == nil)
+    }
+
+    @Test("無限スクロール: hasMoreSongs が正しく設定される")
+    func loadMore_hasMoreSongsFlag() async {
+        // Given
+        let (vm, svc) = SearchViewModelTests.setUp()
+        let songs = (0..<25).map { makeDummySong(id: "S\($0)") }
+        svc.stubSongs = songs
+
+        // When
+        await vm.performSearch(keyword: "Test")
+
+        // Then: 25件 = limit なので追加あり
+        #expect(vm.hasMoreSongs == true)
+        #expect(vm.songs.count == 25)
+    }
+
+    @Test("無限スクロール: limit 未満の場合 hasMoreSongs が false")
+    func loadMore_noMoreWhenUnderLimit() async {
+        // Given
+        let (vm, svc) = SearchViewModelTests.setUp()
+        svc.stubSongs = [makeDummySong(id: "S1")]
+
+        // When
+        await vm.performSearch(keyword: "Test")
+
+        // Then: 1件 < limit なので追加なし
+        #expect(vm.hasMoreSongs == false)
+    }
+
+    @Test("無限スクロール: 最後以外の曲では発動しない")
+    func loadMoreSongs_notTriggeredAtMiddleSong() async {
+        // Given
+        let (vm, svc) = SearchViewModelTests.setUp()
+        let songs = (0..<25).map { makeDummySong(id: "S\($0)") }
+        svc.stubSongs = songs
+
+        // When
+        await vm.performSearch(keyword: "Test")
+        let initialCount = svc.searchCallArgs.count
+        await vm.loadMoreSongsIfNeeded(currentSong: songs[10])
+
+        // Then: 追加検索は発生しない
+        #expect(svc.searchCallArgs.count == initialCount)
     }
 }

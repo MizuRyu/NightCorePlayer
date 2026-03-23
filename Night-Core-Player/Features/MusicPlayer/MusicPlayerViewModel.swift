@@ -16,7 +16,6 @@ final class MusicPlayerViewModel {
     private(set) var artworkData: Data?  = nil
     private(set) var currentTime: Double = 0
 
-    /// artworkData から SwiftUI.Image を生成する（View 層で利用）
     var artworkImage: Image {
         if let data = artworkData, let ui = UIImage(data: data) {
             return Image(uiImage: ui)
@@ -30,7 +29,6 @@ final class MusicPlayerViewModel {
 
     private var skipSeconds: Double = Constants.MusicPlayer.skipSeconds
 
-    // 次に再生される楽曲キュー配列
     var currentQueue: [Song] {
         Array(musicPlayerQueue.dropFirst(currentIndex + 1))
     }
@@ -61,7 +59,6 @@ final class MusicPlayerViewModel {
         }
     }
 
-    // 再生キューの操作をグローバルなqueueに反映する
     func moveQueueItem(_ offsets: IndexSet, to newLocalIndex: Int) {
         guard let localSrc = offsets.first else { return }
         let srcGlobal = currentIndex + 1 + localSrc
@@ -89,7 +86,6 @@ final class MusicPlayerViewModel {
             self.currentIndex = service.nowPlayingIndex
         }
     }
-    // キューの先頭に楽曲を挿入し、再生を開始
     func playNowNext(_ song: Song) {
         Task {
             await service.playNextAndPlay(song)
