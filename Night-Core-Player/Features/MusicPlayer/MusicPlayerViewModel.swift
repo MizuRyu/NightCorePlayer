@@ -25,6 +25,9 @@ final class MusicPlayerViewModel {
     private(set) var duration: Double    = 0
     private(set) var rate: Double        = Constants.MusicPlayer.defaultPlaybackRate
     private(set) var isPlaying: Bool     = false
+    private(set) var isShuffled: Bool    = false
+    private(set) var repeatMode: Constants.RepeatMode = .none
+    private(set) var isAutoPlayEnabled: Bool = false
     var errorMessage: String?
 
     private var skipSeconds: Double = Constants.MusicPlayer.skipSeconds
@@ -109,6 +112,18 @@ final class MusicPlayerViewModel {
         }
     }
     
+    func toggleShuffle() {
+        Task { await service.toggleShuffle() }
+    }
+    
+    func cycleRepeatMode() {
+        Task { await service.cycleRepeatMode() }
+    }
+    
+    func toggleAutoPlay() {
+        Task { await service.toggleAutoPlay() }
+    }
+    
     
     func playPauseTrack()  { Task { await isPlaying ? service.pause() : service.play() } }
     func nextTrack()       { Task { await service.next()     } }
@@ -177,6 +192,9 @@ final class MusicPlayerViewModel {
                 self.duration    = snap.duration
                 self.rate        = snap.rate
                 self.isPlaying   = snap.isPlaying
+                self.isShuffled  = self.service.isShuffled
+                self.repeatMode  = self.service.repeatMode
+                self.isAutoPlayEnabled = self.service.isAutoPlayEnabled
                 self.musicPlayerQueue = self.service.musicPlayerQueue
                 self.currentIndex = self.service.nowPlayingIndex
                 self.history = self.service.playHistory
