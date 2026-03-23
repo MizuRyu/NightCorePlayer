@@ -3,8 +3,8 @@ import Inject
 
 struct MiniMusicPlayerView: View {
     @ObserveInjection var inject
-    @EnvironmentObject private var nav: PlayerNavigator
-    @EnvironmentObject private var vm: MusicPlayerViewModel
+    @Environment(PlayerNavigator.self) private var nav
+    @Environment(MusicPlayerViewModel.self) private var vm
     
     var body: some View {
         VStack(spacing: 0) {
@@ -21,7 +21,7 @@ struct MiniMusicPlayerView: View {
             .frame(height: 2)
             
             HStack(spacing: 12) {
-                vm.artwork
+                vm.artworkImage
                     .resizable()
                     .scaledToFit()
                     .frame(width: 40, height: 40)
@@ -34,7 +34,8 @@ struct MiniMusicPlayerView: View {
                     visibleWidth: 200,
                     speed: 30,
                     spacingBetweenTexts: 20,
-                    delayBeforeScroll: 2
+                    delayBeforeScroll: 2,
+                    selectedTab: nav.selectedTab
                 )
                 Spacer()
                 

@@ -10,16 +10,32 @@ private struct SUT {
     let service: MusicPlayerServiceImpl
     let adapter: PlayerControllableMock
     let queueMock: QueueManagingMock
+    let rateManager: PlaybackRateManagerImpl
+    let repo: PlayerStateRepository
 
     @MainActor
     static func make() -> SUT {
         let adapter   = PlayerControllableMock()
         let queueMock = QueueManagingMock()
+        let context = AppDataStore.shared.container.mainContext
+        let repo = PlayerStateRepository(context: context)
+        let historyRepo = HistoryRepository(context: context)
+        let rateManager = PlaybackRateManagerImpl(repo: repo)
+        let persistenceService = PlayerPersistenceServiceImpl(
+            playerStateRepo: repo, historyRepo: historyRepo
+        )
+        let historyManager = PlayHistoryManagerImpl(historyRepo: historyRepo)
+        let artworkService = ArtworkCacheServiceImpl()
         let service   = MusicPlayerServiceImpl(
+            rateManager: rateManager,
+            persistenceService: persistenceService,
+            historyManager: historyManager,
+            artworkService: artworkService,
             playerAdapter: adapter,
             queueManager: queueMock
         )
-        return SUT(service: service, adapter: adapter, queueMock: queueMock)
+        return SUT(service: service, adapter: adapter, queueMock: queueMock,
+                   rateManager: rateManager, repo: repo)
     }
 }
 
@@ -169,7 +185,14 @@ struct MusicQueueManagerTests {
         queueMock.items = [A, B, C]
         queueMock.currentIndex = 0
         
+        let context = AppDataStore.shared.container.mainContext
+        let repo = PlayerStateRepository(context: context)
+        let historyRepo = HistoryRepository(context: context)
         let service = MusicPlayerServiceImpl(
+            rateManager: PlaybackRateManagerImpl(repo: repo),
+            persistenceService: PlayerPersistenceServiceImpl(playerStateRepo: repo, historyRepo: historyRepo),
+            historyManager: PlayHistoryManagerImpl(historyRepo: historyRepo),
+            artworkService: ArtworkCacheServiceImpl(),
             playerAdapter: adapter,
             queueManager:  queueMock
         )
@@ -448,35 +471,35 @@ struct MusicPlayerServiceImplTests {
         #expect(sut.adapter.seekArgs.last == 100)
     }
 
-    @Test("changeRate: rate が snapshot に反映されること")
-    func testChangeRate() async {
+    @Test("setSessionRate: rate が snapshot に反映されること")
+    func testSetSessionRate() async {
         // Given: SUT生成・1曲セット
         let sut = SUT.make()
         await sut.service.setQueue(songs: [ makeDummySong(id: "1") ], startAt: 0)
-        // When: changeRateを1.5で呼ぶ
-        await sut.service.changeRate(to: 1.5)
+        // When: setSessionRateを1.5で呼ぶ
+        await sut.service.setSessionRate(1.5)
         // Then: snapshot.rateが1.5
         #expect(sut.service.snapshot.rate == 1.5, "レートが1.5になる")
     }
 
-    @Test("changeRate: 範囲外のレートは最小値に補正されること")
-    func testChangeRateClampLower() async {
+    @Test("setSessionRate: 範囲外のレートは最小値に補正されること")
+    func testSetSessionRateClampLower() async {
         // Given: SUT生成・1曲セット
         let sut = SUT.make()
         await sut.service.setQueue(songs: [makeDummySong(id: "1")], startAt: 0)
-        // When: changeRateを0.1で呼ぶ
-        await sut.service.changeRate(to: 0.1)
+        // When: setSessionRateを0.1で呼ぶ
+        await sut.service.setSessionRate(0.1)
         // Then: snapshot.rateが最小値
         #expect(sut.service.snapshot.rate == Constants.MusicPlayer.minPlaybackRate)
     }
 
-    @Test("changeRate: 範囲外のレートは最大値に補正されること")
-    func testChangeRateClampUpper() async {
+    @Test("setSessionRate: 範囲外のレートは最大値に補正されること")
+    func testSetSessionRateClampUpper() async {
         // Given: SUT生成・1曲セット
         let sut = SUT.make()
         await sut.service.setQueue(songs: [makeDummySong(id: "1")], startAt: 0)
-        // When: changeRateを99.9で呼ぶ
-        await sut.service.changeRate(to: 99.9)
+        // When: setSessionRateを99.9で呼ぶ
+        await sut.service.setSessionRate(99.9)
         // Then: snapshot.rateが最大値
         #expect(sut.service.snapshot.rate == Constants.MusicPlayer.maxPlaybackRate)
     }
@@ -634,7 +657,14 @@ struct MusicPlayerServiceImplTests {
         // Given: 1曲セット済みのadapter, queue, service
         let adapter = PlayerControllableMock()
         let queue   = QueueManagingMock()
+        let context = AppDataStore.shared.container.mainContext
+        let repo = PlayerStateRepository(context: context)
+        let historyRepo = HistoryRepository(context: context)
         let service = MusicPlayerServiceImpl(
+            rateManager: PlaybackRateManagerImpl(repo: repo),
+            persistenceService: PlayerPersistenceServiceImpl(playerStateRepo: repo, historyRepo: historyRepo),
+            historyManager: PlayHistoryManagerImpl(historyRepo: historyRepo),
+            artworkService: ArtworkCacheServiceImpl(),
             playerAdapter: adapter,
             queueManager: queue
         )
@@ -713,5 +743,102 @@ struct MusicPlayerServiceImplTests {
         await sut.service.cycleRepeatMode()
         #expect(sut.adapter.repeatMode == .none, "adapter.repeatMode が .none に戻る")
         #expect(sut.service.repeatMode == .none, "service.repeatMode が .none に戻る")
+    }
+}
+
+// MARK: - Characterization Tests (Phase 1-2)
+/// 大きな責務分割前に重要な挙動を固定するテスト群
+@Suite
+@MainActor
+struct CharacterizationTests {
+    // MARK: 1. session rate 変更がプレーヤーに即反映される
+    @Test("session rate 変更が adapter.playbackRate に即反映される")
+    func testSessionRateReflectsInPlayer() async {
+        let sut = SUT.make()
+        await sut.service.setQueue(songs: [makeDummySong(id: "1")], startAt: 0)
+
+        await sut.service.setSessionRate(2.0)
+
+        #expect(sut.adapter.playbackRate == 2.0, "adapter の playbackRate が更新される")
+        #expect(sut.service.snapshot.rate == 2.0, "snapshot.rate も即更新される")
+    }
+
+    // MARK: 2. default rate が SwiftData に永続化される
+    @Test("default rate が repo に永続化される")
+    func testDefaultRatePersistence() async throws {
+        let sut = SUT.make()
+        let newRate = 1.8
+
+        try await sut.rateManager.setDefaultRate(newRate)
+
+        let loaded = try sut.repo.load()
+        #expect(loaded.playbackRate == newRate, "永続化されたレートが一致する")
+        #expect(sut.rateManager.defaultRate == newRate, "メモリ上の defaultRate も一致する")
+    }
+
+    // MARK: 3. アプリ再起動後に default rate が復元される
+    @Test("再起動シミュレーション: 永続化した rate が新 rateManager に復元される")
+    func testDefaultRateRestoredOnRestart() async throws {
+        let sut = SUT.make()
+        let persistedRate = 2.5
+
+        // default rate を永続化
+        try await sut.rateManager.setDefaultRate(persistedRate)
+
+        // 新しい rateManager を同じ repo から作成（再起動をシミュレーション）
+        let newRateManager = PlaybackRateManagerImpl(repo: sut.repo)
+        #expect(newRateManager.defaultRate == persistedRate,
+                "新しい rateManager が永続化された rate を読み込む")
+    }
+
+    // MARK: 4. trackChanged 後の保存整合
+    @Test("曲変更後に default rate で保存される（session rate ではない）")
+    func testTrackChangedSavesDefaultRate() async throws {
+        let sut = SUT.make()
+        let songs = [makeDummySong(id: "CHAR_A"), makeDummySong(id: "CHAR_B")]
+        await sut.service.setQueue(songs: songs, startAt: 0)
+
+        // default rate を 1.5 に設定
+        try await sut.rateManager.setDefaultRate(1.5)
+        // session rate を 2.5 に設定（default とは異なる値）
+        await sut.service.setSessionRate(2.5)
+
+        // 次の曲に進む（updateSnapshot が走り、新曲検知で repo に保存される）
+        await sut.service.next()
+
+        // 保存されたレートは default rate (1.5) であること（session rate 2.5 ではない）
+        let loaded = try sut.repo.load()
+        #expect(loaded.playbackRate == 1.5,
+                "永続化されるのは defaultRate であり sessionRate ではない")
+    }
+
+    // MARK: 5. Settings 画面からの変更が Player に反映される
+    @Test("SettingsViewModel 経由の default rate 変更が session rate にも反映される")
+    func testSettingsToPlayerPropagation() async throws {
+        let sut = SUT.make()
+        await sut.service.setQueue(songs: [makeDummySong(id: "1")], startAt: 0)
+
+        // SettingsViewModel を作成（実際の DI と同じ構成）
+        let settingsVM = SettingsViewModel(
+            rateManager: sut.rateManager,
+            playerService: sut.service
+        )
+
+        // Settings UI からレート変更
+        settingsVM.updateDefaultRate(to: 1.8)
+
+        // Task 内で非同期処理が走るためポーリングで完了を待機（最大2秒）
+        for _ in 0..<20 {
+            try await Task.sleep(nanoseconds: 100_000_000)
+            if sut.adapter.playbackRate == 1.8 { break }
+        }
+
+        // default rate が永続化される
+        #expect(sut.rateManager.defaultRate == 1.8, "defaultRate が更新される")
+        // session rate にも反映される（Player 画面に即反映）
+        #expect(sut.service.snapshot.rate == 1.8, "snapshot.rate にも反映される")
+        #expect(sut.adapter.playbackRate == 1.8, "adapter.playbackRate にも反映される")
+        // VM の表示値も更新される
+        #expect(settingsVM.defaultRate == 1.8, "settingsVM.defaultRate も同期される")
     }
 }

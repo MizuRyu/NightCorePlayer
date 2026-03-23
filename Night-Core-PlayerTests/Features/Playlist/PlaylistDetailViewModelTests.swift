@@ -28,7 +28,7 @@ struct PlaylistDetailViewModelTests {
             makeDummySong(id: "1", title: "A"),
             makeDummySong(id: "2", title: "B"),
         ]
-        serviceMock.result = .success(expectedSongs)
+        serviceMock.fetchPlaylistSongsResult = .success(expectedSongs)
         
         // When
         await viewModel.load()
@@ -45,7 +45,7 @@ struct PlaylistDetailViewModelTests {
         // Given
         let (viewModel, serviceMock) = PlaylistDetailViewModelTests.setUp()
         let testError = NSError(domain: "Test", code: -1, userInfo: [NSLocalizedDescriptionKey: "失敗しました"])
-        serviceMock.result = .failure(testError)
+        serviceMock.fetchPlaylistSongsResult = .failure(testError)
         
         // When
         await viewModel.load()
@@ -61,7 +61,7 @@ struct PlaylistDetailViewModelTests {
     func loadReentrancyPrevention() async {
         // Given
         let (viewModel, serviceMock) = PlaylistDetailViewModelTests.setUp()
-        serviceMock.result = .success([])
+        serviceMock.fetchPlaylistSongsResult = .success([])
         
         // When
         await withTaskGroup(of: Void.self) { group in

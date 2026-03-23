@@ -4,13 +4,12 @@ import MusicKit
 
 struct PlaylistDetailView: View {
     @ObserveInjection var inject
-    @StateObject private var vm: PlaylistDetailViewModel
-    @EnvironmentObject private var nav: PlayerNavigator
-    @EnvironmentObject private var playerVM: MusicPlayerViewModel
+    @State private var vm: PlaylistDetailViewModel
+    @Environment(PlayerNavigator.self) private var nav
+    @Environment(MusicPlayerViewModel.self) private var playerVM
 
-    init(pl: Playlist,
-         musicKitService: MusicKitService = MusicKitServiceImpl()) {
-        _vm = StateObject(wrappedValue: PlaylistDetailViewModel(
+    init(pl: Playlist, musicKitService: any MusicKitService) {
+        _vm = State(initialValue: PlaylistDetailViewModel(
             playlist: pl,
             musicKitService: musicKitService
         ))
@@ -40,43 +39,28 @@ struct PlaylistDetailView: View {
             // Loaded State
             else {
                 VStack(spacing: 16) {
-                    // Action Buttons
+                    // アクションボタン
                     HStack(spacing: 16) {
-                        Button {
+                        playlistActionButton(
+                            title: "再生",
+                            systemImage: "play.fill"
+                        ) {
                             playerVM.loadPlaylist(
                                 songs: vm.songs,
                                 startAt: 0,
                                 autoPlay: true
                             )
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "play.fill")
-                                Text("再生")
-                            }
-                            .font(.body)
-                            .frame(maxWidth: .infinity, minHeight: 42)
                         }
-                        .foregroundColor(.indigo)
-                        .background(Color(.systemGray5))
-                        .cornerRadius(8)
-
-                        Button {
+                        playlistActionButton(
+                            title: "シャッフル",
+                            systemImage: "shuffle"
+                        ) {
                             playerVM.loadPlaylist(
                                 songs: vm.songs.shuffled(),
                                 startAt: 0,
                                 autoPlay: true
                             )
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "shuffle")
-                                Text("シャッフル")
-                            }
-                            .font(.body)
-                            .frame(maxWidth: .infinity, minHeight: 42)
                         }
-                        .foregroundColor(.indigo)
-                        .background(Color(.systemGray5))
-                        .cornerRadius(8)
                     }
                     .padding(.horizontal)
 
@@ -101,10 +85,7 @@ struct PlaylistDetailView: View {
                     .scrollContentBackground(.hidden)
                     .background(Color(.systemBackground))
                     .navigationDestination(for: Song.self) { song in
-                        MusicPlayerView(
-                            songs: vm.songs,
-                            initialIndex: vm.songs.firstIndex { $0.id == song.id } ?? 0
-                        )
+                        Text(song.title)
                     }
                 }
                 .padding(.horizontal)
@@ -114,5 +95,24 @@ struct PlaylistDetailView: View {
         .navigationBarTitleDisplayMode(.large)
         .enableInjection()
         .task { await vm.load() }
+    }
+
+    /// プレイリスト操作ボタンの共通スタイル
+    private func playlistActionButton(
+        title: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: systemImage)
+                Text(title)
+            }
+            .font(.body)
+            .frame(maxWidth: .infinity, minHeight: Constants.UI.FrameSize.buttonMinHeight)
+        }
+        .foregroundColor(Constants.AppColors.accent)
+        .background(Color(.systemGray5))
+        .cornerRadius(Constants.UI.CornerRadius.standard)
     }
 }

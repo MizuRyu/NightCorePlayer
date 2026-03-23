@@ -1,40 +1,48 @@
-import Combine
 import SwiftUI
 import MusicKit
+import Observation
 
+@Observable
 @MainActor
-class SearchViewModel: ObservableObject {
+final class SearchViewModel {
     
     private let musicKitService: MusicKitService
     
-    @Published var query: String = ""
-    @Published private(set) var songs: [Song] = []
-    @Published private(set) var isLoading = false
-    @Published private(set) var error: Error?
+    var query: String = "" {
+        didSet { scheduleSearch() }
+    }
+    private(set) var songs: [Song] = []
+    private(set) var isLoading = false
+    var errorMessage: String?
     
-    private var cancellable: AnyCancellable?
+    private var searchTask: Task<Void, Never>?
+    private var lastSearchedQuery: String = ""
     
-    init(musicKitService: MusicKitService = MusicKitServiceImpl()) {
+    init(musicKitService: MusicKitService) {
         self.musicKitService = musicKitService
-        cancellable = $query
-            .removeDuplicates()
-            .debounce(for: .milliseconds(Constants.Timing.searchDebounce), scheduler: RunLoop.main)
-            .sink { [weak self] keyword in
-                Task { await self?.performSearch(keyword: keyword) }
-            }
     }
     
-    deinit { cancellable?.cancel() }
+    private func scheduleSearch() {
+        let current = query
+        guard current != lastSearchedQuery else { return }
+        searchTask?.cancel()
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: UInt64(Constants.Timing.searchDebounce) * 1_000_000)
+            guard !Task.isCancelled else { return }
+            await performSearch(keyword: current)
+        }
+    }
     
     public func performSearch(keyword: String) async {
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        lastSearchedQuery = query
         guard !trimmed.isEmpty else { songs = []; return }
         
-        isLoading = true; error = nil
+        isLoading = true; errorMessage = nil
         do {
             songs = try await musicKitService.searchSongs(keyword: trimmed, limit: Constants.MusicAPI.musicKitSearchLimit)
         } catch {
-            self.error = error; songs = []
+            self.errorMessage = error.localizedDescription; songs = []
         }
         isLoading = false
     }

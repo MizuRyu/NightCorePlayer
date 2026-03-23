@@ -160,11 +160,11 @@ final class QueueManagingMock: QueueManaging {
 
 final class MusicPlayerServiceMock: MusicPlayerService {
     private(set) var setQueueArgs: [([Song], Int)] = []
-    private(set) var playCounted     = 0
-    private(set) var pauseCounted    = 0
-    private(set) var nextCounted     = 0
-    private(set) var previousCounted = 0
-    private(set) var clearHistoryCounted = 0
+    private(set) var playCallCount     = 0
+    private(set) var pauseCallCount    = 0
+    private(set) var nextCallCount     = 0
+    private(set) var previousCallCount = 0
+    private(set) var clearHistoryCallCount = 0
     private(set) var seekArgs: [TimeInterval] = []
     private(set) var rateArgs: [Double]        = []
     private(set) var moveArgs: [(Int, Int)]    = []
@@ -183,34 +183,38 @@ final class MusicPlayerServiceMock: MusicPlayerService {
     public var nowPlayingIndex: Int     = 0
     public var playHistory: [Song]      = []
     
-    // ★ ここを追加
     public private(set) var isShuffled: Bool       = false
     public private(set) var repeatMode: Constants.RepeatMode = .none
     
 
-    public func setQueue(songs: [Song], startAt index: Int) async {
+    public func setQueue(songs: [Song], startAt index: Int, autoPlay: Bool) async {
         setQueueArgs.append((songs, index))
         musicPlayerQueue = songs
         nowPlayingIndex  = index
-        snapshotSubject.send(.empty)
+        if autoPlay {
+            playCallCount += 1
+            snapshotSubject.send(.empty.withPlaying(true))
+        } else {
+            snapshotSubject.send(.empty)
+        }
     }
 
     public func play() async {
-        playCounted += 1
+        playCallCount += 1
         snapshotSubject.send(.empty.withPlaying(true))
     }
 
     public func pause() async {
-        pauseCounted += 1
+        pauseCallCount += 1
         snapshotSubject.send(.empty.withPlaying(false))
     }
 
     public func next() async {
-        nextCounted += 1
+        nextCallCount += 1
     }
 
     public func previous() async {
-        previousCounted += 1
+        previousCallCount += 1
     }
 
     public func seek(to time: TimeInterval) async {
@@ -218,9 +222,9 @@ final class MusicPlayerServiceMock: MusicPlayerService {
         snapshotSubject.send(.empty.withCurrentTime(time))
     }
 
-    public func changeRate(to newRate: Double) async {
-        rateArgs.append(newRate)
-        snapshotSubject.send(.empty.withRate(newRate))
+    public func setSessionRate(_ rate: Double) async {
+        rateArgs.append(rate)
+        snapshotSubject.send(.empty.withRate(rate))
     }
 
     public func moveItem(from src: Int, to dst: Int) async {
@@ -254,8 +258,8 @@ final class MusicPlayerServiceMock: MusicPlayerService {
         snapshotSubject.send(.empty.withPlaying(true))
     }
 
-    public func clearHistory() {
-        clearHistoryCounted += 1
+    public func clearHistory() throws {
+        clearHistoryCallCount += 1
         playHistory.removeAll()
     }
     
@@ -277,7 +281,7 @@ extension MusicPlayerSnapshot {
     func withPlaying(_ playing: Bool) -> MusicPlayerSnapshot {
         .init(title: title,
               artist: artist,
-              artwork: artwork,
+              artworkData: artworkData,
               currentTime: currentTime,
               duration: duration,
               rate: rate,
@@ -286,7 +290,7 @@ extension MusicPlayerSnapshot {
     func withCurrentTime(_ t: TimeInterval) -> MusicPlayerSnapshot {
         .init(title: title,
               artist: artist,
-              artwork: artwork,
+              artworkData: artworkData,
               currentTime: t,
               duration: duration,
               rate: rate,
@@ -295,7 +299,7 @@ extension MusicPlayerSnapshot {
     func withRate(_ r: Double) -> MusicPlayerSnapshot {
         .init(title: title,
               artist: artist,
-              artwork: artwork,
+              artworkData: artworkData,
               currentTime: currentTime,
               duration: duration,
               rate: r,

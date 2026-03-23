@@ -1,16 +1,8 @@
 import Foundation
-import SwiftData
 
-@Model
-final class History {
-    @Attribute(.unique) var id: String = UUID().uuidString
-
-    var songID: String
-
-    var playedAt: Date
-
-    init(songID: String, playedAt: Date = .now) {
-        self.songID   = songID
-        self.playedAt = playedAt
-    }
+/// 再生履歴のドメインモデル（純粋 struct。SwiftData 依存なし）
+struct History {
+    let id: String
+    let songID: String
+    let playedAt: Date
 }

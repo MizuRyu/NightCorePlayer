@@ -3,14 +3,16 @@ import Inject
 import MusicKit
 struct MainTabView: View {
     @ObserveInjection var inject
-    @StateObject private var nav      = PlayerNavigator()
-    @StateObject private var playerVM = MusicPlayerViewModel(service: MusicPlayerServiceImpl())
-    @StateObject private var keyboard = KeyboardResponder()
+    @Environment(PlayerNavigator.self) private var nav
+    @Environment(MusicPlayerViewModel.self) private var playerVM
+    @Environment(SettingsViewModel.self) private var settingsVM
+    @Environment(KeyboardResponder.self) private var keyboard
     
     // MiniPlayerの要素の高さ
     private let miniPlayerHeight: CGFloat = Constants.UI.FrameSize.miniMusicPlayerHeight
     
     var body: some View {
+        @Bindable var nav = nav
         ZStack(alignment: .bottom) {
             TabView(selection: $nav.selectedTab) {
                 MusicPlayerView()
@@ -33,13 +35,9 @@ struct MainTabView: View {
                     .tag(PlayerNavigator.Tab.settings)
                     .safeAreaPadding(.bottom, miniPlayerHeight)
             }
-            .environmentObject(nav)
-            .environmentObject(playerVM)
             
             if nav.selectedTab != .player && !keyboard.isVisible {
                 MiniMusicPlayerView()
-                    .environmentObject(nav)
-                    .environmentObject(playerVM)
                     .frame(height: miniPlayerHeight)
                     .background(.ultraThinMaterial)
                     .cornerRadius(8)

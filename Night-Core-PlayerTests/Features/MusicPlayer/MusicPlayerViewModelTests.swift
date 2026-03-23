@@ -5,7 +5,7 @@ import MusicKit
 
 @testable import Night_Core_Player
 
-@Suite
+@Suite(.serialized)
 @MainActor
 struct MusicPlayerViewModelTests {
     static func setUp() -> (
@@ -42,8 +42,8 @@ struct MusicPlayerViewModelTests {
         vm.playPauseTrack()
         try? await Task.sleep(nanoseconds: 50_000_000)
         // Then: play()が1回呼ばれ、pause()は呼ばれない
-        #expect(svc.playCounted  == 1, "play()が１回呼ばれる")
-        #expect(svc.pauseCounted == 0, "pause()は呼ばれない")
+        #expect(svc.playCallCount  == 1, "play()が１回呼ばれる")
+        #expect(svc.pauseCallCount == 0, "pause()は呼ばれない")
         cancel.cancel()
     }
     
@@ -54,7 +54,7 @@ struct MusicPlayerViewModelTests {
         svc.snapshotSubject.send(
             MusicPlayerSnapshot(
                 title: "-", artist: "-",
-                artwork: Image(systemName: "music.note"),
+                artworkData: nil,
                 currentTime: 0, duration: 0,
                 rate: vm.rate, isPlaying: true
             )
@@ -64,8 +64,8 @@ struct MusicPlayerViewModelTests {
         vm.playPauseTrack()
         try? await Task.sleep(nanoseconds: 50_000_000)
         // Then: pause()が1回呼ばれ、play()は呼ばれない
-        #expect(svc.pauseCounted == 1, "pause()が１回呼ばれる")
-        #expect(svc.playCounted  == 0, "play()は呼ばれない")
+        #expect(svc.pauseCallCount == 1, "pause()が１回呼ばれる")
+        #expect(svc.playCallCount  == 0, "play()は呼ばれない")
         cancel.cancel()
     }
     
@@ -77,7 +77,7 @@ struct MusicPlayerViewModelTests {
         vm.nextTrack()
         try? await Task.sleep(nanoseconds: 50_000_000)
         // Then: next()が1回呼ばれる
-        #expect(svc.nextCounted == 1, "next()が１回呼ばれる")
+        #expect(svc.nextCallCount == 1, "next()が１回呼ばれる")
         cancel.cancel()
     }
     
@@ -89,7 +89,7 @@ struct MusicPlayerViewModelTests {
         vm.previousTrack()
         try? await Task.sleep(nanoseconds: 50_000_000)
         // Then: previous()が1回呼ばれる
-        #expect(svc.previousCounted == 1, "previous()が１回呼ばれる")
+        #expect(svc.previousCallCount == 1, "previous()が１回呼ばれる")
         cancel.cancel()
     }
     
@@ -100,7 +100,7 @@ struct MusicPlayerViewModelTests {
         svc.snapshotSubject.send(
             MusicPlayerSnapshot(
                 title: "", artist: "",
-                artwork: Image(systemName: "music.note"),
+                artworkData: nil,
                 currentTime: 10, duration: 60,
                 rate: vm.rate, isPlaying: false
             )
@@ -121,7 +121,7 @@ struct MusicPlayerViewModelTests {
         svc.snapshotSubject.send(
             MusicPlayerSnapshot(
                 title: "", artist: "",
-                artwork: Image(systemName: "music.note"),
+                artworkData: nil,
                 currentTime: 30, duration: 60,
                 rate: vm.rate, isPlaying: false
             )
@@ -142,7 +142,7 @@ struct MusicPlayerViewModelTests {
         svc.snapshotSubject.send(
             MusicPlayerSnapshot(
                 title: "", artist: "",
-                artwork: Image(systemName: "music.note"),
+                artworkData: nil,
                 currentTime: 50, duration: 60,
                 rate: vm.rate, isPlaying: false
             )
@@ -163,7 +163,7 @@ struct MusicPlayerViewModelTests {
         svc.snapshotSubject.send(
             MusicPlayerSnapshot(
                 title: "", artist: "",
-                artwork: Image(systemName: "music.note"),
+                artworkData: nil,
                 currentTime: 20, duration: 60,
                 rate: vm.rate, isPlaying: false
             )
@@ -189,62 +189,62 @@ struct MusicPlayerViewModelTests {
         cancel.cancel()
     }
     
-    @Test("setRate: 範囲外は補正してchangeRate()が呼ばれること")
+    @Test("setRate: 範囲外は補正してsetSessionRate()が呼ばれること")
     func testSetRate_outOfRange() async {
         // Given: ViewModelを初期化
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         // When: setRateを0.1（下限未満）で呼ぶ
         vm.setRate(to: 0.1)
         try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: rateは最小値・changeRate(min)が呼ばれる
+        // Then: rateは最小値・setSessionRate(min)が呼ばれる
         #expect(vm.rate == Constants.MusicPlayer.minPlaybackRate, "rateは最小値に補正される")
-        #expect(svc.rateArgs.last == Constants.MusicPlayer.minPlaybackRate, "changeRate(min)が呼ばれる")
+        #expect(svc.rateArgs.last == Constants.MusicPlayer.minPlaybackRate, "setSessionRate(min)が呼ばれる")
         // When: setRateを3.0（上限超）で呼ぶ
         vm.setRate(to: 3.0)
         try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: rateは最大値・changeRate(max)が呼ばれる
+        // Then: rateは最大値・setSessionRate(max)が呼ばれる
         #expect(vm.rate == Constants.MusicPlayer.maxPlaybackRate, "rateは最大値に補正される")
-        #expect(svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate, "changeRate(max)が呼ばれる")
+        #expect(svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate, "setSessionRate(max)が呼ばれる")
         cancel.cancel()
     }
     
-    @Test("setRate: 有効値ならchangeRate()が呼ばれること")
+    @Test("setRate: 有効値ならsetSessionRate()が呼ばれること")
     func testSetRate_normal() async {
         // Given: ViewModelを初期化
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         // When: setRateを1.5で呼ぶ
         vm.setRate(to: 1.5)
         try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: rateが1.5、changeRate(1.5)が呼ばれる
+        // Then: rateが1.5、setSessionRate(1.5)が呼ばれる
         #expect(vm.rate == 1.5, "rateが1.5にセットされる")
-        #expect(svc.rateArgs.last == 1.5, "changeRate(1.5)が呼ばれる")
+        #expect(svc.rateArgs.last == 1.5, "setSessionRate(1.5)が呼ばれる")
         cancel.cancel()
     }
     
-    @Test("changeRate(by:): rate が増加され、service.changeRate() が呼ばれること")
-    func testChangeRateBy_normal() async {
+    @Test("adjustRate(by:): rate が増加され、service.setSessionRate() が呼ばれること")
+    func testAdjustRateBy_normal() async {
         // Given: ViewModelの初期rateを取得
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         let base = vm.rate
-        // When: changeRate(by: 0.2)を呼ぶ
-        vm.changeRate(by: 0.2)
+        // When: adjustRate(by: 0.2)を呼ぶ
+        vm.adjustRate(by: 0.2)
         try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: rateが+0.2され、service.changeRateも呼ばれる
+        // Then: rateが+0.2され、service.setSessionRateも呼ばれる
         #expect(vm.rate == base + 0.2, "rate が +0.2 されること")
-        #expect(svc.rateArgs.last == base + 0.2, "service.changeRate(\(base + 0.2)) が呼ばれること")
+        #expect(svc.rateArgs.last == base + 0.2, "service.setSessionRate(\(base + 0.2)) が呼ばれること")
         cancel.cancel()
     }
     
-    @Test("changeRate(by:): rate 増加が上限を超えると最大値にクランプされること")
-    func testChangeRateBy_clampUpper() async {
+    @Test("adjustRate(by:): rate 増加が上限を超えると最大値にクランプされること")
+    func testAdjustRateBy_clampUpper() async {
         // Given: ViewModelを初期化
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // When: changeRate(by: 上限を超える値)を呼ぶ
-        vm.changeRate(by: Constants.MusicPlayer.maxPlaybackRate * 2)
+        // When: adjustRate(by: 上限を超える値)を呼ぶ
+        vm.adjustRate(by: Constants.MusicPlayer.maxPlaybackRate * 2)
         try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: rateが最大値、service.changeRateも最大値で呼ばれる
+        // Then: rateが最大値、service.setSessionRateも最大値で呼ばれる
         #expect(vm.rate == Constants.MusicPlayer.maxPlaybackRate, "rate が最大値にクランプされること")
-        #expect(svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate, "service.changeRate(max) が呼ばれること")
+        #expect(svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate, "service.setSessionRate(max) が呼ばれること")
         cancel.cancel()
     }
     
@@ -262,7 +262,7 @@ struct MusicPlayerViewModelTests {
         try? await Task.sleep(nanoseconds: 50_000_000)
         // Then: setQueueは呼ばれるがplay()は呼ばれない
         #expect(svc.setQueueArgs.count == 1, "setQueueが呼ばれる")
-        #expect(svc.playCounted     == 0, "play()は呼ばれない")
+        #expect(svc.playCallCount     == 0, "play()は呼ばれない")
         cancel.cancel()
     }
     
@@ -279,7 +279,7 @@ struct MusicPlayerViewModelTests {
         vm.loadPlaylist(songs: songs, startAt: 0, autoPlay: true)
         try? await Task.sleep(nanoseconds: 50_000_000)
         // Then: play()が1回呼ばれる
-        #expect(svc.playCounted == 1, "play()が呼ばれる")
+        #expect(svc.playCallCount == 1, "play()が呼ばれる")
         cancel.cancel()
     }
     
@@ -443,7 +443,7 @@ struct MusicPlayerViewModelTests {
         let snap = MusicPlayerSnapshot(
             title: "テスト曲",
             artist: "アーティスト",
-            artwork: Image(systemName: "star"),
+            artworkData: nil,
             currentTime: 20,
             duration: 120,
             rate: 1.2,
@@ -514,7 +514,7 @@ struct MusicPlayerViewModelTests {
         svc.snapshotSubject.send(
             MusicPlayerSnapshot(
                 title: "", artist: "",
-                artwork: Image(systemName: "music.note"),
+                artworkData: nil,
                 currentTime: 30,
                 duration: 60,
                 rate: 1.5,
