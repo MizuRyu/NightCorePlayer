@@ -4,3 +4,19 @@ track2.mp4
 buildServer.json
 xcuserdata/
 __azurite_db_queue__.json
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+fastlane/README.md
+
+# Build artifacts
+build/
+*.ipa
+*.dSYM.zip
+
+# Ruby
+vendor/bundle/
+.bundle/
