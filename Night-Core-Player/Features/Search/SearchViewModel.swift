@@ -39,7 +39,7 @@ final class SearchViewModel {
 
     public func performSearch(keyword: String) async {
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
-        lastSearchedQuery = query
+        lastSearchedQuery = trimmed
         guard !trimmed.isEmpty else {
             songs = []
             artists = []
@@ -50,6 +50,7 @@ final class SearchViewModel {
 
         isLoading = true; errorMessage = nil
         currentOffset = 0
+        defer { isLoading = false }
         do {
             async let fetchedSongs = musicKitService.searchSongs(
                 keyword: trimmed, limit: Constants.MusicAPI.musicKitSearchLimit, offset: 0
@@ -71,7 +72,6 @@ final class SearchViewModel {
             artists = []
             hasMoreSongs = false
         }
-        isLoading = false
     }
 
     func loadMoreSongsIfNeeded(currentSong: Song) async {

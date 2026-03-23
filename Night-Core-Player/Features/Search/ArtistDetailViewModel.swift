@@ -29,7 +29,7 @@ final class ArtistDetailViewModel {
             let topSongs = try await musicKitService.fetchArtistTopSongs(artist: artist)
             songs = topSongs
             currentOffset = topSongs.count
-            hasMoreSongs = topSongs.count >= 10
+            hasMoreSongs = songs.count < 50
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription

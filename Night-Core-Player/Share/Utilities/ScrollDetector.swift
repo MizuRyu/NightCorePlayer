@@ -4,7 +4,7 @@ import SwiftUI
 struct ScrollDetectorModifier: ViewModifier {
     let onScrolling: (Bool) -> Void
 
-    @State private var scrollTimer: Timer?
+    @State private var scrollTask: Task<Void, Never>?
 
     func body(content: Content) -> some View {
         content
@@ -12,25 +12,23 @@ struct ScrollDetectorModifier: ViewModifier {
                 DragGesture(minimumDistance: 5)
                     .onChanged { _ in
                         onScrolling(true)
-                        resetTimer()
+                        resetDelay()
                     }
                     .onEnded { _ in
-                        resetTimer()
+                        resetDelay()
                     }
             )
+            .onDisappear {
+                scrollTask?.cancel()
+            }
     }
 
-    private func resetTimer() {
-        scrollTimer?.invalidate()
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: false) { _ in
-            DispatchQueue.main.async {
-                onScrolling(false)
-            }
-        }
-        // @State にセットするのではなく直接保持
-        DispatchQueue.main.async {
-            scrollTimer?.invalidate()
-            scrollTimer = timer
+    private func resetDelay() {
+        scrollTask?.cancel()
+        scrollTask = Task {
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            guard !Task.isCancelled else { return }
+            onScrolling(false)
         }
     }
 }
