@@ -278,22 +278,18 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     }
 
     public func cycleRepeatMode() async {
-        let next: MPMusicRepeatMode
-        switch player.repeatMode {
+        // player.repeatMode は .default を返す場合があるため、自前の repeatMode で状態管理
+        let next: Constants.RepeatMode
+        switch repeatMode {
         case .none: next = .all
         case .all:  next = .one
         case .one:  next = .none
-        case .default: next = .none
-        @unknown default: next = .none
         }
-        player.repeatMode = next
-
+        repeatMode = next
         switch next {
-        case .none: repeatMode = .none
-        case .all:  repeatMode = .all
-        case .one:  repeatMode = .one
-        case .default: repeatMode = .none
-        @unknown default: repeatMode = .none
+        case .none: player.repeatMode = .none
+        case .all:  player.repeatMode = .all
+        case .one:  player.repeatMode = .one
         }
         updateSnapshot()
     }
@@ -364,9 +360,13 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         case .updatePlayerQueueOnly:
             lastPlayerIndex = nil
             if let descriptor = try? buildQueueDescriptor(from: await queue.items, startAt: queue.currentIndex) {
+                let wasPlaying = player.playbackState == .playing
                 let currentPos = player.currentTime
                 player.setQueue(with: descriptor)
                 player.seek(to: currentPos)
+                if wasPlaying {
+                    player.play()
+                }
                 player.playbackRate = currentPlaybackRate
             }
             updateSnapshot()
@@ -553,9 +553,15 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
 
         currentPlaybackRate = rateManager.defaultRate
         player.playbackRate = rateManager.defaultRate
-        player.shuffleMode  = MPMusicShuffleMode(rawValue: st.shuffleModeRaw) ?? .off
-        player.repeatMode   = MPMusicRepeatMode(rawValue: st.repeatModeRaw)  ?? .none
-        isShuffled = player.shuffleMode != .off
+        player.shuffleMode  = .off  // アプリ側シャッフルのため常にoff
+        let restoredRepeat = MPMusicRepeatMode(rawValue: st.repeatModeRaw) ?? .none
+        player.repeatMode   = restoredRepeat
+        isShuffled = st.shuffleModeRaw != Int(MPMusicShuffleMode.off.rawValue)
+        switch restoredRepeat {
+        case .all:  repeatMode = .all
+        case .one:  repeatMode = .one
+        default:    repeatMode = .none
+        }
         isAutoPlayEnabled = st.isAutoPlayEnabled
     }
 
