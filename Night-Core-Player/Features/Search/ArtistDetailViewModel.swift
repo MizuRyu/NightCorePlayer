@@ -39,9 +39,11 @@ final class ArtistDetailViewModel {
 
     /// 再生/シャッフル用に可能な限り多くの曲を取得する
     func loadAllAvailable() async {
-        while hasMoreSongs && !isLoadingMore {
-            isLoadingMore = true
-            defer { isLoadingMore = false }
+        guard !isLoadingMore else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+
+        while hasMoreSongs {
             do {
                 let more = try await musicKitService.searchSongs(
                     keyword: artist.name,
