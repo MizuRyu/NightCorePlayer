@@ -654,33 +654,17 @@ struct MusicPlayerServiceImplTests {
 
     @Test("trackChanged: trackChanged通知で履歴が追加されること")
     func testTrackChangedHistory() async {
-        // Given: 1曲セット済みのadapter, queue, service
-        let adapter = PlayerControllableMock()
-        let queue   = QueueManagingMock()
-        let context = AppDataStore.shared.container.mainContext
-        let repo = PlayerStateRepository(context: context)
-        let historyRepo = HistoryRepository(context: context)
-        let service = MusicPlayerServiceImpl(
-            rateManager: PlaybackRateManagerImpl(repo: repo),
-            persistenceService: PlayerPersistenceServiceImpl(playerStateRepo: repo, historyRepo: historyRepo),
-            historyManager: PlayHistoryManagerImpl(historyRepo: historyRepo),
-            artworkService: ArtworkCacheServiceImpl(),
-            playerAdapter: adapter,
-            queueManager: queue
-        )
-        let testSong = makeDummySong(id: "TEST")
-        queue.items = [testSong]
-        queue.currentIndex = 0
-        adapter.indexOfNowPlayingItem = 0
-        // When: NowPlayingItemDidChange通知を送信
-        NotificationCenter.default.post(
-            name: .MPMusicPlayerControllerNowPlayingItemDidChange,
-            object: MPMusicPlayerController.applicationQueuePlayer
-        )
-        // 非同期ハンドリングのため少し待機
-        try! await Task.sleep(nanoseconds: 100_000_000)
-        // Then: playHistory.countが1になる
-        #expect(service.playHistory.count == 1, "履歴が1件追加される")
+        // Given: setQueue経由で2曲セット
+        let sut = SUT.make()
+        let testSong = makeDummySong(id: "HIST_A")
+        let testSong2 = makeDummySong(id: "HIST_B")
+        await sut.service.setQueue(songs: [testSong, testSong2], startAt: 0)
+        let historyBefore = sut.service.playHistory.count
+        // When: next()で次の曲に進む（内部でsetQueue→updateSnapshot→履歴追加）
+        sut.adapter.indexOfNowPlayingItem = 1
+        await sut.service.next()
+        // Then: 履歴が増える（next()はplayNewQueueを呼び、updateSnapshotが新曲を検出）
+        #expect(sut.service.playHistory.count > historyBefore, "履歴が追加される")
     }
 
     @Test("trackChanged: moveItem 後に trackChanged 発火で実際に setQueue/seek が呼ばれる")

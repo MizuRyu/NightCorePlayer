@@ -12,6 +12,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     @Published public private(set) var isAutoPlayEnabled: Bool = false
 
     private var originalQueue: [Song] = []
+    private var lastSnapshotSongID: String? = nil
 
     public var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> {
         $snapshot.eraseToAnyPublisher()
@@ -113,8 +114,8 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         if player.playbackState == .playing {
             player.playbackRate = currentPlaybackRate
         }
-        // キュー末尾で停止した場合、自動再生をチェック
-        if player.playbackState == .stopped || player.playbackState == .paused {
+        // キュー末尾で停止した場合のみ自動再生をチェック（一時停止では発火しない）
+        if player.playbackState == .stopped {
             checkAutoPlayOnQueueEnd()
         }
     }
@@ -140,6 +141,12 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     public func next() async {
         let advanced = await queue.advanceToNextTrack()
         if advanced {
+            await handleQueueAction(.playNewQueue)
+            return
+        }
+        // キュー末尾到達: repeat all なら先頭へラップ
+        if repeatMode == .all && !queue.isEmpty {
+            queue.currentIndex = 0
             await handleQueueAction(.playNewQueue)
             return
         }
@@ -393,11 +400,10 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             return
         }
 
-        struct Holder { static var lastSongID: String? = nil }
         let currentID = song.id.rawValue
-        let isNewSong = (Holder.lastSongID != currentID)
+        let isNewSong = (lastSnapshotSongID != currentID)
         if isNewSong {
-            Holder.lastSongID = currentID
+            lastSnapshotSongID = currentID
         }
 
         let existingArtwork = snapshot.artworkData
@@ -421,18 +427,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
                 print("⚠️ History append error: \(error.localizedDescription)")
             }
         }
-        do {
-            try persistenceService.saveQueueState(
-                queueIDs:      queue.items.map { $0.id.rawValue },
-                currentIndex:  queue.currentIndex,
-                playbackRate:  rateManager.defaultRate,
-                shuffleModeRaw: Int(player.shuffleMode.rawValue),
-                repeatModeRaw:  Int(player.repeatMode.rawValue),
-                isAutoPlayEnabled: isAutoPlayEnabled
-            )
-        } catch {
-            print("⚠️ Queue state save error: \(error.localizedDescription)")
-        }
+        saveState()
 
         Task { [weak self] in
             guard let self = self else { return }
@@ -514,8 +509,14 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         guard !songs.isEmpty, songs.indices.contains(index) else {
             throw NSError(domain: "MusicPlayerUtils", code: -2, userInfo: nil)
         }
-        let remaining = Array(songs[index...])
-        let params = try remaining.compactMap { try makePlayParameters(for: $0) }
+        // repeat all の場合は全曲ループが必要なのでローテーションして全曲含める
+        let target: [Song]
+        if repeatMode == .all {
+            target = Array(songs[index...]) + Array(songs[..<index])
+        } else {
+            target = Array(songs[index...])
+        }
+        let params = try target.compactMap { try makePlayParameters(for: $0) }
         guard !params.isEmpty else {
             throw NSError(domain: "MusicPlayerUtils", code: -2, userInfo: nil)
         }
@@ -566,13 +567,24 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     }
 
     private func saveState() {
+        let shuffleModeRaw: Int = isShuffled
+            ? Int(MPMusicShuffleMode.songs.rawValue)
+            : Int(MPMusicShuffleMode.off.rawValue)
+
+        let repeatModeRaw: Int
+        switch repeatMode {
+        case .all:  repeatModeRaw = Int(MPMusicRepeatMode.all.rawValue)
+        case .one:  repeatModeRaw = Int(MPMusicRepeatMode.one.rawValue)
+        case .none: repeatModeRaw = Int(MPMusicRepeatMode.none.rawValue)
+        }
+
         do {
             try persistenceService.saveQueueState(
                 queueIDs:      queue.items.map { $0.id.rawValue },
                 currentIndex:  queue.currentIndex,
                 playbackRate:  rateManager.defaultRate,
-                shuffleModeRaw: Int(player.shuffleMode.rawValue),
-                repeatModeRaw:  Int(player.repeatMode.rawValue),
+                shuffleModeRaw: shuffleModeRaw,
+                repeatModeRaw:  repeatModeRaw,
                 isAutoPlayEnabled: isAutoPlayEnabled
             )
         } catch {
