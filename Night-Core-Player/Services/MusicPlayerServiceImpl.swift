@@ -273,9 +273,9 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     private func updateSnapshot() {
         let item = player.nowPlayingItem
         let song = queue.currentSong
-        let title = item?.title ?? song?.title ?? "-"
-        let artist = item?.artist ?? song?.artistName ?? "-"
-        let duration = item?.playbackDuration ?? song?.duration ?? 0
+        let title = song?.title ?? item?.title ?? "-"
+        let artist = song?.artistName ?? item?.artist ?? "-"
+        let duration = song?.duration ?? item?.playbackDuration ?? 0
         let currentTime = player.currentTime
         let isPlaying = player.playbackState == .playing
         let rate = currentPlaybackRate
