@@ -1,6 +1,7 @@
-docs/
 track1.mp4
 track2.mp4
 buildServer.json
 xcuserdata/
 __azurite_db_queue__.json
+docs/tasks/
+.claude/plans/
