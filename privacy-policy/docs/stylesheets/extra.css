@@ -1,8 +1,4 @@
 html,
-body,
-.wy-body-for-nav,
-.wy-body-for-nav .wy-grid-for-nav,
-.wy-nav-content-wrap,
-.wy-nav-content {
+body {
   background: #ffffff !important;
 }
