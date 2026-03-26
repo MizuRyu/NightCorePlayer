@@ -11,6 +11,7 @@ protocol MusicKitService: Sendable {
     func fetchArtistTopSongs(artist: Artist) async throws -> [Song]
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist]
     func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song]
+    func fetchPersonalRecommendations(limit: Int) async throws -> [Song]
 }
 
 extension MusicKitService {
@@ -125,6 +126,20 @@ final class MusicKitServiceImpl: MusicKitService {
     func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song] {
         try await ensureAuth()
         return try await client.fetchSongs(in: playlist)
+    }
+
+    func fetchPersonalRecommendations(limit: Int = Constants.Recommendation.defaultLimit) async throws -> [Song] {
+        try await ensureAuth()
+
+        // ユーザーライブラリのプレイリストから推薦楽曲を取得
+        let playlists = try await client.fetchLibraryPlaylists(limit: 5)
+        var songs: [Song] = []
+        for playlist in playlists {
+            let playlistSongs = try await client.fetchSongs(in: playlist)
+            songs.append(contentsOf: playlistSongs)
+            if songs.count >= limit { break }
+        }
+        return Array(songs.shuffled().prefix(limit))
     }
 }
 

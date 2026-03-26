@@ -14,7 +14,8 @@ final class PlayerStateRepository {
         currentIndex: Int,
         playbackRate: Double,
         shuffleModeRaw: Int,
-        repeatModeRaw: Int
+        repeatModeRaw: Int,
+        isAutoPlayEnabled: Bool
     ) throws {
         let entity = try fetch() ?? PlayerStateEntity()
         entity.queueIDs      = queueIDs
@@ -22,6 +23,7 @@ final class PlayerStateRepository {
         entity.playbackRate  = playbackRate
         entity.shuffleModeRaw = shuffleModeRaw
         entity.repeatModeRaw  = repeatModeRaw
+        entity.isAutoPlayEnabled = isAutoPlayEnabled
 
         if try fetch() == nil {
             context.insert(entity)
@@ -34,17 +36,19 @@ final class PlayerStateRepository {
         currentIndex: Int,
         playbackRate: Double,
         shuffleModeRaw: Int,
-        repeatModeRaw: Int
+        repeatModeRaw: Int,
+        isAutoPlayEnabled: Bool
     ) {
         guard let e = try fetch() else {
             return (
                 [], 0,
                 Constants.MusicPlayer.defaultPlaybackRate,
                 MPMusicShuffleMode.off.rawValue,
-                MPMusicRepeatMode.none.rawValue
+                MPMusicRepeatMode.none.rawValue,
+                false
             )
         }
-        return (e.queueIDs, e.currentIndex, e.playbackRate, e.shuffleModeRaw, e.repeatModeRaw)
+        return (e.queueIDs, e.currentIndex, e.playbackRate, e.shuffleModeRaw, e.repeatModeRaw, e.isAutoPlayEnabled)
     }
 
     private func fetch() throws -> PlayerStateEntity? {

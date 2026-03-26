@@ -21,4 +21,5 @@ vendor/bundle/
 .bundle/
 
 docs/tasks/
+docs/memo/
 .claude/plans/

@@ -527,4 +527,66 @@ struct MusicPlayerViewModelTests {
         #expect(vm.remainingTimeString == "01:40", "remainingTimeString が “01:40” になる")
         cancel.cancel()
     }
+
+    // MARK: - Shuffle / Repeat / AutoPlay Tests
+
+    @Test("toggleShuffle: toggleShuffle()がサービスに委譲されること")
+    func testToggleShuffle() async {
+        let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
+        vm.toggleShuffle()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        #expect(svc.isShuffled == true, "シャッフルが有効になる")
+        cancel.cancel()
+    }
+
+    @Test("cycleRepeatMode: repeatModeがサイクルすること")
+    func testCycleRepeatMode() async {
+        let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
+        #expect(svc.repeatMode == .none, "初期値は.none")
+
+        vm.cycleRepeatMode()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        #expect(svc.repeatMode == .all, ".noneから.allに変わる")
+
+        vm.cycleRepeatMode()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        #expect(svc.repeatMode == .one, ".allから.oneに変わる")
+
+        vm.cycleRepeatMode()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        #expect(svc.repeatMode == .none, ".oneから.noneに変わる")
+        cancel.cancel()
+    }
+
+    @Test("toggleAutoPlay: autoPlayがトグルされること")
+    func testToggleAutoPlay() async {
+        let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
+        #expect(svc.isAutoPlayEnabled == false, "初期値はfalse")
+
+        vm.toggleAutoPlay()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        #expect(svc.isAutoPlayEnabled == true, "trueに変わる")
+
+        vm.toggleAutoPlay()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        #expect(svc.isAutoPlayEnabled == false, "falseに戻る")
+        cancel.cancel()
+    }
+
+    @Test("bindService: shuffle/repeat/autoPlay状態がスナップショットで同期されること")
+    func testBindServiceSyncsShuffleRepeatAutoPlay() async {
+        let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
+
+        await svc.toggleShuffle()
+        await svc.cycleRepeatMode()
+        await svc.toggleAutoPlay()
+
+        svc.snapshotSubject.send(.empty)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+
+        #expect(vm.isShuffled == true, "isShuffledが同期される")
+        #expect(vm.repeatMode == .all, "repeatModeが同期される")
+        #expect(vm.isAutoPlayEnabled == true, "isAutoPlayEnabledが同期される")
+        cancel.cancel()
+    }
 }
