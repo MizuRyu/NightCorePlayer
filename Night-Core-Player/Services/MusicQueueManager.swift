@@ -77,6 +77,6 @@ public final class MusicQueueManager: QueueManaging {
 
     public func songsForPlayerQueueDescriptor() async -> [Song] {
         guard !items.isEmpty else { return [] }
-        return Array(items[currentIndex...] + items[..<currentIndex])
+        return Array(items[currentIndex...])
     }
 }

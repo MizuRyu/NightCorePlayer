@@ -24,6 +24,11 @@ final class MusicKitServiceMock: MusicKitService {
     var fetchLibraryPlaylistsHandler: ((Int) throws -> [Playlist])? = nil
     var fetchPlaylistSongsResult: Result<[Song], Error> = .success([])
 
+    // MARK: - Recommendation トラッキング
+    var fetchPersonalRecommendationsCallCount = 0
+    var stubRecommendationSongs: [Song] = []
+    var fetchRecommendationsError: Error?
+
     // MARK: - Protocol メソッド
 
     func ensureAuth() async throws { }
@@ -62,6 +67,12 @@ final class MusicKitServiceMock: MusicKitService {
         case .success(let songs): return songs
         case .failure(let error): throw error
         }
+    }
+
+    func fetchPersonalRecommendations(limit: Int) async throws -> [Song] {
+        fetchPersonalRecommendationsCallCount += 1
+        if let e = fetchRecommendationsError { throw e }
+        return Array(stubRecommendationSongs.prefix(limit))
     }
 }
 

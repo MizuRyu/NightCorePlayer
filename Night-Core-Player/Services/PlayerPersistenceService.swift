@@ -10,14 +10,16 @@ protocol PlayerPersistenceService: Sendable {
         currentIndex: Int,
         playbackRate: Double,
         shuffleModeRaw: Int,
-        repeatModeRaw: Int
+        repeatModeRaw: Int,
+        isAutoPlayEnabled: Bool
     ) throws
     func loadState() throws -> (
         queueIDs: [String],
         currentIndex: Int,
         playbackRate: Double,
         shuffleModeRaw: Int,
-        repeatModeRaw: Int
+        repeatModeRaw: Int,
+        isAutoPlayEnabled: Bool
     )
     func fetchCatalogSongs(_ ids: [String]) async throws -> [Song]
     func loadHistoryIDs() throws -> [String]
@@ -40,14 +42,16 @@ final class PlayerPersistenceServiceImpl: PlayerPersistenceService {
         currentIndex: Int,
         playbackRate: Double,
         shuffleModeRaw: Int,
-        repeatModeRaw: Int
+        repeatModeRaw: Int,
+        isAutoPlayEnabled: Bool
     ) throws {
         try playerStateRepo.save(
             queueIDs: queueIDs,
             currentIndex: currentIndex,
             playbackRate: playbackRate,
             shuffleModeRaw: shuffleModeRaw,
-            repeatModeRaw: repeatModeRaw
+            repeatModeRaw: repeatModeRaw,
+            isAutoPlayEnabled: isAutoPlayEnabled
         )
     }
 
@@ -56,7 +60,8 @@ final class PlayerPersistenceServiceImpl: PlayerPersistenceService {
         currentIndex: Int,
         playbackRate: Double,
         shuffleModeRaw: Int,
-        repeatModeRaw: Int
+        repeatModeRaw: Int,
+        isAutoPlayEnabled: Bool
     ) {
         try playerStateRepo.load()
     }

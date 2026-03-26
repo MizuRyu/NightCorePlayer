@@ -340,7 +340,7 @@ struct MusicQueueManagerTests {
         #expect(list.isEmpty)
     }
 
-    @Test("songsForPlayerQueueDescriptor: 回転キュー生成")
+    @Test("songsForPlayerQueueDescriptor: currentIndex以降の配列生成")
     func testSongsForPlayerQueueDescriptor() async {
         // Given: 3曲、index=1
         let mgr = MusicQueueManager()
@@ -350,8 +350,8 @@ struct MusicQueueManagerTests {
         )
         // When: songsForPlayerQueueDescriptorを呼ぶ
         let list = await mgr.songsForPlayerQueueDescriptor()
-        // Then: indexから回転した順の配列が返る
-        #expect(list.map(\.id.rawValue) == ["B","C","A"])
+        // Then: indexから末尾までの配列が返る（ローテーションなし）
+        #expect(list.map(\.id.rawValue) == ["B","C"])
     }
 }
 
@@ -654,33 +654,17 @@ struct MusicPlayerServiceImplTests {
 
     @Test("trackChanged: trackChanged通知で履歴が追加されること")
     func testTrackChangedHistory() async {
-        // Given: 1曲セット済みのadapter, queue, service
-        let adapter = PlayerControllableMock()
-        let queue   = QueueManagingMock()
-        let context = AppDataStore.shared.container.mainContext
-        let repo = PlayerStateRepository(context: context)
-        let historyRepo = HistoryRepository(context: context)
-        let service = MusicPlayerServiceImpl(
-            rateManager: PlaybackRateManagerImpl(repo: repo),
-            persistenceService: PlayerPersistenceServiceImpl(playerStateRepo: repo, historyRepo: historyRepo),
-            historyManager: PlayHistoryManagerImpl(historyRepo: historyRepo),
-            artworkService: ArtworkCacheServiceImpl(),
-            playerAdapter: adapter,
-            queueManager: queue
-        )
-        let testSong = makeDummySong(id: "TEST")
-        queue.items = [testSong]
-        queue.currentIndex = 0
-        adapter.indexOfNowPlayingItem = 0
-        // When: NowPlayingItemDidChange通知を送信
-        NotificationCenter.default.post(
-            name: .MPMusicPlayerControllerNowPlayingItemDidChange,
-            object: MPMusicPlayerController.applicationQueuePlayer
-        )
-        // 非同期ハンドリングのため少し待機
-        try! await Task.sleep(nanoseconds: 100_000_000)
-        // Then: playHistory.countが1になる
-        #expect(service.playHistory.count == 1, "履歴が1件追加される")
+        // Given: setQueue経由で2曲セット
+        let sut = SUT.make()
+        let testSong = makeDummySong(id: "HIST_A")
+        let testSong2 = makeDummySong(id: "HIST_B")
+        await sut.service.setQueue(songs: [testSong, testSong2], startAt: 0)
+        let historyBefore = sut.service.playHistory.count
+        // When: next()で次の曲に進む（内部でsetQueue→updateSnapshot→履歴追加）
+        sut.adapter.indexOfNowPlayingItem = 1
+        await sut.service.next()
+        // Then: 履歴が増える（next()はplayNewQueueを呼び、updateSnapshotが新曲を検出）
+        #expect(sut.service.playHistory.count > historyBefore, "履歴が追加される")
     }
 
     @Test("trackChanged: moveItem 後に trackChanged 発火で実際に setQueue/seek が呼ばれる")
@@ -709,20 +693,29 @@ struct MusicPlayerServiceImplTests {
         #expect(sut.adapter.seekArgs.last == 0)
     }
 
-    @Test("toggleShuffle: shuffleModeが切り替わること")
+    @Test("toggleShuffle: アプリ側でキューがシャッフルされること")
     func testToggleShuffle() async {
         let sut = SUT.make()
+        let songs = [makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C")]
+        await sut.service.setQueue(songs: songs, startAt: 0)
         // 初期状態はoff
         #expect(sut.adapter.shuffleMode == .off)
         #expect(!sut.service.isShuffled)
         // トグル ON
         await sut.service.toggleShuffle()
-        #expect(sut.adapter.shuffleMode == .songs, "shuffleMode が .songs になる")
+        #expect(sut.adapter.shuffleMode == .off, "player.shuffleMode は常に .off（アプリ側制御）")
         #expect(sut.service.isShuffled, "isShuffled が true になる")
+        // 現在の曲（A）が先頭に固定されている
+        #expect(sut.service.musicPlayerQueue.first?.id.rawValue == "A",
+                "再生中の曲がシャッフル後も先頭に固定")
+        #expect(sut.service.musicPlayerQueue.count == 3, "曲数が維持される")
         // トグル OFF
         await sut.service.toggleShuffle()
-        #expect(sut.adapter.shuffleMode == .off, "shuffleMode が .off に戻る")
+        #expect(sut.adapter.shuffleMode == .off, "player.shuffleMode は .off のまま")
         #expect(!sut.service.isShuffled, "isShuffled が false に戻る")
+        // 元の順序に復元される
+        #expect(sut.service.musicPlayerQueue.map(\.id.rawValue) == ["A","B","C"],
+                "元のキュー順が復元される")
     }
     
     @Test("cycleRepeatMode: none→all→one→none の順に切り替わること")

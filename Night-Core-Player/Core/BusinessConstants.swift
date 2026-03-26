@@ -34,4 +34,8 @@ public enum Constants {
         case one
         case all
     }
+
+    public enum Recommendation {
+        public static let defaultLimit: Int = 25
+    }
 }

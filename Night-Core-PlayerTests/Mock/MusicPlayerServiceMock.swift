@@ -185,6 +185,7 @@ final class MusicPlayerServiceMock: MusicPlayerService {
     
     public private(set) var isShuffled: Bool       = false
     public private(set) var repeatMode: Constants.RepeatMode = .none
+    public private(set) var isAutoPlayEnabled: Bool = false
     
 
     public func setQueue(songs: [Song], startAt index: Int, autoPlay: Bool) async {
@@ -273,6 +274,10 @@ final class MusicPlayerServiceMock: MusicPlayerService {
         case .all:  repeatMode = .one
         case .one:  repeatMode = .none
         }
+    }
+    
+    public func toggleAutoPlay() async {
+        isAutoPlayEnabled.toggle()
     }
 }
 

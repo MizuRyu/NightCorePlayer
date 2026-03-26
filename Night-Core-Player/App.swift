@@ -41,7 +41,8 @@ struct NightcorePlayerApp: App {
             rateManager: rateManager,
             persistenceService: persistenceService,
             historyManager: historyManager,
-            artworkService: artworkService
+            artworkService: artworkService,
+            musicKitService: musicKitService
         )
 
         _playerVM = State(initialValue: MusicPlayerViewModel(service: service))

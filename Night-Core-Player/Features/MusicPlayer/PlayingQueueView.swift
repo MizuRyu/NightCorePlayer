@@ -27,7 +27,7 @@ struct MusicPlayerControlsView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 15)
-            HStack(spacing: 32) {
+            HStack(spacing: 20) {
                 Button { vm.rewind15() } label: {
                     Image(systemName: "gobackward.15")
                         .font(.title2)
@@ -200,18 +200,59 @@ struct PlayingQueueView: View {
             
             HStack {
                 Spacer()
-                Text("\(vm.musicPlayerQueue.count) items")
+                Text("\(vm.currentQueue.count) items")
+                Spacer()
                 Spacer()
                 Text(vm.remainingTimeString)
                 Spacer()
             }
+            .font(.subheadline)
             .padding(.horizontal)
-            .padding(.bottom, 12)
+            .padding(.bottom, 8)
             .foregroundColor(.secondary)
             
             CombinedListView()
             
             Spacer()
+            
+            HStack(spacing: 16) {
+                Spacer()
+                Button { vm.toggleShuffle() } label: {
+                    Image(systemName: "shuffle")
+                        .font(.title3)
+                        .foregroundColor(vm.isShuffled ? .indigo : .secondary)
+                        .frame(width: 40, height: 40)
+                        .background(
+                            Circle()
+                                .fill(vm.isShuffled ? Color.indigo.opacity(0.15) : Color.clear)
+                        )
+                }
+
+                Button { vm.cycleRepeatMode() } label: {
+                    Image(systemName: vm.repeatMode == .one ? "repeat.1" : "repeat")
+                        .font(.title3)
+                        .foregroundColor(vm.repeatMode != .none ? .indigo : .secondary)
+                        .frame(width: 40, height: 40)
+                        .background(
+                            Circle()
+                                .fill(vm.repeatMode != .none ? Color.indigo.opacity(0.15) : Color.clear)
+                        )
+                }
+
+                Button { vm.toggleAutoPlay() } label: {
+                    Image(systemName: "infinity")
+                        .font(.title3)
+                        .foregroundColor(vm.isAutoPlayEnabled ? .indigo : .secondary)
+                        .frame(width: 40, height: 40)
+                        .background(
+                            Circle()
+                                .fill(vm.isAutoPlayEnabled ? Color.indigo.opacity(0.15) : Color.clear)
+                        )
+                }
+                Spacer()
+            }
+            .padding(.top, 12)
+            .padding(.bottom, 4)
             
             MusicPlayerControlsView()
                 .padding(.vertical, 60)

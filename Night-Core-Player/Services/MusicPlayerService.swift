@@ -97,8 +97,10 @@ protocol MusicPlayerService: Sendable {
 
     var isShuffled: Bool { get }
     var repeatMode: Constants.RepeatMode { get }
+    var isAutoPlayEnabled: Bool { get }
     func toggleShuffle() async
     func cycleRepeatMode() async
+    func toggleAutoPlay() async
 
     var musicPlayerQueue: [Song] { get }
     var nowPlayingIndex: Int { get }

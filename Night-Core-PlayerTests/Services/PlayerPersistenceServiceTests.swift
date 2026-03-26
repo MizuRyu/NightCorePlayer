@@ -55,7 +55,8 @@ struct PlayerPersistenceServiceTests {
             currentIndex: currentIndex,
             playbackRate: playbackRate,
             shuffleModeRaw: shuffleModeRaw,
-            repeatModeRaw: repeatModeRaw
+            repeatModeRaw: repeatModeRaw,
+            isAutoPlayEnabled: true
         )
         let loaded = try service.loadState()
 
@@ -64,6 +65,7 @@ struct PlayerPersistenceServiceTests {
         #expect(loaded.playbackRate == playbackRate, "playbackRateが一致")
         #expect(loaded.shuffleModeRaw == shuffleModeRaw, "shuffleModeRawが一致")
         #expect(loaded.repeatModeRaw == repeatModeRaw, "repeatModeRawが一致")
+        #expect(loaded.isAutoPlayEnabled == true, "isAutoPlayEnabledが一致")
     }
 
     @Test("loadState: 空のDBからデフォルト値が返ること")
@@ -86,6 +88,10 @@ struct PlayerPersistenceServiceTests {
         #expect(
             loaded.repeatModeRaw == MPMusicRepeatMode.none.rawValue,
             "repeatModeRawはnone"
+        )
+        #expect(
+            loaded.isAutoPlayEnabled == false,
+            "isAutoPlayEnabledはfalse"
         )
     }
 

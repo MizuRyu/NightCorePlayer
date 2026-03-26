@@ -34,7 +34,8 @@ final class PlaybackRateManagerImpl: PlaybackRateManager {
             currentIndex: current.currentIndex,
             playbackRate: clamped,
             shuffleModeRaw: current.shuffleModeRaw,
-            repeatModeRaw: current.repeatModeRaw
+            repeatModeRaw: current.repeatModeRaw,
+            isAutoPlayEnabled: current.isAutoPlayEnabled
         )
     }
 }
