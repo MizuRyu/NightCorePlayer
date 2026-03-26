@@ -4,6 +4,7 @@ enum AppStoreScreenshotScene: String, CaseIterable {
     case player
     case search
     case playlist
+    case queue
 
     static let launchFlag = "-app-store-screenshot-scene"
 
@@ -23,358 +24,441 @@ enum AppStoreScreenshotScene: String, CaseIterable {
     var fileStem: String { rawValue }
 }
 
+// MARK: - Root
+
 struct AppStoreScreenshotRootView: View {
     let scene: AppStoreScreenshotScene
 
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.96, green: 0.98, blue: 1.0),
-                    Color(red: 0.92, green: 0.95, blue: 1.0),
-                    Color(red: 0.95, green: 0.93, blue: 0.99)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                screenshotHeader
-
-                switch scene {
-                case .player:
-                    AppStorePlayerScreenshotView()
-                case .search:
-                    AppStoreSearchScreenshotView()
-                case .playlist:
-                    AppStorePlaylistScreenshotView()
-                }
+        Group {
+            switch scene {
+            case .player:
+                AppStorePlayerScreenshotView()
+            case .search:
+                AppStoreSearchScreenshotView()
+            case .playlist:
+                AppStorePlaylistScreenshotView()
+            case .queue:
+                AppStoreQueueScreenshotView()
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
-        }
-        .preferredColorScheme(.light)
-    }
-
-    private var screenshotHeader: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("NightCore Player")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(headerTitle)
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
-            }
-
-            Spacer()
-
-            Text("Apple Music Required")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.white)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.indigo)
-                .clipShape(Capsule())
-        }
-        .padding(.top, 12)
-        .padding(.bottom, 20)
-    }
-
-    private var headerTitle: String {
-        switch scene {
-        case .player:
-            "Now playing in Nightcore"
-        case .search:
-            "Search and queue instantly"
-        case .playlist:
-            "Jump through your playlists"
         }
     }
 }
+
+// MARK: - Player
 
 private struct AppStorePlayerScreenshotView: View {
     var body: some View {
-        VStack(spacing: 18) {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.indigo, Color.cyan, Color.pink],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(height: 340)
-                .overlay {
-                    VStack(spacing: 18) {
-                        Image("imgAssets1")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 210, height: 210)
-                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                            .shadow(color: Color.black.opacity(0.18), radius: 18, y: 8)
-
-                        VStack(spacing: 6) {
-                            Text("Blue Horizon")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                                .foregroundStyle(Color.white)
-                            Text("Luna Echo")
-                                .font(.headline)
-                                .foregroundStyle(Color.white.opacity(0.88))
-                        }
-                    }
-                    .padding(.top, 26)
-                }
+        ZStack {
+            Color(uiColor: .systemBackground).ignoresSafeArea()
 
             VStack(spacing: 16) {
-                VStack(spacing: 10) {
-                    HStack(spacing: 14) {
-                        Text("01:18")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
+                Text("Playing Now")
+                    .font(.headline)
+                    .padding(.top, 8)
 
-                        GeometryReader { proxy in
-                            ZStack(alignment: .leading) {
-                                Capsule()
-                                    .fill(Color.black.opacity(0.08))
-                                Capsule()
-                                    .fill(Color.indigo)
-                                    .frame(width: proxy.size.width * 0.42)
-                            }
+                Spacer()
+
+                Image("imgAssets1")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 250, height: 250)
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+
+                HStack(spacing: 24) {
+                    Image(systemName: "backward.fill")
+                        .font(.title2)
+                        .foregroundColor(.indigo)
+
+                    VStack(spacing: 2) {
+                        Text("Blue Horizon")
+                            .font(.title3)
+                            .lineLimit(1)
+                        Text("Luna Echo")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                    .frame(width: 100)
+
+                    Image(systemName: "forward.fill")
+                        .font(.title2)
+                        .foregroundColor(.indigo)
+                }
+
+                HStack {
+                    Text("01:18")
+                        .font(.caption2)
+                    GeometryReader { proxy in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color(uiColor: .systemGray5))
+                            Capsule()
+                                .fill(Color.indigo)
+                                .frame(width: proxy.size.width * 0.35)
                         }
-                        .frame(height: 8)
-
-                        Text("03:42")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
                     }
+                    .frame(height: 4)
+                    Text("03:42")
+                        .font(.caption2)
+                }
+                .padding(.horizontal)
 
-                    HStack(spacing: 28) {
-                        screenshotButton("gobackward.15")
-                        screenshotButton("backward.fill")
-                        Circle()
-                            .fill(Color.indigo)
-                            .frame(width: 72, height: 72)
-                            .overlay {
-                                Image(systemName: "pause.fill")
-                                    .font(.system(size: 28, weight: .bold))
-                                    .foregroundStyle(Color.white)
-                            }
-                        screenshotButton("forward.fill")
-                        screenshotButton("goforward.15")
+                HStack(spacing: 48) {
+                    Image(systemName: "gobackward.15")
+                        .font(.title2)
+                        .foregroundColor(.indigo)
+                    Image(systemName: "pause.fill")
+                        .font(.largeTitle)
+                        .foregroundColor(.indigo)
+                    Image(systemName: "goforward.15")
+                        .font(.title2)
+                        .foregroundColor(.indigo)
+                }
+                .padding(.vertical, 8)
+
+                Spacer(minLength: 20)
+
+                VStack(spacing: 10) {
+                    ZStack {
+                        Capsule()
+                            .fill(Color(uiColor: .systemGray5))
+                            .frame(width: 340, height: 4)
+                        HStack {
+                            Capsule()
+                                .fill(Color.indigo)
+                                .frame(width: 340 * 0.32, height: 4)
+                            Spacer()
+                        }
+                        .frame(width: 340)
+                    }
+                    .frame(width: 340)
+
+                    HStack(spacing: 12) {
+                        rateButton("-0.1", color: .red)
+                        rateButton("-0.01", color: .red)
+                        Text("1.30x")
+                            .font(.callout)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 8)
+                            .frame(minWidth: 40)
+                        rateButton("+0.01", color: .green)
+                        rateButton("+0.1", color: .green)
                     }
                 }
 
-                HStack(spacing: 10) {
-                    rateChip("-0.1", color: .red.opacity(0.9))
-                    rateChip("-0.01", color: .red.opacity(0.72))
-                    Text("1.30x")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.indigo)
-                        .frame(minWidth: 72)
-                    rateChip("+0.01", color: .green.opacity(0.72))
-                    rateChip("+0.1", color: .green.opacity(0.9))
-                }
+                Image(systemName: "list.bullet")
+                    .font(.title2)
+                    .foregroundColor(.indigo)
+                    .frame(maxWidth: .infinity, minHeight: 30)
             }
-            .padding(20)
-            .background(.white.opacity(0.84))
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-
-            screenshotFooter(
-                title: "Fine-tune playback speed",
-                subtitle: "Keep the queue moving while dialing in your preferred Nightcore tempo."
-            )
         }
     }
 
-    private func screenshotButton(_ systemName: String) -> some View {
-        Image(systemName: systemName)
-            .font(.title2.weight(.semibold))
-            .foregroundStyle(.indigo)
-            .frame(width: 44, height: 44)
-            .background(Color.indigo.opacity(0.08))
-            .clipShape(Circle())
-    }
-
-    private func rateChip(_ label: String, color: Color) -> some View {
+    private func rateButton(_ label: String, color: Color) -> some View {
         Text(label)
-            .font(.caption.weight(.bold))
-            .foregroundStyle(.white)
+            .font(.callout)
+            .foregroundColor(.white)
+            .padding(.vertical, 5)
             .padding(.horizontal, 10)
-            .padding(.vertical, 7)
             .background(color)
-            .clipShape(Capsule())
+            .cornerRadius(8)
     }
 }
+
+// MARK: - Search
 
 private struct AppStoreSearchScreenshotView: View {
-    private let songs = [
-        ("Starlight Rush", "Astra Nova", "1.25x"),
-        ("Velocity Dreams", "Kairo", "1.30x"),
-        ("Skyline Hearts", "Mira Lane", "1.15x"),
-        ("Neon Carousel", "Sora Pulse", "1.20x")
+    private let songs: [(String, String, String)] = [
+        ("Starlight Rush", "Astra Nova", "imgAssets2"),
+        ("Velocity Dreams", "Kairo", "imgAssets1"),
+        ("Skyline Hearts", "Mira Lane", "imgAssets2"),
+        ("Neon Carousel", "Sora Pulse", "imgAssets1")
     ]
 
     var body: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 12) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                Text("nightcore mix")
-                    .foregroundStyle(.primary)
-                Spacer()
-                Image(systemName: "waveform")
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 16)
-            .frame(height: 54)
-            .background(.white.opacity(0.88))
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-            VStack(spacing: 12) {
-                ForEach(Array(songs.enumerated()), id: \.offset) { index, song in
-                    HStack(spacing: 14) {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: gradientColors(index: index),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 62, height: 62)
-                            .overlay {
-                                Image(systemName: "music.note")
-                                    .font(.title3.weight(.bold))
-                                    .foregroundStyle(.white.opacity(0.92))
-                            }
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(song.0)
-                                .font(.headline.weight(.semibold))
-                            Text(song.1)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-
-                        Text(song.2)
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.indigo)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 7)
-                            .background(Color.indigo.opacity(0.09))
-                            .clipShape(Capsule())
-                    }
-                    .padding(14)
-                    .background(.white.opacity(0.88))
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        NavigationStack {
+            VStack(spacing: 0) {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                    Text("nightcore mix")
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "mic.fill")
                 }
+                .padding(10)
+                .background(Color(uiColor: .secondarySystemBackground))
+                .cornerRadius(10)
+                .padding(.horizontal)
+                .padding(.top, 8)
+
+                List {
+                    ForEach(Array(songs.enumerated()), id: \.offset) { _, song in
+                        HStack {
+                            Image(song.2)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 48, height: 48)
+                                .cornerRadius(8)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(song.0)
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                                Text(song.1)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "ellipsis")
+                                .rotationEffect(.degrees(90))
+                                .foregroundColor(.secondary)
+                                .padding(8)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                .listStyle(.plain)
+
+                Spacer()
             }
-
-            screenshotFooter(
-                title: "Find tracks fast",
-                subtitle: "Search results stay focused on the songs you want to queue and speed up."
-            )
-        }
-    }
-
-    private func gradientColors(index: Int) -> [Color] {
-        switch index {
-        case 0:
-            [Color.pink, Color.orange]
-        case 1:
-            [Color.indigo, Color.cyan]
-        case 2:
-            [Color.mint, Color.teal]
-        default:
-            [Color.purple, Color.blue]
+            .scrollContentBackground(.hidden)
+            .background(Color(uiColor: .systemBackground))
+            .navigationTitle("検索")
+            .navigationBarTitleDisplayMode(.large)
         }
     }
 }
+
+// MARK: - Playlist
 
 private struct AppStorePlaylistScreenshotView: View {
-    private let playlists = [
-        ("Late Night Boost", "24 songs", "imgAssets1"),
-        ("Hyper Pop Drill", "18 songs", "imgAssets2"),
-        ("Focus Sprint", "32 songs", "imgAssets1")
+    private let playlists: [(String, String)] = [
+        ("Late Night Boost", "imgAssets1"),
+        ("Hyper Pop Drill", "imgAssets2"),
+        ("Focus Sprint", "imgAssets1"),
+        ("Morning Drive", "imgAssets2"),
+        ("Weekend Vibes", "imgAssets1")
     ]
 
     var body: some View {
-        VStack(spacing: 18) {
-            ZStack(alignment: .bottomLeading) {
-                RoundedRectangle(cornerRadius: 30, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(red: 0.18, green: 0.22, blue: 0.54), Color(red: 0.49, green: 0.31, blue: 0.83)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Ready-made playlists")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                    Text("Queue favorites, revisit recently played tracks, and keep the energy up.")
-                        .font(.headline)
-                        .foregroundStyle(.white.opacity(0.84))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(24)
-            }
-            .frame(height: 220)
-
-            VStack(spacing: 12) {
+        NavigationStack {
+            List {
                 ForEach(Array(playlists.enumerated()), id: \.offset) { _, playlist in
-                    HStack(spacing: 14) {
-                        Image(playlist.2)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 72, height: 72)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    VStack(spacing: 0) {
+                        HStack(spacing: 12) {
+                            Image(playlist.1)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 56, height: 56)
+                                .cornerRadius(4)
 
-                        VStack(alignment: .leading, spacing: 6) {
                             Text(playlist.0)
-                                .font(.headline.weight(.semibold))
-                            Text(playlist.1)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(.title3)
+                                .foregroundColor(.primary)
+                            Spacer()
                         }
+                        .padding(.vertical, 12)
 
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.footnote.weight(.bold))
-                            .foregroundStyle(.secondary)
+                        Divider()
+                            .padding(.leading, 36)
                     }
-                    .padding(14)
-                    .background(.white.opacity(0.9))
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .listRowSeparator(.hidden)
                 }
             }
-
-            screenshotFooter(
-                title: "Pick a vibe and press play",
-                subtitle: "Playlists, history, and queue controls stay one tap away."
-            )
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color(uiColor: .systemBackground))
+            .navigationTitle("プレイリスト")
         }
     }
 }
 
-private func screenshotFooter(title: String, subtitle: String) -> some View {
-    VStack(alignment: .leading, spacing: 8) {
-        Text(title)
-            .font(.title3.weight(.bold))
-        Text(subtitle)
+// MARK: - Queue
+
+private struct AppStoreQueueScreenshotView: View {
+    private let queueSongs: [(String, String, String)] = [
+        ("Velocity Dreams", "Kairo", "imgAssets1"),
+        ("Skyline Hearts", "Mira Lane", "imgAssets2"),
+        ("Neon Carousel", "Sora Pulse", "imgAssets1"),
+        ("Midnight Pulse", "Yoru", "imgAssets2"),
+        ("Crystal Wave", "Aoi Sora", "imgAssets1")
+    ]
+
+    private let historySongs: [(String, String, String)] = [
+        ("Starlight Rush", "Astra Nova", "imgAssets2"),
+        ("Dawn Breaker", "Hikari", "imgAssets1")
+    ]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // ドラッグハンドル
+            Capsule()
+                .frame(width: 40, height: 5)
+                .foregroundColor(Color.secondary.opacity(0.6))
+                .padding(.vertical, 8)
+
+            // Now Playing ヘッダー
+            HStack {
+                Image("imgAssets1")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 70, height: 70)
+                    .cornerRadius(6)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Blue Horizon")
+                        .font(.body)
+                        .lineLimit(1)
+                    Text("Luna Echo")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 8)
+
+            // キュー情報
+            HStack {
+                Spacer()
+                Text("\(queueSongs.count) items")
+                Spacer()
+                Spacer()
+                Text("18:32")
+                Spacer()
+            }
             .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal)
+            .padding(.bottom, 8)
+            .foregroundColor(.secondary)
+
+            // リスト
+            List {
+                // 再生履歴
+                HStack {
+                    Text("再生履歴")
+                        .font(.body).bold()
+                        .foregroundStyle(.primary)
+                        .padding(.vertical, 8)
+                    Spacer()
+                    Label("履歴を削除", systemImage: "trash")
+                        .labelStyle(.titleAndIcon)
+                        .font(.subheadline)
+                        .foregroundColor(.red)
+                }
+                .padding(.vertical, 8)
+
+                ForEach(Array(historySongs.enumerated()), id: \.offset) { _, song in
+                    queueRow(title: song.0, artist: song.1, image: song.2)
+                }
+
+                // 次に再生
+                Text("次に再生")
+                    .font(.body).bold()
+                    .foregroundStyle(.primary)
+                    .padding(.vertical, 8)
+
+                ForEach(Array(queueSongs.enumerated()), id: \.offset) { _, song in
+                    HStack(spacing: 0) {
+                        queueRow(title: song.0, artist: song.1, image: song.2)
+                        Image(systemName: "line.3.horizontal")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .padding(.trailing, 8)
+                    }
+                }
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+
+            Spacer()
+
+            // Shuffle / Repeat / AutoPlay ボタン
+            HStack(spacing: 16) {
+                Spacer()
+                queueToggle("shuffle", active: true)
+                queueToggle("repeat", active: false)
+                queueToggle("infinity", active: true)
+                Spacer()
+            }
+            .padding(.top, 12)
+            .padding(.bottom, 4)
+
+            // 再生コントロール
+            VStack(spacing: 16) {
+                VStack(spacing: 4) {
+                    GeometryReader { proxy in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color(uiColor: .systemGray5))
+                            Capsule()
+                                .fill(Color.indigo)
+                                .frame(width: proxy.size.width * 0.35)
+                        }
+                    }
+                    .frame(height: 4)
+                    .padding(.horizontal)
+                    HStack {
+                        Text("01:18")
+                        Spacer()
+                        Text("03:42")
+                    }
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+                }
+                .padding(.vertical, 15)
+
+                HStack(spacing: 20) {
+                    Image(systemName: "gobackward.15").font(.title2)
+                    Image(systemName: "backward.fill").font(.title2)
+                    Image(systemName: "pause.fill").font(.largeTitle)
+                    Image(systemName: "forward.fill").font(.title2)
+                    Image(systemName: "goforward.15").font(.title2)
+                }
+                .foregroundColor(.indigo)
+                .padding(.vertical, 8)
+            }
+            .padding(.bottom, 60)
+        }
+        .background(Color(uiColor: .systemBackground))
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .padding(20)
-    .background(.white.opacity(0.82))
-    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+
+    private func queueRow(title: String, artist: String, image: String) -> some View {
+        HStack(spacing: 12) {
+            Image(image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 44, height: 44)
+                .cornerRadius(6)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                Text(artist)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 4)
+        .listRowSeparator(.hidden)
+    }
+
+    private func queueToggle(_ systemName: String, active: Bool) -> some View {
+        Image(systemName: systemName)
+            .font(.title3)
+            .foregroundColor(active ? .indigo : .secondary)
+            .frame(width: 40, height: 40)
+            .background(
+                Circle()
+                    .fill(active ? Color.indigo.opacity(0.15) : Color.clear)
+            )
+    }
 }

@@ -4,6 +4,11 @@ buildServer.json
 xcuserdata/
 __azurite_db_queue__.json
 
+# Secrets
+.secrets/
+.env
+*.p8
+
 # Fastlane
 fastlane/report.xml
 fastlane/Preview.html
@@ -22,5 +27,6 @@ vendor/bundle/
 
 docs/tasks/
 docs/memo/
+docs/assets/
 privacy-policy/site/
 .claude/plans/

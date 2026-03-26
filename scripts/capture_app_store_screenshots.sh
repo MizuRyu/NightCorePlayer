@@ -8,7 +8,7 @@ CONFIGURATION="${CONFIGURATION:-Debug}"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-build/app-store-screenshots/DerivedData}"
 OUTPUT_DIR="${OUTPUT_DIR:-build/app-store-screenshots/ja}"
 SCREENSHOT_DEVICES="${SCREENSHOT_DEVICES:-iPhone 16 Pro Max|iPhone 16 Plus}"
-SCREENSHOT_SCENES="${SCREENSHOT_SCENES:-player,search,playlist}"
+SCREENSHOT_SCENES="${SCREENSHOT_SCENES:-player,search,playlist,queue}"
 LAUNCH_DELAY_SECONDS="${LAUNCH_DELAY_SECONDS:-2}"
 STATUS_BAR_TIME="${STATUS_BAR_TIME:-9:41}"
 APP_PATH="$DERIVED_DATA_PATH/Build/Products/$CONFIGURATION-iphonesimulator/$SCHEME.app"
@@ -76,7 +76,7 @@ bundle_id() {
     -project "$PROJECT" \
     -target "$SCHEME" \
     -showBuildSettings 2>/dev/null \
-    | awk -F ' = ' '/PRODUCT_BUNDLE_IDENTIFIER/ { print $2; exit }'
+    | awk -F ' = ' '/^ *PRODUCT_BUNDLE_IDENTIFIER/ { print $2; exit }'
 }
 
 boot_and_prepare() {
