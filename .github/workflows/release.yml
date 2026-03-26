@@ -11,10 +11,6 @@ on:
         description: "リリースノート (日本語)"
         required: true
         type: string
-      release_date:
-        description: "リリース日 (空欄 = 審査通過後に手動リリース)"
-        required: false
-        type: string
 
 concurrency:
   group: release
@@ -32,7 +28,6 @@ jobs:
     env:
       APP_VERSION: ${{ inputs.app_version }}
       RELEASE_NOTE: ${{ inputs.release_note }}
-      RELEASE_DATE: ${{ inputs.release_date }}
       WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     steps:

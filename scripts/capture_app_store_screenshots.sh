@@ -56,14 +56,21 @@ slugify() {
 
 build_app() {
   echo "Building $SCHEME for iOS Simulator..."
+  mkdir -p "$DERIVED_DATA_PATH"
 
-  xcodebuild \
+  local build_log="$DERIVED_DATA_PATH/xcodebuild.log"
+
+  if ! xcodebuild \
     -project "$PROJECT" \
     -scheme "$SCHEME" \
     -configuration "$CONFIGURATION" \
     -derivedDataPath "$DERIVED_DATA_PATH" \
     -destination 'generic/platform=iOS Simulator' \
-    build >/dev/null
+    build >"$build_log" 2>&1; then
+    echo "xcodebuild failed. See log: $build_log" >&2
+    cat "$build_log" >&2 || true
+    exit 1
+  fi
 
   if [[ ! -d "$APP_PATH" ]]; then
     echo "Built app not found: $APP_PATH" >&2
@@ -74,7 +81,7 @@ build_app() {
 bundle_id() {
   xcodebuild \
     -project "$PROJECT" \
-    -target "$SCHEME" \
+    -scheme "$SCHEME" \
     -showBuildSettings 2>/dev/null \
     | awk -F ' = ' '/^ *PRODUCT_BUNDLE_IDENTIFIER/ { print $2; exit }'
 }

@@ -163,15 +163,15 @@ chmod +x scripts/capture_app_store_screenshots.sh
 build/app-store-screenshots/ja/
 ```
 
-デフォルトでは `player` / `search` / `playlist` を `iPhone 16 Pro Max` と `iPhone 16 Plus` で撮影する。必要なら環境変数で上書きする。
+デフォルトでは `player` / `search` / `playlist` / `queue` を `iPhone 16 Pro Max` と `iPhone 16 Plus` で撮影する。必要なら環境変数で上書きする。
 
 ```sh
 SCREENSHOT_DEVICES='iPhone 16 Pro Max|iPhone 16 Plus|iPhone SE (3rd generation)' \
-SCREENSHOT_SCENES='player,search,playlist' \
+SCREENSHOT_SCENES='player,search,playlist,queue' \
 ./scripts/capture_app_store_screenshots.sh
 ```
 
-アプリは `-app-store-screenshot-scene <scene>` 起動引数を受け取る。今のところ利用できる scene は `player`, `search`, `playlist`。
+アプリは `-app-store-screenshot-scene <scene>` 起動引数を受け取る。今のところ利用できる scene は `player`, `search`, `playlist`, `queue`。
 
 ### Notes
 
