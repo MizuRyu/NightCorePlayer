@@ -56,13 +56,30 @@ struct NightcorePlayerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            MainTabView()
-                .environment(nav)
-                .environment(playerVM)
-                .environment(settingsVM)
-                .environment(searchVM)
-                .environment(playlistVM)
-                .environment(keyboard)
+            appRootView
         }
+    }
+
+    @ViewBuilder
+    private var appRootView: some View {
+        #if DEBUG
+            if let screenshotScene = AppStoreScreenshotScene.current {
+                AppStoreScreenshotRootView(scene: screenshotScene)
+            } else {
+                mainRootView
+            }
+        #else
+            mainRootView
+        #endif
+    }
+
+    private var mainRootView: some View {
+        MainTabView()
+            .environment(nav)
+            .environment(playerVM)
+            .environment(settingsVM)
+            .environment(searchVM)
+            .environment(playlistVM)
+            .environment(keyboard)
     }
 }
