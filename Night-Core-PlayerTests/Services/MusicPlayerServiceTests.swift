@@ -2,11 +2,38 @@ import Testing
 import SwiftUI
 import MediaPlayer
 import MusicKit
+import SwiftData
 
 @testable import Night_Core_Player
 
+@MainActor
+private func makeInMemoryContainer() -> ModelContainer {
+    let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+    return try! ModelContainer(
+        for: PlayerStateEntity.self,
+        HistoryEntity.self,
+        configurations: configuration
+    )
+}
+
+@MainActor
+private func waitUntil(
+    timeoutMilliseconds: Int = 5_000,
+    pollMilliseconds: Int = 50,
+    condition: @escaping @MainActor () -> Bool
+) async {
+    let attempts = max(1, timeoutMilliseconds / pollMilliseconds)
+    for _ in 0..<attempts {
+        if condition() {
+            return
+        }
+        try? await Task.sleep(nanoseconds: UInt64(pollMilliseconds) * 1_000_000)
+    }
+}
+
 // MARK: - SUT 構造体
 private struct SUT {
+    let container: ModelContainer
     let service: MusicPlayerServiceImpl
     let adapter: PlayerControllableMock
     let queueMock: QueueManagingMock
@@ -17,7 +44,8 @@ private struct SUT {
     static func make() -> SUT {
         let adapter   = PlayerControllableMock()
         let queueMock = QueueManagingMock()
-        let context = AppDataStore.shared.container.mainContext
+        let container = makeInMemoryContainer()
+        let context = container.mainContext
         let repo = PlayerStateRepository(context: context)
         let historyRepo = HistoryRepository(context: context)
         let rateManager = PlaybackRateManagerImpl(repo: repo)
@@ -34,13 +62,13 @@ private struct SUT {
             playerAdapter: adapter,
             queueManager: queueMock
         )
-        return SUT(service: service, adapter: adapter, queueMock: queueMock,
+        return SUT(container: container, service: service, adapter: adapter, queueMock: queueMock,
                    rateManager: rateManager, repo: repo)
     }
 }
 
 // MARK: - MusicQueueManager Tests
-@Suite
+@Suite(.serialized)
 @MainActor
 struct MusicQueueManagerTests {
     @Test("setQueue: 空配列なら playerShouldStop & currentIndex=0")
@@ -185,7 +213,7 @@ struct MusicQueueManagerTests {
         queueMock.items = [A, B, C]
         queueMock.currentIndex = 0
         
-        let context = AppDataStore.shared.container.mainContext
+        let context = makeInMemoryContainer().mainContext
         let repo = PlayerStateRepository(context: context)
         let historyRepo = HistoryRepository(context: context)
         let service = MusicPlayerServiceImpl(
@@ -356,7 +384,7 @@ struct MusicQueueManagerTests {
 }
 
 // MARK: - MusicPlayerServiceImpl Tests
-@Suite
+@Suite(.serialized)
 @MainActor
 struct MusicPlayerServiceImplTests {
     @Test("setQueue: currentTime=0・再生中スナップショットが出ること")
@@ -741,7 +769,7 @@ struct MusicPlayerServiceImplTests {
 
 // MARK: - Characterization Tests (Phase 1-2)
 /// 大きな責務分割前に重要な挙動を固定するテスト群
-@Suite
+@Suite(.serialized)
 @MainActor
 struct CharacterizationTests {
     // MARK: 1. session rate 変更がプレーヤーに即反映される
@@ -820,10 +848,10 @@ struct CharacterizationTests {
         // Settings UI からレート変更
         settingsVM.updateDefaultRate(to: 1.8)
 
-        // Task 内で非同期処理が走るためポーリングで完了を待機（最大2秒）
-        for _ in 0..<20 {
-            try await Task.sleep(nanoseconds: 100_000_000)
-            if sut.adapter.playbackRate == 1.8 { break }
+        await waitUntil {
+            sut.rateManager.defaultRate == 1.8
+                && sut.service.snapshot.rate == 1.8
+                && sut.adapter.playbackRate == 1.8
         }
 
         // default rate が永続化される
