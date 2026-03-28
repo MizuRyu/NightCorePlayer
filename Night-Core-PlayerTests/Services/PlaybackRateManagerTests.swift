@@ -11,20 +11,23 @@ struct PlaybackRateManagerTests {
     // MARK: - Helpers
 
     private static func makeRepo() -> PlayerStateRepository {
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try! ModelContainer(
-            for: PlayerStateEntity.self,
-            HistoryEntity.self,
-            configurations: configuration
-        )
-        let context = container.mainContext
+        let context = AppDataStore.shared.container.mainContext
         return PlayerStateRepository(context: context)
+    }
+
+    /// PlayerState をクリアして初期状態にする
+    private static func cleanPlayerState() throws {
+        let context = AppDataStore.shared.container.mainContext
+        let existing = try context.fetch(FetchDescriptor<PlayerStateEntity>())
+        existing.forEach(context.delete)
+        try context.save()
     }
 
     // MARK: - Tests
 
     @Test("初期化: 空のリポジトリからデフォルト再生速度が返ること")
     func testInitialDefaultRate() throws {
+        try PlaybackRateManagerTests.cleanPlayerState()
         let repo = PlaybackRateManagerTests.makeRepo()
         let manager = PlaybackRateManagerImpl(repo: repo)
 
@@ -36,6 +39,7 @@ struct PlaybackRateManagerTests {
 
     @Test("setDefaultRate: 1.5を設定するとリポジトリとメモリに反映されること")
     func testSetDefaultRate() throws {
+        try PlaybackRateManagerTests.cleanPlayerState()
         let repo = PlaybackRateManagerTests.makeRepo()
         let manager = PlaybackRateManagerImpl(repo: repo)
 
@@ -48,6 +52,7 @@ struct PlaybackRateManagerTests {
 
     @Test("setDefaultRate: 最大値を超える速度はクランプされること")
     func testSetDefaultRateClampMax() throws {
+        try PlaybackRateManagerTests.cleanPlayerState()
         let repo = PlaybackRateManagerTests.makeRepo()
         let manager = PlaybackRateManagerImpl(repo: repo)
 
@@ -61,6 +66,7 @@ struct PlaybackRateManagerTests {
 
     @Test("setDefaultRate: 最小値を下回る速度はクランプされること")
     func testSetDefaultRateClampMin() throws {
+        try PlaybackRateManagerTests.cleanPlayerState()
         let repo = PlaybackRateManagerTests.makeRepo()
         let manager = PlaybackRateManagerImpl(repo: repo)
 
@@ -74,6 +80,7 @@ struct PlaybackRateManagerTests {
 
     @Test("永続化: 別インスタンスで設定した速度が復元されること")
     func testPersistenceAcrossInstances() throws {
+        try PlaybackRateManagerTests.cleanPlayerState()
         let repo = PlaybackRateManagerTests.makeRepo()
         let manager1 = PlaybackRateManagerImpl(repo: repo)
         try manager1.setDefaultRate(2.0)

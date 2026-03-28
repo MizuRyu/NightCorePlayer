@@ -2,19 +2,8 @@ import Testing
 import SwiftUI
 import MediaPlayer
 import MusicKit
-import SwiftData
 
 @testable import Night_Core_Player
-
-@MainActor
-private func makeInMemoryContainer() -> ModelContainer {
-    let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
-    return try! ModelContainer(
-        for: PlayerStateEntity.self,
-        HistoryEntity.self,
-        configurations: configuration
-    )
-}
 
 @MainActor
 private func waitUntil(
@@ -33,7 +22,6 @@ private func waitUntil(
 
 // MARK: - SUT 構造体
 private struct SUT {
-    let container: ModelContainer
     let service: MusicPlayerServiceImpl
     let adapter: PlayerControllableMock
     let queueMock: QueueManagingMock
@@ -44,8 +32,7 @@ private struct SUT {
     static func make() -> SUT {
         let adapter   = PlayerControllableMock()
         let queueMock = QueueManagingMock()
-        let container = makeInMemoryContainer()
-        let context = container.mainContext
+        let context = AppDataStore.shared.container.mainContext
         let repo = PlayerStateRepository(context: context)
         let historyRepo = HistoryRepository(context: context)
         let rateManager = PlaybackRateManagerImpl(repo: repo)
@@ -62,7 +49,7 @@ private struct SUT {
             playerAdapter: adapter,
             queueManager: queueMock
         )
-        return SUT(container: container, service: service, adapter: adapter, queueMock: queueMock,
+        return SUT(service: service, adapter: adapter, queueMock: queueMock,
                    rateManager: rateManager, repo: repo)
     }
 }
@@ -213,7 +200,7 @@ struct MusicQueueManagerTests {
         queueMock.items = [A, B, C]
         queueMock.currentIndex = 0
         
-        let context = makeInMemoryContainer().mainContext
+        let context = AppDataStore.shared.container.mainContext
         let repo = PlayerStateRepository(context: context)
         let historyRepo = HistoryRepository(context: context)
         let service = MusicPlayerServiceImpl(

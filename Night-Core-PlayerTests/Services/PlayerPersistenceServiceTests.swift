@@ -15,13 +15,7 @@ struct PlayerPersistenceServiceTests {
         playerStateRepo: PlayerStateRepository,
         historyRepo: HistoryRepository
     ) {
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try! ModelContainer(
-            for: PlayerStateEntity.self,
-            HistoryEntity.self,
-            configurations: configuration
-        )
-        let context = container.mainContext
+        let context = AppDataStore.shared.container.mainContext
         let playerStateRepo = PlayerStateRepository(context: context)
         let historyRepo = HistoryRepository(context: context)
         let service = PlayerPersistenceServiceImpl(
@@ -31,10 +25,24 @@ struct PlayerPersistenceServiceTests {
         return (service, playerStateRepo, historyRepo)
     }
 
+    /// PlayerState と History をクリアする
+    private static func cleanAll() throws {
+        let context = AppDataStore.shared.container.mainContext
+
+        let playerStates = try context.fetch(FetchDescriptor<PlayerStateEntity>())
+        playerStates.forEach(context.delete)
+
+        let histories = try context.fetch(FetchDescriptor<HistoryEntity>())
+        histories.forEach(context.delete)
+
+        try context.save()
+    }
+
     // MARK: - Tests
 
     @Test("save→load: 保存した状態がそのまま読み込めること")
     func testSaveAndLoadRoundTrip() throws {
+        try PlayerPersistenceServiceTests.cleanAll()
         let (service, _, _) = PlayerPersistenceServiceTests.makeService()
         let queueIDs = ["id-1", "id-2", "id-3"]
         let currentIndex = 1
@@ -62,6 +70,7 @@ struct PlayerPersistenceServiceTests {
 
     @Test("loadState: 空のDBからデフォルト値が返ること")
     func testLoadEmptyDB() throws {
+        try PlayerPersistenceServiceTests.cleanAll()
         let (service, _, _) = PlayerPersistenceServiceTests.makeService()
 
         let loaded = try service.loadState()
@@ -88,6 +97,7 @@ struct PlayerPersistenceServiceTests {
 
     @Test("loadHistoryIDs: 空の履歴から空配列が返ること")
     func testLoadHistoryIDsEmpty() throws {
+        try PlayerPersistenceServiceTests.cleanAll()
         let (service, _, _) = PlayerPersistenceServiceTests.makeService()
 
         let ids = try service.loadHistoryIDs()
@@ -97,6 +107,7 @@ struct PlayerPersistenceServiceTests {
 
     @Test("loadHistoryIDs: 追加後にIDが取得できること")
     func testLoadHistoryIDsAfterAppend() throws {
+        try PlayerPersistenceServiceTests.cleanAll()
         let (service, _, historyRepo) = PlayerPersistenceServiceTests.makeService()
 
         try historyRepo.append(songID: "song-A")

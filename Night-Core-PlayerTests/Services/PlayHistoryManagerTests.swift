@@ -14,22 +14,25 @@ struct PlayHistoryManagerTests {
         manager: PlayHistoryManagerImpl,
         historyRepo: HistoryRepository
     ) {
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try! ModelContainer(
-            for: PlayerStateEntity.self,
-            HistoryEntity.self,
-            configurations: configuration
-        )
-        let context = container.mainContext
+        let context = AppDataStore.shared.container.mainContext
         let historyRepo = HistoryRepository(context: context)
         let manager = PlayHistoryManagerImpl(historyRepo: historyRepo)
         return (manager, historyRepo)
+    }
+
+    /// History をクリアする
+    private static func cleanHistory() throws {
+        let context = AppDataStore.shared.container.mainContext
+        let histories = try context.fetch(FetchDescriptor<HistoryEntity>())
+        histories.forEach(context.delete)
+        try context.save()
     }
 
     // MARK: - Tests
 
     @Test("append: 曲を追加すると履歴に含まれること")
     func testAppendAddsToHistory() throws {
+        try PlayHistoryManagerTests.cleanHistory()
         let (manager, _) = PlayHistoryManagerTests.makeManager()
         let song = makeDummySong(id: "song-1", title: "Test Song")
 
@@ -44,6 +47,7 @@ struct PlayHistoryManagerTests {
 
     @Test("append: 同じ曲を連続で追加しても重複しないこと")
     func testAppendSkipsDuplicate() throws {
+        try PlayHistoryManagerTests.cleanHistory()
         let (manager, _) = PlayHistoryManagerTests.makeManager()
         let song = makeDummySong(id: "song-dup")
 
@@ -55,6 +59,7 @@ struct PlayHistoryManagerTests {
 
     @Test("append: maxHistoryCountを超えると古い曲がトリミングされること")
     func testAppendTrimsOverflow() throws {
+        try PlayHistoryManagerTests.cleanHistory()
         let (manager, _) = PlayHistoryManagerTests.makeManager()
         let maxCount = Constants.History.maxHistoryCount
 
@@ -75,6 +80,7 @@ struct PlayHistoryManagerTests {
 
     @Test("clearHistory: 履歴がクリアされること")
     func testClearHistory() throws {
+        try PlayHistoryManagerTests.cleanHistory()
         let (manager, _) = PlayHistoryManagerTests.makeManager()
         try manager.append(makeDummySong(id: "song-a"))
         try manager.append(makeDummySong(id: "song-b"))
@@ -87,6 +93,7 @@ struct PlayHistoryManagerTests {
 
     @Test("restoreHistory: 渡した配列がそのまま履歴に設定されること")
     func testRestoreHistory() throws {
+        try PlayHistoryManagerTests.cleanHistory()
         let (manager, _) = PlayHistoryManagerTests.makeManager()
         let songs = [
             makeDummySong(id: "r-1", title: "Restored 1"),
