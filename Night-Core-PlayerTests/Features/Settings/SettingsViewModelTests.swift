@@ -15,11 +15,23 @@ final class PlaybackRateManagerMock: PlaybackRateManager {
 
 // MARK: - Tests
 
-@Suite(.serialized)
+@Suite("SettingsViewModel Tests", .serialized)
 @MainActor
 struct SettingsViewModelTests {
 
     // MARK: - Helpers
+
+    private static func waitUntil(
+        timeoutMilliseconds: Int = 1_000,
+        pollMilliseconds: Int = 10,
+        condition: @escaping @MainActor () -> Bool
+    ) async {
+        let attempts = max(1, timeoutMilliseconds / pollMilliseconds)
+        for _ in 0..<attempts {
+            if condition() { return }
+            try? await Task.sleep(nanoseconds: UInt64(pollMilliseconds) * 1_000_000)
+        }
+    }
 
     private static func setUp() -> (
         vm: SettingsViewModel,
@@ -38,11 +50,11 @@ struct SettingsViewModelTests {
     // MARK: - Tests
 
     @Test("初期化: rateManagerのdefaultRateがViewModelに反映されること")
-    func testInitialRate() {
-        // Given: デフォルト速度のrateManager
+    func init_default_syncsRateFromManager() {
+        // Given
         let (vm, rateMock, _) = SettingsViewModelTests.setUp()
 
-        // Then: ViewModelのdefaultRateがrateManagerの値と一致する
+        // Then
         #expect(
             vm.defaultRate == rateMock.defaultRate,
             "初期値がrateManagerのdefaultRateと一致する"
@@ -54,59 +66,57 @@ struct SettingsViewModelTests {
     }
 
     @Test("updateDefaultRate: rateManagerとplayerServiceに反映されること")
-    func testUpdateDefaultRate() async throws {
+    func updateDefaultRate_validValue_propagatesToAll() async throws {
         // Given
         let (vm, rateMock, svcMock) = SettingsViewModelTests.setUp()
 
         // When
         vm.updateDefaultRate(to: 1.8)
-        try await Task.sleep(nanoseconds: 200_000_000)
+        await SettingsViewModelTests.waitUntil {
+            rateMock.setDefaultRateArgs.count == 1 && svcMock.rateArgs.count == 1
+        }
 
-        // Then: rateManagerに渡された値
+        // Then
         #expect(rateMock.setDefaultRateArgs.count == 1, "setDefaultRateが1回呼ばれる")
         #expect(rateMock.setDefaultRateArgs.first == 1.8, "値が1.8で渡される")
-        // Then: playerServiceにも反映される
         #expect(svcMock.rateArgs.count == 1, "setSessionRateが1回呼ばれる")
         #expect(svcMock.rateArgs.first == 1.8, "sessionRateも1.8")
-        // Then: ViewModelのdefaultRateも更新される
         #expect(vm.defaultRate == 1.8, "ViewModelのdefaultRateが1.8")
     }
 
-    @Test("updateDefaultRate: 範囲外の値がクランプされること")
-    func testUpdateDefaultRateClamps() async throws {
+    @Test("updateDefaultRate: 最大値を超える値がクランプされること")
+    func updateDefaultRate_exceedsMax_clampedToMax() async throws {
         // Given
         let (vm, rateMock, svcMock) = SettingsViewModelTests.setUp()
-
-        // When: 最大値を超える値を設定
-        vm.updateDefaultRate(to: 100.0)
-        try await Task.sleep(nanoseconds: 200_000_000)
-
-        // Then: maxPlaybackRateにクランプされる
         let maxRate = Constants.MusicPlayer.maxPlaybackRate
+
+        // When
+        vm.updateDefaultRate(to: 100.0)
+        await SettingsViewModelTests.waitUntil {
+            vm.defaultRate == maxRate && rateMock.setDefaultRateArgs.count == 1
+        }
+
+        // Then
         #expect(vm.defaultRate == maxRate, "ViewModelのdefaultRateがmaxにクランプ")
-        #expect(
-            rateMock.setDefaultRateArgs.first == maxRate,
-            "rateManagerにクランプ後の値が渡される"
-        )
-        #expect(
-            svcMock.rateArgs.first == maxRate,
-            "playerServiceにクランプ後の値が渡される"
-        )
+        #expect(rateMock.setDefaultRateArgs.first == maxRate, "rateManagerにクランプ後の値が渡される")
+        #expect(svcMock.rateArgs.first == maxRate, "playerServiceにクランプ後の値が渡される")
+    }
 
-        // When: 最小値を下回る値を設定
-        vm.updateDefaultRate(to: 0.01)
-        try await Task.sleep(nanoseconds: 200_000_000)
-
-        // Then: minPlaybackRateにクランプされる
+    @Test("updateDefaultRate: 最小値を下回る値がクランプされること")
+    func updateDefaultRate_belowMin_clampedToMin() async throws {
+        // Given
+        let (vm, rateMock, svcMock) = SettingsViewModelTests.setUp()
         let minRate = Constants.MusicPlayer.minPlaybackRate
+
+        // When
+        vm.updateDefaultRate(to: 0.01)
+        await SettingsViewModelTests.waitUntil {
+            vm.defaultRate == minRate && rateMock.setDefaultRateArgs.count == 1
+        }
+
+        // Then
         #expect(vm.defaultRate == minRate, "ViewModelのdefaultRateがminにクランプ")
-        #expect(
-            rateMock.setDefaultRateArgs.last == minRate,
-            "rateManagerにmin値が渡される"
-        )
-        #expect(
-            svcMock.rateArgs.last == minRate,
-            "playerServiceにmin値が渡される"
-        )
+        #expect(rateMock.setDefaultRateArgs.first == minRate, "rateManagerにmin値が渡される")
+        #expect(svcMock.rateArgs.first == minRate, "playerServiceにmin値が渡される")
     }
 }

@@ -4,7 +4,7 @@ import MediaPlayer
 
 @testable import Night_Core_Player
 
-@Suite(.serialized)
+@Suite("PlaybackRateManager Tests", .serialized)
 @MainActor
 struct PlaybackRateManagerTests {
 
@@ -26,7 +26,7 @@ struct PlaybackRateManagerTests {
     // MARK: - Tests
 
     @Test("初期化: 空のリポジトリからデフォルト再生速度が返ること")
-    func testInitialDefaultRate() throws {
+    func init_emptyRepo_returnsDefaultRate() throws {
         try PlaybackRateManagerTests.cleanPlayerState()
         let repo = PlaybackRateManagerTests.makeRepo()
         let manager = PlaybackRateManagerImpl(repo: repo)
@@ -38,7 +38,7 @@ struct PlaybackRateManagerTests {
     }
 
     @Test("setDefaultRate: 1.5を設定するとリポジトリとメモリに反映されること")
-    func testSetDefaultRate() throws {
+    func setDefaultRate_validValue_persistsToRepoAndMemory() throws {
         try PlaybackRateManagerTests.cleanPlayerState()
         let repo = PlaybackRateManagerTests.makeRepo()
         let manager = PlaybackRateManagerImpl(repo: repo)
@@ -51,7 +51,7 @@ struct PlaybackRateManagerTests {
     }
 
     @Test("setDefaultRate: 最大値を超える速度はクランプされること")
-    func testSetDefaultRateClampMax() throws {
+    func setDefaultRate_exceedsMax_clampedToMax() throws {
         try PlaybackRateManagerTests.cleanPlayerState()
         let repo = PlaybackRateManagerTests.makeRepo()
         let manager = PlaybackRateManagerImpl(repo: repo)
@@ -65,7 +65,7 @@ struct PlaybackRateManagerTests {
     }
 
     @Test("setDefaultRate: 最小値を下回る速度はクランプされること")
-    func testSetDefaultRateClampMin() throws {
+    func setDefaultRate_belowMin_clampedToMin() throws {
         try PlaybackRateManagerTests.cleanPlayerState()
         let repo = PlaybackRateManagerTests.makeRepo()
         let manager = PlaybackRateManagerImpl(repo: repo)
@@ -79,7 +79,7 @@ struct PlaybackRateManagerTests {
     }
 
     @Test("永続化: 別インスタンスで設定した速度が復元されること")
-    func testPersistenceAcrossInstances() throws {
+    func persistence_differentInstances_restoresRate() throws {
         try PlaybackRateManagerTests.cleanPlayerState()
         let repo = PlaybackRateManagerTests.makeRepo()
         let manager1 = PlaybackRateManagerImpl(repo: repo)

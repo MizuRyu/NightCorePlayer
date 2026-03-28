@@ -3,7 +3,30 @@ track2.mp4
 buildServer.json
 xcuserdata/
 __azurite_db_queue__.json
+
+# Secrets
+.secrets/
+.env
+*.p8
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+fastlane/README.md
+
+# Build artifacts
+build/
+*.ipa
+*.dSYM.zip
+
+# Ruby
+vendor/bundle/
+.bundle/
+
 docs/tasks/
 docs/memo/
+docs/assets/
 privacy-policy/site/
 .claude/plans/

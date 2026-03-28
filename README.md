@@ -53,6 +53,29 @@ docs/specs/                 # 仕様書
 | [PROJECT-RULES.md](docs/specs/PROJECT-RULES.md) | 運用ルール |
 | [PROJECT-STRUCTURE.md](docs/specs/PROJECT-STRUCTURE.md) | ディレクトリ構造 |
 
+## Legal Pages
+
+GitHub Pages で利用規約・プライバシーポリシーを公開できるように、`privacy-policy/` 配下に MkDocs サイトを置いている。
+
+- 設定: `privacy-policy/mkdocs.yml`
+- markdown 原稿: `privacy-policy/docs/`
+- デプロイ workflow: `.github/workflows/pages.yml`
+
+ローカル確認:
+
+```sh
+pip install mkdocs
+mkdocs serve --config-file privacy-policy/mkdocs.yml
+```
+
+初回のみ、GitHub リポジトリの `Settings > Pages` で `Source` を `GitHub Actions` に設定する。
+
+有効化後の公開 URL 例:
+
+- `https://<user>.github.io/NightCorePlayer/`
+- `https://<user>.github.io/NightCorePlayer/terms/`
+- `https://<user>.github.io/NightCorePlayer/privacy/`
+
 ## Build On Real Device
 
 接続中の iPhone を使って、VS Code のターミナルからビルド、インストール、起動できます。
@@ -122,6 +145,33 @@ xcrun devicectl device process launch \
   --console \
   MizuRyu.Night-Core-Player
 ```
+
+## App Store Screenshots
+
+App Store 用のスクリーンショットは、デバッグ専用のショーケース画面を `simctl` で起動して一括生成できる。
+
+実行:
+
+```sh
+chmod +x scripts/capture_app_store_screenshots.sh
+./scripts/capture_app_store_screenshots.sh
+```
+
+出力先:
+
+```sh
+build/app-store-screenshots/ja/
+```
+
+デフォルトでは `player` / `search` / `playlist` / `queue` を `iPhone 16 Pro Max` と `iPhone 16 Plus` で撮影する。必要なら環境変数で上書きする。
+
+```sh
+SCREENSHOT_DEVICES='iPhone 16 Pro Max|iPhone 16 Plus|iPhone SE (3rd generation)' \
+SCREENSHOT_SCENES='player,search,playlist,queue' \
+./scripts/capture_app_store_screenshots.sh
+```
+
+アプリは `-app-store-screenshot-scene <scene>` 起動引数を受け取る。今のところ利用できる scene は `player`, `search`, `playlist`, `queue`。
 
 ### Notes
 

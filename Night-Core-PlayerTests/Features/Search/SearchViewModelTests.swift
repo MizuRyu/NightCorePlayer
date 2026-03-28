@@ -4,7 +4,22 @@ import SwiftUI
 import MusicKit
 @testable import Night_Core_Player
 
-@Suite(.serialized)
+@MainActor
+private func waitUntil(
+    timeoutMilliseconds: Int = 3_000,
+    pollMilliseconds: Int = 25,
+    condition: @escaping @MainActor () -> Bool
+) async {
+    let attempts = max(1, timeoutMilliseconds / pollMilliseconds)
+    for _ in 0..<attempts {
+        if condition() {
+            return
+        }
+        try? await Task.sleep(nanoseconds: UInt64(pollMilliseconds) * 1_000_000)
+    }
+}
+
+@Suite("SearchViewModel Tests", .serialized)
 @MainActor
 struct SearchViewModelTests {
     
@@ -55,7 +70,11 @@ struct SearchViewModelTests {
         
         // When
         vm.query = "  Rock  "
-        try? await Task.sleep(nanoseconds: UInt64(Constants.Timing.searchDebounce + 50) * 1_000_000)
+        await waitUntil {
+            svc.searchCallArgs.count == 1
+                && vm.songs.count == 1
+                && vm.isLoading == false
+        }
         
         // Then
         #expect(svc.searchCallArgs.count == 1, "searchSongs が1回呼ばれること")
@@ -72,9 +91,9 @@ struct SearchViewModelTests {
         
         // When
         vm.query = "Jazz"
-        try? await Task.sleep(nanoseconds: UInt64(Constants.Timing.searchDebounce + 50) * 1_000_000)
+        await waitUntil { svc.searchCallArgs.count == 1 }
         vm.query = "Jazz"
-        try? await Task.sleep(nanoseconds: UInt64(Constants.Timing.searchDebounce + 50) * 1_000_000)
+        try? await Task.sleep(nanoseconds: UInt64(Constants.Timing.searchDebounce + 150) * 1_000_000)
         
         // Then
         #expect(svc.searchCallArgs.count == 1, "同一クエリは1回のみ検索されること")
@@ -89,7 +108,11 @@ struct SearchViewModelTests {
 
         // When
         vm.query = "Error"
-        try? await Task.sleep(nanoseconds: UInt64(Constants.Timing.searchDebounce + 50) * 1_000_000)
+        await waitUntil {
+            svc.searchCallArgs.count == 1
+                && vm.errorMessage != nil
+                && vm.isLoading == false
+        }
 
         // Then
         #expect(svc.searchCallArgs.count == 1, "searchSongs が呼ばれること")
@@ -106,7 +129,7 @@ struct SearchViewModelTests {
 
         // When
         vm.query = "Artist"
-        try? await Task.sleep(nanoseconds: UInt64(Constants.Timing.searchDebounce + 50) * 1_000_000)
+        await waitUntil { svc.searchArtistsCallArgs.count == 1 }
 
         // Then
         #expect(svc.searchArtistsCallArgs.count == 1)

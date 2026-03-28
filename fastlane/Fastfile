@@ -1,0 +1,104 @@
+default_platform(:ios)
+
+XCODE_PROJECT = "Night-Core-Player.xcodeproj"
+SCHEME = "Night-Core-Player"
+APP_IDENTIFIER = "MizuRyu.Night-Core-Player"
+
+platform :ios do
+  # ─── テスト ───
+  desc "テスト実行"
+  lane :test do
+    run_tests(
+      project: XCODE_PROJECT,
+      scheme: SCHEME,
+      device: "iPhone 16",
+      clean: true
+    )
+  end
+
+  # ─── ビルド ───
+  desc "App Store 向けビルド"
+  lane :build do
+    setup_ci if ENV["CI"]
+
+    api_key = create_api_key
+
+    # 証明書の同期 (match を使用する場合)
+    # match(type: "appstore", api_key: api_key)
+
+    increment_build_number(
+      build_number: ENV["BUILD_NUMBER"] || (latest_testflight_build_number(
+        app_identifier: APP_IDENTIFIER,
+        api_key: api_key
+      ) + 1).to_s,
+      xcodeproj: XCODE_PROJECT
+    )
+
+    build_app(
+      project: XCODE_PROJECT,
+      scheme: SCHEME,
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "NightCorePlayer.ipa",
+      clean: true
+    )
+  end
+
+  # ─── TestFlight アップロード ───
+  desc "TestFlight へアップロード"
+  lane :beta do
+    build
+
+    api_key = create_api_key
+
+    pilot(
+      api_key: api_key,
+      skip_waiting_for_build_processing: false,
+      app_identifier: APP_IDENTIFIER,
+      groups: ["Internal"],
+      changelog: ENV["RELEASE_NOTE"] || "Internal test build",
+      notify_external_testers: false
+    )
+  end
+
+  # ─── 審査提出 ───
+  desc "App Store 審査提出（TestFlight アップロード済みビルドを使用）"
+  lane :submit_for_review do
+    api_key = create_api_key
+
+    deliver(
+      api_key: api_key,
+      app_identifier: APP_IDENTIFIER,
+      submit_for_review: true,
+      automatic_release: false,
+      phased_release: true,
+      skip_screenshots: true,
+      skip_binary_upload: true,
+      release_notes: {
+        "ja" => ENV["RELEASE_NOTE"] || "バグ修正とパフォーマンス改善",
+        "en-US" => ENV["RELEASE_NOTE_EN"] || "Bug fixes and performance improvements"
+      },
+      submission_information: {
+        add_id_info_uses_idfa: false
+      }
+    )
+  end
+
+  # ─── フルパイプライン: ビルド → TestFlight → 審査提出 ───
+  desc "ビルドから審査提出まで一括実行"
+  lane :release do
+    beta
+    submit_for_review
+  end
+
+  # ─── ヘルパー ───
+  private_lane :create_api_key do
+    app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_content: ENV["ASC_KEY_CONTENT"],
+      is_key_content_base64: true,
+      in_house: false
+    )
+  end
+end

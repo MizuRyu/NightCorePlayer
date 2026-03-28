@@ -236,7 +236,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Night-Core-Player.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Night-Core-Player";
 			};
 			name = Debug;
@@ -254,7 +254,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Night-Core-Player.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Night-Core-Player";
 			};
 			name = Release;

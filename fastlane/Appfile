@@ -1,0 +1,6 @@
+app_identifier("MizuRyu.Night-Core-Player")
+apple_id(ENV["APPLE_ID"])
+team_id(ENV["TEAM_ID"] || "ND9MTVXZRQ")
+
+# App Store Connect
+itc_team_id(ENV["ITC_TEAM_ID"])

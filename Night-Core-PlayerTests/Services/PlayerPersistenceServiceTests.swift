@@ -4,7 +4,7 @@ import MediaPlayer
 
 @testable import Night_Core_Player
 
-@Suite(.serialized)
+@Suite("PlayerPersistenceService Tests", .serialized)
 @MainActor
 struct PlayerPersistenceServiceTests {
 
@@ -41,7 +41,7 @@ struct PlayerPersistenceServiceTests {
     // MARK: - Tests
 
     @Test("save→load: 保存した状態がそのまま読み込めること")
-    func testSaveAndLoadRoundTrip() throws {
+    func saveAndLoad_validState_roundTripsCorrectly() throws {
         try PlayerPersistenceServiceTests.cleanAll()
         let (service, _, _) = PlayerPersistenceServiceTests.makeService()
         let queueIDs = ["id-1", "id-2", "id-3"]
@@ -69,7 +69,7 @@ struct PlayerPersistenceServiceTests {
     }
 
     @Test("loadState: 空のDBからデフォルト値が返ること")
-    func testLoadEmptyDB() throws {
+    func loadState_emptyDB_returnsDefaults() throws {
         try PlayerPersistenceServiceTests.cleanAll()
         let (service, _, _) = PlayerPersistenceServiceTests.makeService()
 
@@ -96,7 +96,7 @@ struct PlayerPersistenceServiceTests {
     }
 
     @Test("loadHistoryIDs: 空の履歴から空配列が返ること")
-    func testLoadHistoryIDsEmpty() throws {
+    func loadHistoryIDs_emptyHistory_returnsEmptyArray() throws {
         try PlayerPersistenceServiceTests.cleanAll()
         let (service, _, _) = PlayerPersistenceServiceTests.makeService()
 
@@ -106,7 +106,7 @@ struct PlayerPersistenceServiceTests {
     }
 
     @Test("loadHistoryIDs: 追加後にIDが取得できること")
-    func testLoadHistoryIDsAfterAppend() throws {
+    func loadHistoryIDs_afterAppend_returnsNewestFirst() throws {
         try PlayerPersistenceServiceTests.cleanAll()
         let (service, _, historyRepo) = PlayerPersistenceServiceTests.makeService()
 

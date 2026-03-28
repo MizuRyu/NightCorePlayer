@@ -1,0 +1,95 @@
+name: Release to App Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_version:
+        description: "アプリバージョン (例: 1.0.0)"
+        required: true
+        type: string
+      release_note:
+        description: "リリースノート (日本語)"
+        required: true
+        type: string
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build & Submit for Review
+    runs-on: macos-15
+    timeout-minutes: 60
+    environment: production
+    env:
+      APP_VERSION: ${{ inputs.app_version }}
+      RELEASE_NOTE: ${{ inputs.release_note }}
+      WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+
+      - name: Set version
+        run: |
+          xcrun agvtool new-marketing-version "$APP_VERSION"
+          echo "Version set to $APP_VERSION"
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@c515ec17f69368147deb311832da000dd229d338 # v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      - name: Test
+        run: |
+          xcodebuild test \
+            -project Night-Core-Player.xcodeproj \
+            -scheme Night-Core-Player \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -quiet
+
+      - name: Build & Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+        run: bundle exec fastlane beta
+
+      - name: Submit for Review
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+        run: bundle exec fastlane submit_for_review
+
+      - name: Notify Success
+        if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            payload="$(ruby -rjson -e 'puts JSON.generate({text: "✅ NightCorePlayer v#{ENV.fetch("APP_VERSION")} 審査提出完了", blocks: [{type: "section", text: {type: "mrkdwn", text: "*✅ NightCorePlayer v#{ENV.fetch("APP_VERSION")}*\n審査に提出しました\n\n*リリースノート:*\n#{ENV.fetch("RELEASE_NOTE")}\n\n<#{ENV.fetch("WORKFLOW_RUN_URL")}|ワークフロー実行ログ>"}}]})')"
+            curl -X POST "$SLACK_WEBHOOK_URL" \
+              -H 'Content-Type: application/json' \
+              --data "$payload"
+          fi
+
+      - name: Notify Failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            payload="$(ruby -rjson -e 'puts JSON.generate({text: "❌ NightCorePlayer v#{ENV.fetch("APP_VERSION")} リリース失敗", blocks: [{type: "section", text: {type: "mrkdwn", text: "*❌ NightCorePlayer v#{ENV.fetch("APP_VERSION")} リリース失敗*\n\n<#{ENV.fetch("WORKFLOW_RUN_URL")}|エラーログを確認>"}}]})')"
+            curl -X POST "$SLACK_WEBHOOK_URL" \
+              -H 'Content-Type: application/json' \
+              --data "$payload"
+          fi

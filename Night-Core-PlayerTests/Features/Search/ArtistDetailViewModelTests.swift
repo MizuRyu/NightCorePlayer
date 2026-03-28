@@ -3,12 +3,25 @@ import Foundation
 import MusicKit
 @testable import Night_Core_Player
 
-@Suite(.serialized)
+@Suite("ArtistDetailViewModel Tests", .serialized)
 @MainActor
 struct ArtistDetailViewModelTests {
 
-    @Test("load 成功: 楽曲が取得されエラーが nil になる")
-    func load_success() async {
+    @Test("初期化: プロパティが初期値であること")
+    func init_default_hasEmptyState() {
+        // Given
+        let svc = MusicKitServiceMock()
+        let artist = makeDummyArtist()
+        let vm = ArtistDetailViewModel(artist: artist, musicKitService: svc)
+
+        // Then
+        #expect(vm.songs.isEmpty, "songsが空であること")
+        #expect(vm.errorMessage == nil, "errorMessageがnilであること")
+        #expect(vm.isLoading == false, "isLoadingがfalseであること")
+    }
+
+    @Test("load: 成功時、楽曲が取得されエラーが nil になる")
+    func load_success_updatesSongs() async {
         // Given
         let svc = MusicKitServiceMock()
         let songs = [makeDummySong(id: "A1"), makeDummySong(id: "A2")]
@@ -20,13 +33,13 @@ struct ArtistDetailViewModelTests {
         await vm.load()
 
         // Then
-        #expect(vm.songs.count == 2)
-        #expect(vm.errorMessage == nil)
-        #expect(vm.isLoading == false)
+        #expect(vm.songs.count == 2, "2曲取得されること")
+        #expect(vm.errorMessage == nil, "errorMessageがnilであること")
+        #expect(vm.isLoading == false, "isLoadingがfalseであること")
     }
 
-    @Test("load 失敗: エラーメッセージがセットされ songs が空になる")
-    func load_failure() async {
+    @Test("load: 失敗時、エラーメッセージがセットされ songs が空になる")
+    func load_failure_setsErrorMessage() async {
         // Given
         struct DummyErr: Error, LocalizedError {
             var errorDescription: String? { "test error" }
@@ -40,13 +53,13 @@ struct ArtistDetailViewModelTests {
         await vm.load()
 
         // Then
-        #expect(vm.songs.isEmpty)
-        #expect(vm.errorMessage != nil)
-        #expect(vm.isLoading == false)
+        #expect(vm.songs.isEmpty, "songsが空であること")
+        #expect(vm.errorMessage != nil, "errorMessageが設定されていること")
+        #expect(vm.isLoading == false, "isLoadingがfalseであること")
     }
 
-    @Test("load 中の重複呼び出し: 2回目は無視される")
-    func load_preventsDuplicate() async {
+    @Test("load: 重複呼び出し時、2回目は無視される")
+    func load_concurrent_preventsReentrancy() async {
         // Given
         let svc = MusicKitServiceMock()
         svc.fetchArtistTopSongsResult = .success([makeDummySong(id: "A1")])
@@ -59,6 +72,23 @@ struct ArtistDetailViewModelTests {
         _ = await (first, second)
 
         // Then
-        #expect(svc.fetchArtistTopSongsCallCount == 1)
+        #expect(svc.fetchArtistTopSongsCallCount == 1, "fetchArtistTopSongsが1回だけ呼ばれること")
+    }
+
+    @Test("load: 結果が空の場合、songs が空で errorMessage が nil であること")
+    func load_emptyResult_hasEmptySongs() async {
+        // Given
+        let svc = MusicKitServiceMock()
+        svc.fetchArtistTopSongsResult = .success([])
+        let artist = makeDummyArtist()
+        let vm = ArtistDetailViewModel(artist: artist, musicKitService: svc)
+
+        // When
+        await vm.load()
+
+        // Then
+        #expect(vm.songs.isEmpty, "songsが空であること")
+        #expect(vm.errorMessage == nil, "errorMessageがnilであること")
+        #expect(vm.isLoading == false, "isLoadingがfalseであること")
     }
 }

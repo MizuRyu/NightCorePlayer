@@ -4,7 +4,7 @@ import MusicKit
 
 @testable import Night_Core_Player
 
-@Suite(.serialized)
+@Suite("PlayHistoryManager Tests", .serialized)
 @MainActor
 struct PlayHistoryManagerTests {
 
@@ -31,7 +31,7 @@ struct PlayHistoryManagerTests {
     // MARK: - Tests
 
     @Test("append: 曲を追加すると履歴に含まれること")
-    func testAppendAddsToHistory() throws {
+    func append_newSong_addsToHistory() throws {
         try PlayHistoryManagerTests.cleanHistory()
         let (manager, _) = PlayHistoryManagerTests.makeManager()
         let song = makeDummySong(id: "song-1", title: "Test Song")
@@ -46,7 +46,7 @@ struct PlayHistoryManagerTests {
     }
 
     @Test("append: 同じ曲を連続で追加しても重複しないこと")
-    func testAppendSkipsDuplicate() throws {
+    func append_duplicateSong_skipped() throws {
         try PlayHistoryManagerTests.cleanHistory()
         let (manager, _) = PlayHistoryManagerTests.makeManager()
         let song = makeDummySong(id: "song-dup")
@@ -58,7 +58,7 @@ struct PlayHistoryManagerTests {
     }
 
     @Test("append: maxHistoryCountを超えると古い曲がトリミングされること")
-    func testAppendTrimsOverflow() throws {
+    func append_exceedsMax_trimsOldest() throws {
         try PlayHistoryManagerTests.cleanHistory()
         let (manager, _) = PlayHistoryManagerTests.makeManager()
         let maxCount = Constants.History.maxHistoryCount
@@ -79,7 +79,7 @@ struct PlayHistoryManagerTests {
     }
 
     @Test("clearHistory: 履歴がクリアされること")
-    func testClearHistory() throws {
+    func clearHistory_withEntries_clearsAll() throws {
         try PlayHistoryManagerTests.cleanHistory()
         let (manager, _) = PlayHistoryManagerTests.makeManager()
         try manager.append(makeDummySong(id: "song-a"))
@@ -92,7 +92,7 @@ struct PlayHistoryManagerTests {
     }
 
     @Test("restoreHistory: 渡した配列がそのまま履歴に設定されること")
-    func testRestoreHistory() throws {
+    func restoreHistory_songs_setsHistory() throws {
         try PlayHistoryManagerTests.cleanHistory()
         let (manager, _) = PlayHistoryManagerTests.makeManager()
         let songs = [

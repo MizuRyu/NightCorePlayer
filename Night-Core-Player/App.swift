@@ -15,6 +15,7 @@ struct NightcorePlayerApp: App {
     @State private var searchVM: SearchViewModel
     @State private var playlistVM: PlaylistViewModel
     @State private var keyboard = KeyboardResponder()
+    private let playerService: MusicPlayerService
 
     init() {
         #if DEBUG
@@ -45,6 +46,7 @@ struct NightcorePlayerApp: App {
             musicKitService: musicKitService
         )
 
+        playerService = service
         _playerVM = State(initialValue: MusicPlayerViewModel(service: service))
         _settingsVM = State(initialValue: SettingsViewModel(
             rateManager: rateManager,
@@ -56,13 +58,33 @@ struct NightcorePlayerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            MainTabView()
-                .environment(nav)
-                .environment(playerVM)
-                .environment(settingsVM)
-                .environment(searchVM)
-                .environment(playlistVM)
-                .environment(keyboard)
+            appRootView
         }
+    }
+
+    @ViewBuilder
+    private var appRootView: some View {
+        #if DEBUG
+            if let screenshotScene = AppStoreScreenshotScene.current {
+                AppStoreScreenshotRootView(scene: screenshotScene)
+            } else {
+                mainRootView
+            }
+        #else
+            mainRootView
+        #endif
+    }
+
+    private var mainRootView: some View {
+        MainTabView()
+            .environment(nav)
+            .environment(playerVM)
+            .environment(settingsVM)
+            .environment(searchVM)
+            .environment(playlistVM)
+            .environment(keyboard)
+            .task {
+                await playerService.start()
+            }
     }
 }
