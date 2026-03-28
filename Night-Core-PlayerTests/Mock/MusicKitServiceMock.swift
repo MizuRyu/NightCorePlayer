@@ -5,7 +5,7 @@ import MusicKit
 @testable import Night_Core_Player
 
 /// MusicKitService の統一モック
-final class MusicKitServiceMock: MusicKitService {
+final class MusicKitServiceMock: MusicKitService, @unchecked Sendable {
     // MARK: - Search トラッキング
     var searchCallArgs: [(keyword: String, limit: Int)] = []
     var stubSongs: [Song] = []

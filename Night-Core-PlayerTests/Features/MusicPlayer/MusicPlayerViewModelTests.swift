@@ -5,7 +5,7 @@ import MusicKit
 
 @testable import Night_Core_Player
 
-@Suite(.serialized)
+@Suite("MusicPlayerViewModel Tests", .serialized)
 @MainActor
 struct MusicPlayerViewModelTests {
     static func waitUntil(
@@ -34,11 +34,10 @@ struct MusicPlayerViewModelTests {
     }
     
     @Test("初期化: プロパティが初期値であること")
-    func testInitialValues() {
-        // Given: ViewModelを初期化する
+    func init_default_hasInitialValues() {
+        // Given
         let (vm, _, cancel) = MusicPlayerViewModelTests.setUp()
-        // When: 何も操作しない
-        // Then: 各プロパティは初期値である
+        // Then
         #expect(vm.title      == "—",                             "タイトルの初期値")
         #expect(vm.artist     == "—",                             "アーティストの初期値")
         #expect(vm.currentTime == 0,                              "currentTimeの初期値")
@@ -49,21 +48,21 @@ struct MusicPlayerViewModelTests {
     }
     
     @Test("playPauseTrack: isPlaying=falseの時play()が呼ばれること")
-    func testPlayPauseTrack_play() async {
-        // Given: isPlaying=false状態のViewModel
+    func playPauseTrack_notPlaying_callsPlay() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // When: playPauseTrackを呼ぶ
+        // When
         vm.playPauseTrack()
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: play()が1回呼ばれ、pause()は呼ばれない
+        await MusicPlayerViewModelTests.waitUntil { svc.playCallCount == 1 }
+        // Then
         #expect(svc.playCallCount  == 1, "play()が１回呼ばれる")
         #expect(svc.pauseCallCount == 0, "pause()は呼ばれない")
         cancel.cancel()
     }
     
     @Test("playPauseTrack: isPlaying=trueの時pause()が呼ばれること")
-    func testPlayPauseTrack_pause() async {
-        // Given: isPlaying=trueのスナップショットを送信したViewModel
+    func playPauseTrack_isPlaying_callsPause() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         svc.snapshotSubject.send(
             MusicPlayerSnapshot(
@@ -73,43 +72,43 @@ struct MusicPlayerViewModelTests {
                 rate: vm.rate, isPlaying: true
             )
         )
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // When: playPauseTrackを呼ぶ
+        await MusicPlayerViewModelTests.waitUntil { vm.isPlaying == true }
+        // When
         vm.playPauseTrack()
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: pause()が1回呼ばれ、play()は呼ばれない
+        await MusicPlayerViewModelTests.waitUntil { svc.pauseCallCount == 1 }
+        // Then
         #expect(svc.pauseCallCount == 1, "pause()が１回呼ばれる")
         #expect(svc.playCallCount  == 0, "play()は呼ばれない")
         cancel.cancel()
     }
     
     @Test("nextTrack: next()が呼ばれること")
-    func testNextTrack() async {
-        // Given: ViewModelを初期化
+    func nextTrack_called_callsServiceNext() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // When: nextTrackを呼ぶ
+        // When
         vm.nextTrack()
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: next()が1回呼ばれる
+        await MusicPlayerViewModelTests.waitUntil { svc.nextCallCount == 1 }
+        // Then
         #expect(svc.nextCallCount == 1, "next()が１回呼ばれる")
         cancel.cancel()
     }
     
     @Test("previousTrack: previous()が呼ばれること")
-    func testPreviousTrack() async {
-        // Given: ViewModelを初期化
+    func previousTrack_called_callsServicePrevious() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // When: previousTrackを呼ぶ
+        // When
         vm.previousTrack()
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: previous()が1回呼ばれる
+        await MusicPlayerViewModelTests.waitUntil { svc.previousCallCount == 1 }
+        // Then
         #expect(svc.previousCallCount == 1, "previous()が１回呼ばれる")
         cancel.cancel()
     }
     
     @Test("rewind15: currentTime=10の時seek(0)が呼ばれること")
-    func testRewind15_minBoundary() async {
-        // Given: currentTime=10,duration=60のスナップショット
+    func rewind15_nearStart_seeksToZero() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         svc.snapshotSubject.send(
             MusicPlayerSnapshot(
@@ -119,18 +118,18 @@ struct MusicPlayerViewModelTests {
                 rate: vm.rate, isPlaying: false
             )
         )
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // When: rewind15を呼ぶ
+        await MusicPlayerViewModelTests.waitUntil { vm.currentTime == 10 }
+        // When
         vm.rewind15()
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: seek(0)が呼ばれる
+        await MusicPlayerViewModelTests.waitUntil { svc.seekArgs.last == 0 }
+        // Then
         #expect(svc.seekArgs.last == 0, "seek(0)が呼ばれる")
         cancel.cancel()
     }
     
     @Test("rewind15: currentTime=30の時seek(15)が呼ばれること")
-    func testRewind15_normal() async {
-        // Given: currentTime=30,duration=60のスナップショット
+    func rewind15_normal_seeksBack15() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         svc.snapshotSubject.send(
             MusicPlayerSnapshot(
@@ -140,18 +139,18 @@ struct MusicPlayerViewModelTests {
                 rate: vm.rate, isPlaying: false
             )
         )
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // When: rewind15を呼ぶ
+        await MusicPlayerViewModelTests.waitUntil { vm.currentTime == 30 }
+        // When
         vm.rewind15()
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: seek(15)が呼ばれる
+        await MusicPlayerViewModelTests.waitUntil { svc.seekArgs.last == 15 }
+        // Then
         #expect(svc.seekArgs.last == 15, "seek(15)が呼ばれる")
         cancel.cancel()
     }
     
     @Test("forward15: currentTime=50,duration=60の時seek(60)が呼ばれること")
-    func testForward15_maxBoundary() async {
-        // Given: currentTime=50,duration=60のスナップショット
+    func forward15_nearEnd_seeksToEnd() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         svc.snapshotSubject.send(
             MusicPlayerSnapshot(
@@ -161,18 +160,18 @@ struct MusicPlayerViewModelTests {
                 rate: vm.rate, isPlaying: false
             )
         )
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // When: forward15を呼ぶ
+        await MusicPlayerViewModelTests.waitUntil { vm.currentTime == 50 }
+        // When
         vm.forward15()
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: seek(60)が呼ばれる
+        await MusicPlayerViewModelTests.waitUntil { svc.seekArgs.last == 60 }
+        // Then
         #expect(svc.seekArgs.last == 60, "seek(60)が呼ばれる")
         cancel.cancel()
     }
     
     @Test("forward15: currentTime=20,duration=60の時seek(35)が呼ばれること")
-    func testForward15_normal() async {
-        // Given: currentTime=20,duration=60のスナップショット
+    func forward15_normal_seeksForward15() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         svc.snapshotSubject.send(
             MusicPlayerSnapshot(
@@ -182,193 +181,180 @@ struct MusicPlayerViewModelTests {
                 rate: vm.rate, isPlaying: false
             )
         )
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // When: forward15を呼ぶ
+        await MusicPlayerViewModelTests.waitUntil { vm.currentTime == 20 }
+        // When
         vm.forward15()
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: seek(35)が呼ばれる
+        await MusicPlayerViewModelTests.waitUntil { svc.seekArgs.last == 35 }
+        // Then
         #expect(svc.seekArgs.last == 35, "seek(35)が呼ばれる")
         cancel.cancel()
     }
     
     @Test("seek: 任意時間にseek(to:)が呼ばれること")
-    func testSeek() async {
-        // Given: ViewModelを初期化
+    func seek_anyTime_callsServiceSeek() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // When: seek(to: 42)を呼ぶ
+        // When
         vm.seek(to: 42)
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: seek(42)が呼ばれる
+        await MusicPlayerViewModelTests.waitUntil { svc.seekArgs.last == 42 }
+        // Then
         #expect(svc.seekArgs.last == 42, "seek(42)が呼ばれる")
         cancel.cancel()
     }
     
     @Test("setRate: 範囲外は補正してsetSessionRate()が呼ばれること")
-    func testSetRate_outOfRange() async {
-        // Given: ViewModelを初期化
+    func setRate_outOfRange_clampsToMinMax() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // When: setRateを0.1（下限未満）で呼ぶ
+        // When: 下限未満
         vm.setRate(to: 0.1)
         await MusicPlayerViewModelTests.waitUntil {
             vm.rate == Constants.MusicPlayer.minPlaybackRate &&
             svc.rateArgs.last == Constants.MusicPlayer.minPlaybackRate
         }
-        // Then: rateは最小値・setSessionRate(min)が呼ばれる
+        // Then
         #expect(vm.rate == Constants.MusicPlayer.minPlaybackRate, "rateは最小値に補正される")
         #expect(svc.rateArgs.last == Constants.MusicPlayer.minPlaybackRate, "setSessionRate(min)が呼ばれる")
-        // When: setRateを3.0（上限超）で呼ぶ
+        // When: 上限超
         vm.setRate(to: 3.0)
         await MusicPlayerViewModelTests.waitUntil {
             vm.rate == Constants.MusicPlayer.maxPlaybackRate &&
             svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate
         }
-        // Then: rateは最大値・setSessionRate(max)が呼ばれる
+        // Then
         #expect(vm.rate == Constants.MusicPlayer.maxPlaybackRate, "rateは最大値に補正される")
         #expect(svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate, "setSessionRate(max)が呼ばれる")
         cancel.cancel()
     }
     
     @Test("setRate: 有効値ならsetSessionRate()が呼ばれること")
-    func testSetRate_normal() async {
-        // Given: ViewModelを初期化
+    func setRate_validValue_setsRate() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // When: setRateを1.5で呼ぶ
+        // When
         vm.setRate(to: 1.5)
         await MusicPlayerViewModelTests.waitUntil {
             vm.rate == 1.5 &&
             svc.rateArgs.last == 1.5
         }
-        // Then: rateが1.5、setSessionRate(1.5)が呼ばれる
+        // Then
         #expect(vm.rate == 1.5, "rateが1.5にセットされる")
         #expect(svc.rateArgs.last == 1.5, "setSessionRate(1.5)が呼ばれる")
         cancel.cancel()
     }
     
     @Test("adjustRate(by:): rate が増加され、service.setSessionRate() が呼ばれること")
-    func testAdjustRateBy_normal() async {
-        // Given: ViewModelの初期rateを取得
+    func adjustRate_increment_updatesRateAndService() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         let base = vm.rate
-        // When: adjustRate(by: 0.2)を呼ぶ
+        // When
         vm.adjustRate(by: 0.2)
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: rateが+0.2され、service.setSessionRateも呼ばれる
+        await MusicPlayerViewModelTests.waitUntil { svc.rateArgs.last == base + 0.2 }
+        // Then
         #expect(vm.rate == base + 0.2, "rate が +0.2 されること")
         #expect(svc.rateArgs.last == base + 0.2, "service.setSessionRate(\(base + 0.2)) が呼ばれること")
         cancel.cancel()
     }
     
     @Test("adjustRate(by:): rate 増加が上限を超えると最大値にクランプされること")
-    func testAdjustRateBy_clampUpper() async {
-        // Given: ViewModelを初期化
+    func adjustRate_exceedsMax_clampedToMax() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // When: adjustRate(by: 上限を超える値)を呼ぶ
+        // When
         vm.adjustRate(by: Constants.MusicPlayer.maxPlaybackRate * 2)
         await MusicPlayerViewModelTests.waitUntil {
             vm.rate == Constants.MusicPlayer.maxPlaybackRate &&
             svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate
         }
-        // Then: rateが最大値、service.setSessionRateも最大値で呼ばれる
+        // Then
         #expect(vm.rate == Constants.MusicPlayer.maxPlaybackRate, "rate が最大値にクランプされること")
         #expect(svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate, "service.setSessionRate(max) が呼ばれること")
         cancel.cancel()
     }
     
     @Test("loadPlaylist: autoPlay=falseならplay()されないこと")
-    func testLoadPlaylist_setQueue() async {
-        // Given: 3曲配列を用意
+    func loadPlaylist_autoPlayFalse_noPlay() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         let songs: [Song] = [
             makeDummySong(id: "1"),
             makeDummySong(id: "2"),
             makeDummySong(id: "3")
         ]
-        // When: loadPlaylist(autoPlay: false)を呼ぶ
+        // When
         vm.loadPlaylist(songs: songs, startAt: 1, autoPlay: false)
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: setQueueは呼ばれるがplay()は呼ばれない
+        await MusicPlayerViewModelTests.waitUntil { svc.setQueueArgs.count == 1 }
+        // Then
         #expect(svc.setQueueArgs.count == 1, "setQueueが呼ばれる")
         #expect(svc.playCallCount     == 0, "play()は呼ばれない")
         cancel.cancel()
     }
     
     @Test("loadPlaylist: autoPlay=trueでplay()が呼ばれること")
-    func testLoadPlaylist_autoPlay() async {
-        // Given: 3曲配列を用意
+    func loadPlaylist_autoPlayTrue_callsPlay() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         let songs: [Song] = [
             makeDummySong(id: "1"),
             makeDummySong(id: "2"),
             makeDummySong(id: "3")
         ]
-        // When: loadPlaylist(autoPlay: true)を呼ぶ
+        // When
         vm.loadPlaylist(songs: songs, startAt: 0, autoPlay: true)
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: play()が1回呼ばれる
+        await MusicPlayerViewModelTests.waitUntil { svc.playCallCount == 1 }
+        // Then
         #expect(svc.playCallCount == 1, "play()が呼ばれる")
         cancel.cancel()
     }
     
     @Test("setQueue: 指定された楽曲が選択された場合、当該楽曲を再生すること")
-    func testSetQueueUpdatesQueueAndIndex() async {
-        // Given: 3曲配列を用意
+    func setQueue_withStartAt_updatesQueueAndIndex() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         let songs = [ makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C") ]
-        // When: setQueueをstartAt:2で呼ぶ
+        // When
         vm.setQueue(songs, startAt: 2)
-        // service.setQueue -> mock は snapshotSubject.send(.empty) する
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: musicPlayerQueueとcurrentIndexが正しく設定される
+        await MusicPlayerViewModelTests.waitUntil { vm.musicPlayerQueue == songs }
+        // Then
         #expect(vm.musicPlayerQueue == songs, "musicPlayerQueue が setQueue の内容になること")
         #expect(vm.currentIndex     == 2,     "currentIndex が startAt=2 になること")
         cancel.cancel()
     }
 
     @Test("moveQueueItem: service.moveItem(from:to:) が呼ばれること")
-    func testMoveQueueItem() async {
+    func moveQueueItem_validIndexes_callsServiceMove() async {
         // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // currentIndex が 0、queue に最低 4 曲入っている前提
-        
-        // When (ローカル offset = 1 を newLocalIndex = 2 に移動)
+        // When
         vm.moveQueueItem(IndexSet(integer: 1), to: 2)
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        
+        await MusicPlayerViewModelTests.waitUntil { !svc.moveArgs.isEmpty }
         // Then
-        // ローカル src = 1 → global src = currentIndex(0) + 1 + 1 = 2
-        // newLocalIndex(2) > src(1) → localDst = 2 - 1 = 1 → global dst = 0 + 1 + 1 = 2
         #expect(svc.moveArgs.contains(where: { $0 == (2, 2) }),
                 "moveItem(from:2, to:2) が呼ばれること")
         cancel.cancel()
     }
     
     @Test("removeQueueItem: service.removeItem(at:) が呼ばれること")
-    func testRemoveQueueItem() async {
+    func removeQueueItem_singleIndex_callsServiceRemove() async {
         // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // currentIndex が 0、queue に最低 4 曲入っている前提
-        
-        // When (ローカル offset = 2 を削除)
+        // When
         vm.removeQueueItem(at: IndexSet(integer: 2))
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        
+        await MusicPlayerViewModelTests.waitUntil { svc.removeArgs.last == 3 }
         // Then
-        // global idx = currentIndex(0) + 1 + 2 = 3
         #expect(svc.removeArgs.last == 3,
                 "removeItem(at:3) が呼ばれること")
         cancel.cancel()
     }
     
     @Test("removeQueueItem (batch): 複数のオフセットから降順で service.removeItem(at:) が呼ばれること")
-    func testRemoveQueueItemsBatch() async {
+    func removeQueueItem_multipleIndexes_removesDescending() async {
         // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // currentIndex が 0、queue に最低 5 曲入っている前提
-        
-        // When (ローカル offsets [1,3,2] → global [2,4,3] → 降順 [4,3,2])
+        // When
         vm.removeQueueItem(at: IndexSet([1, 3, 2]))
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        
+        await MusicPlayerViewModelTests.waitUntil { svc.removeArgs.count == 3 }
         // Then
         #expect(svc.removeArgs == [4, 3, 2],
                 "removeArgs が降順 [4,3,2] で呼ばれること")
@@ -376,31 +362,30 @@ struct MusicPlayerViewModelTests {
     }
 
     @Test("playNow: 実行後に単一曲キューとなり currentIndex==0 になること")
-    func testPlayNowUpdatesQueueAndIndex() async {
-        // Given: キューにAをセット、currentIndex=0
+    func playNow_singleSong_updatesQueue() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         let A = makeDummySong(id: "A")
         vm.setQueue([A], startAt: 0)
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // When: playNow(B)を呼ぶ
+        await MusicPlayerViewModelTests.waitUntil { vm.musicPlayerQueue == [A] }
+        // When
         let B = makeDummySong(id: "B")
         vm.playNow(B)
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: musicPlayerQueueが[B]になりcurrentIndex==0
+        await MusicPlayerViewModelTests.waitUntil { vm.musicPlayerQueue == [B] }
+        // Then
         #expect(vm.musicPlayerQueue == [B], "playNow 後にキューが [B] のみになること")
         #expect(vm.currentIndex     == 0,   "currentIndex が0になること")
         cancel.cancel()
     }
     
     @Test("playNowNext: playNextAndPlay() が呼び出されること")
-    func testPlayNowNextCallsService() async {
+    func playNowNext_song_callsService() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         let song = makeDummySong(id: "X")
-        
         // When
         vm.playNowNext(song)
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        
+        await MusicPlayerViewModelTests.waitUntil { svc.playNextAndPlayArgs.count == 1 }
         // Then
         #expect(svc.playNextAndPlayArgs == [song],
                 "playNextAndPlay(_:) が１回だけ呼ばれること")
@@ -408,17 +393,16 @@ struct MusicPlayerViewModelTests {
     }
     
     @Test("playNowNext: サービスの状態を VM に反映すること")
-    func testPlayNowNextUpdatesQueueAndIndex() async {
+    func playNowNext_song_syncsQueueAndIndex() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         let song = makeDummySong(id: "Y")
-        // Given: モックサービスが返すキューとインデックス
         svc.musicPlayerQueue = [makeDummySong(id: "A"), song, makeDummySong(id: "B")]
         svc.nowPlayingIndex  = 1
-        
         // When
         vm.playNowNext(song)
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: ViewModel のキューとインデックスがサービスと一致
+        await MusicPlayerViewModelTests.waitUntil { vm.musicPlayerQueue == svc.musicPlayerQueue }
+        // Then
         #expect(vm.musicPlayerQueue == svc.musicPlayerQueue,
                 "VM.musicPlayerQueue がサービスのキューと一致すること")
         #expect(vm.currentIndex == svc.nowPlayingIndex,
@@ -427,44 +411,44 @@ struct MusicPlayerViewModelTests {
     }
     
     @Test("insertNext: 次の曲に割り込みで追加されること")
-    func testInsertNextUpdatesQueueAndIndex() async {
-        // Given: キューに[A, B]、currentIndex=0
+    func insertNext_song_insertsAfterCurrent() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         let songs = [ makeDummySong(id: "A"), makeDummySong(id: "B") ]
         vm.setQueue(songs, startAt: 0)
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // When: insertNext(X)を呼ぶ
+        await MusicPlayerViewModelTests.waitUntil { vm.musicPlayerQueue == songs }
+        // When
         let X = makeDummySong(id: "X")
         vm.insertNext(X)
-        // ViewModel の insertNext は service.insertNext -> すぐに queue/index 同期
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: [A, X, B] になりcurrentIndex==0
-        #expect(vm.musicPlayerQueue == [makeDummySong(id: "A"), X, makeDummySong(id: "B")],
+        let expected = [makeDummySong(id: "A"), X, makeDummySong(id: "B")]
+        await MusicPlayerViewModelTests.waitUntil { vm.musicPlayerQueue == expected }
+        // Then
+        #expect(vm.musicPlayerQueue == expected,
                 "insertNext 後に X が2番目に挿入されること")
         #expect(vm.currentIndex == 0, "現在再生中の楽曲（currentIndex） は元のまま0のこと")
         cancel.cancel()
     }
     
     @Test("clearHistory: 実行後に history が空になること")
-    func testClearHistory() async {
-        // Given: serviceのplayHistoryに要素を入れる
+    func clearHistory_withHistory_clearsAll() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         svc.playHistory = [ makeDummySong(id: "A") ]
         svc.snapshotSubject.send(.empty)
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await MusicPlayerViewModelTests.waitUntil { !vm.history.isEmpty }
         #expect(vm.history.isEmpty == false, "事前に history に要素があること")
-        // When: clearHistoryを呼ぶ
+        // When
         vm.clearHistory()
         svc.snapshotSubject.send(.empty)
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: historyが空になる
+        await MusicPlayerViewModelTests.waitUntil { vm.history.isEmpty }
+        // Then
         #expect(vm.history.isEmpty, "clearHistory 後に history が空になること")
         cancel.cancel()
     }
     
     @Test("snapshot受信: プロパティが更新されること")
-    func testSnapshotUpdate() async {
-        // Given: MusicPlayerSnapshotを生成
+    func snapshotReceived_validSnapshot_updatesProperties() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         let snap = MusicPlayerSnapshot(
             title: "テスト曲",
@@ -475,10 +459,10 @@ struct MusicPlayerViewModelTests {
             rate: 1.2,
             isPlaying: true
         )
-        // When: snapshotSubjectにsnapを送信
+        // When
         svc.snapshotSubject.send(snap)
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        // Then: ViewModelのプロパティが更新される
+        await MusicPlayerViewModelTests.waitUntil { vm.title == "テスト曲" }
+        // Then
         #expect(vm.title       == "テスト曲",               "タイトル更新")
         #expect(vm.artist      == "アーティスト",           "アーティスト更新")
         #expect(vm.currentTime == 20,                       "currentTime更新")
@@ -489,7 +473,7 @@ struct MusicPlayerViewModelTests {
     }
     
     @Test("formatRemainingTime: 現在トラックのみ、rate=1.0 のとき正しく計算されること")
-    func testFormatRemainingTime_onlyCurrent() {
+    func formatRemainingTime_onlyCurrent_formatsCorrectly() {
         // 残り = 90 - 30 = 60 秒 → rate=1 で 60 秒 → "01:00"
         let result = MusicPlayerViewModel.formatRemainingTime(
             currentTime: 30,
@@ -501,7 +485,7 @@ struct MusicPlayerViewModelTests {
     }
     
     @Test("formatRemainingTime: 今後のトラックも含め、rate=2.0 のとき正しく計算されること")
-    func testFormatRemainingTime_withUpcomingAndRate() {
+    func formatRemainingTime_withUpcomingAndRate_formatsCorrectly() {
         // 現在残り = 70 - 10 = 60 秒、今後 120 秒 → 合計 180 秒
         // rate=2 で 90 秒 → "01:30"
         let result = MusicPlayerViewModel.formatRemainingTime(
@@ -514,7 +498,7 @@ struct MusicPlayerViewModelTests {
     }
     
     @Test("formatRemainingTime: rate=0 のときゼロ除算せずに安全に動くこと")
-    func testFormatRemainingTime_zeroRate() {
+    func formatRemainingTime_zeroRate_handlesSafely() {
         // (50 - 10) + 30 = 70 秒 → rate がクリップされて 70 秒 → "01:10"
         let result = MusicPlayerViewModel.formatRemainingTime(
             currentTime: 10,
@@ -526,17 +510,16 @@ struct MusicPlayerViewModelTests {
     }
     
     @Test("remainingTimeString: ServiceSnapshot を受け取ったあと ViewModel.remainingTimeString が正しく更新されること")
-    func testRemainingTimeString_afterSnapshot() async {
+    func remainingTimeString_afterSnapshot_calculatesCorrectly() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        // モックサービスにキューとインデックスをセット
         let songs = [
             makeDummySong(id: "A", duration: 60),
             makeDummySong(id: "B", duration: 120)
         ]
         svc.musicPlayerQueue = songs
         svc.nowPlayingIndex = 0
-        
-        // スナップショット送信: currentTime=30, duration=60, rate=1.5
+        // When
         svc.snapshotSubject.send(
             MusicPlayerSnapshot(
                 title: "", artist: "",
@@ -547,9 +530,8 @@ struct MusicPlayerViewModelTests {
                 isPlaying: false
             )
         )
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        
-        // 残り = (60-30) + 120 = 150 秒 → rate=1.5 で 100 秒 → "01:40"
+        await MusicPlayerViewModelTests.waitUntil { vm.remainingTimeString == "01:40" }
+        // Then
         #expect(vm.remainingTimeString == "01:40", "remainingTimeString が “01:40” になる")
         cancel.cancel()
     }
@@ -557,59 +539,64 @@ struct MusicPlayerViewModelTests {
     // MARK: - Shuffle / Repeat / AutoPlay Tests
 
     @Test("toggleShuffle: toggleShuffle()がサービスに委譲されること")
-    func testToggleShuffle() async {
+    func toggleShuffle_called_togglesServiceShuffle() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
+        // When
         vm.toggleShuffle()
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await MusicPlayerViewModelTests.waitUntil { svc.isShuffled == true }
+        // Then
         #expect(svc.isShuffled == true, "シャッフルが有効になる")
         cancel.cancel()
     }
 
     @Test("cycleRepeatMode: repeatModeがサイクルすること")
-    func testCycleRepeatMode() async {
+    func cycleRepeatMode_calledThreeTimes_cyclesThrough() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         #expect(svc.repeatMode == .none, "初期値は.none")
-
+        // When / Then: none → all
         vm.cycleRepeatMode()
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await MusicPlayerViewModelTests.waitUntil { svc.repeatMode == .all }
         #expect(svc.repeatMode == .all, ".noneから.allに変わる")
-
+        // When / Then: all → one
         vm.cycleRepeatMode()
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await MusicPlayerViewModelTests.waitUntil { svc.repeatMode == .one }
         #expect(svc.repeatMode == .one, ".allから.oneに変わる")
-
+        // When / Then: one → none
         vm.cycleRepeatMode()
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await MusicPlayerViewModelTests.waitUntil { svc.repeatMode == .none }
         #expect(svc.repeatMode == .none, ".oneから.noneに変わる")
         cancel.cancel()
     }
 
     @Test("toggleAutoPlay: autoPlayがトグルされること")
-    func testToggleAutoPlay() async {
+    func toggleAutoPlay_calledTwice_togglesTwice() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         #expect(svc.isAutoPlayEnabled == false, "初期値はfalse")
-
+        // When / Then: false → true
         vm.toggleAutoPlay()
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await MusicPlayerViewModelTests.waitUntil { svc.isAutoPlayEnabled == true }
         #expect(svc.isAutoPlayEnabled == true, "trueに変わる")
-
+        // When / Then: true → false
         vm.toggleAutoPlay()
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await MusicPlayerViewModelTests.waitUntil { svc.isAutoPlayEnabled == false }
         #expect(svc.isAutoPlayEnabled == false, "falseに戻る")
         cancel.cancel()
     }
 
     @Test("bindService: shuffle/repeat/autoPlay状態がスナップショットで同期されること")
-    func testBindServiceSyncsShuffleRepeatAutoPlay() async {
+    func bindService_stateChanged_syncsShuffleRepeatAutoPlay() async {
+        // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-
         await svc.toggleShuffle()
         await svc.cycleRepeatMode()
         await svc.toggleAutoPlay()
-
+        // When
         svc.snapshotSubject.send(.empty)
-        try? await Task.sleep(nanoseconds: 50_000_000)
-
+        await MusicPlayerViewModelTests.waitUntil { vm.isShuffled == true }
+        // Then
         #expect(vm.isShuffled == true, "isShuffledが同期される")
         #expect(vm.repeatMode == .all, "repeatModeが同期される")
         #expect(vm.isAutoPlayEnabled == true, "isAutoPlayEnabledが同期される")

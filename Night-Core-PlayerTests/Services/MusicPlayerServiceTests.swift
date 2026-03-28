@@ -55,7 +55,7 @@ private struct SUT {
 }
 
 // MARK: - MusicQueueManager Tests
-@Suite(.serialized)
+@Suite("MusicQueueManager Tests", .serialized)
 @MainActor
 struct MusicQueueManagerTests {
     @Test("setQueue: 空配列なら playerShouldStop & currentIndex=0")
@@ -371,7 +371,7 @@ struct MusicQueueManagerTests {
 }
 
 // MARK: - MusicPlayerServiceImpl Tests
-@Suite(.serialized)
+@Suite("MusicPlayerServiceImpl Tests", .serialized)
 @MainActor
 struct MusicPlayerServiceImplTests {
     @Test("setQueue: currentTime=0・再生中スナップショットが出ること")
@@ -614,7 +614,6 @@ struct MusicPlayerServiceImplTests {
         await sut.service.setQueue(songs: [A, B, C], startAt: 0)
         
         let beforeSet  = sut.adapter.setQueueDescriptors.count
-        let beforeSeek = sut.adapter.seekArgs.count
         
         //-- 実行：非再生中の曲を削除（フラグだけ立つ）
         await sut.service.removeItem(at: 2)
@@ -756,7 +755,7 @@ struct MusicPlayerServiceImplTests {
 
 // MARK: - Characterization Tests (Phase 1-2)
 /// 大きな責務分割前に重要な挙動を固定するテスト群
-@Suite(.serialized)
+@Suite("CharacterizationTests (Phase 1-2)", .serialized)
 @MainActor
 struct CharacterizationTests {
     // MARK: 1. session rate 変更がプレーヤーに即反映される
@@ -777,7 +776,7 @@ struct CharacterizationTests {
         let sut = SUT.make()
         let newRate = 1.8
 
-        try await sut.rateManager.setDefaultRate(newRate)
+        try sut.rateManager.setDefaultRate(newRate)
 
         let loaded = try sut.repo.load()
         #expect(loaded.playbackRate == newRate, "永続化されたレートが一致する")
@@ -791,7 +790,7 @@ struct CharacterizationTests {
         let persistedRate = 2.5
 
         // default rate を永続化
-        try await sut.rateManager.setDefaultRate(persistedRate)
+        try sut.rateManager.setDefaultRate(persistedRate)
 
         // 新しい rateManager を同じ repo から作成（再起動をシミュレーション）
         let newRateManager = PlaybackRateManagerImpl(repo: sut.repo)
@@ -807,7 +806,7 @@ struct CharacterizationTests {
         await sut.service.setQueue(songs: songs, startAt: 0)
 
         // default rate を 1.5 に設定
-        try await sut.rateManager.setDefaultRate(1.5)
+        try sut.rateManager.setDefaultRate(1.5)
         // session rate を 2.5 に設定（default とは異なる値）
         await sut.service.setSessionRate(2.5)
 

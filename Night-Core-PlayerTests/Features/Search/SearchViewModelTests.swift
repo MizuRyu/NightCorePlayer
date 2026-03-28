@@ -19,7 +19,7 @@ private func waitUntil(
     }
 }
 
-@Suite(.serialized)
+@Suite("SearchViewModel Tests", .serialized)
 @MainActor
 struct SearchViewModelTests {
     
