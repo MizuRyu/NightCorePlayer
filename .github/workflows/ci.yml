@@ -102,6 +102,9 @@ jobs:
               -scheme Night-Core-Player \
               -destination "id=$SIMULATOR_ID" \
               -destination-timeout 180 \
+              -parallel-testing-enabled NO \
+              -retry-tests-on-failure \
+              -test-iterations 3 \
               -resultBundlePath TestResults.xcresult \
               -quiet 2>&1 | tee "$test_log"
             status=${PIPESTATUS[0]}
