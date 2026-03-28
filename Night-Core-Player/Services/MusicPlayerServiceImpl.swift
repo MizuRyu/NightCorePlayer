@@ -38,6 +38,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     private var lastPlayerIndex: Int? = nil
     private var needsQueueRefresh: Bool = false
     private var isFetchingRecommendations: Bool = false
+    private var hasStarted: Bool = false
 
     init(
         rateManager: PlaybackRateManager,
@@ -56,8 +57,6 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
 
         self.player   = playerAdapter ?? MPMusicPlayerAdapter(defaultRate: rateManager.defaultRate)
         self.queue    = queueManager ?? MusicQueueManager()
-
-        Task { await self.restore() }
 
         do {
             let session = AVAudioSession.sharedInstance()
@@ -121,6 +120,13 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     }
 
     // MARK: - Playback Controls
+
+    public func start() async {
+        guard !hasStarted else { return }
+        hasStarted = true
+        await restore()
+        updateSnapshot()
+    }
 
     public func setQueue(songs: [Song], startAt idx: Int, autoPlay: Bool = true) async {
         let action = await queue.setQueue(songs, startAt: idx)

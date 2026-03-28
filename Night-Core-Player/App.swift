@@ -15,6 +15,7 @@ struct NightcorePlayerApp: App {
     @State private var searchVM: SearchViewModel
     @State private var playlistVM: PlaylistViewModel
     @State private var keyboard = KeyboardResponder()
+    private let playerService: MusicPlayerService
 
     init() {
         #if DEBUG
@@ -45,6 +46,7 @@ struct NightcorePlayerApp: App {
             musicKitService: musicKitService
         )
 
+        playerService = service
         _playerVM = State(initialValue: MusicPlayerViewModel(service: service))
         _settingsVM = State(initialValue: SettingsViewModel(
             rateManager: rateManager,
@@ -81,5 +83,8 @@ struct NightcorePlayerApp: App {
             .environment(searchVM)
             .environment(playlistVM)
             .environment(keyboard)
+            .task {
+                await playerService.start()
+            }
     }
 }

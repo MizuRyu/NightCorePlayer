@@ -81,6 +81,7 @@ public struct MusicPlayerSnapshot: Sendable, Equatable {
 protocol MusicPlayerService: Sendable {
     var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> { get }
 
+    func start() async
     func play() async
     func pause() async
     func next() async

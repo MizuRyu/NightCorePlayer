@@ -8,6 +8,20 @@ import MusicKit
 @Suite(.serialized)
 @MainActor
 struct MusicPlayerViewModelTests {
+    static func waitUntil(
+        timeoutMilliseconds: Int = 1_000,
+        pollMilliseconds: Int = 10,
+        condition: @escaping @MainActor () -> Bool
+    ) async {
+        let attempts = max(1, timeoutMilliseconds / pollMilliseconds)
+        for _ in 0..<attempts {
+            if condition() {
+                return
+            }
+            try? await Task.sleep(nanoseconds: UInt64(pollMilliseconds) * 1_000_000)
+        }
+    }
+
     static func setUp() -> (
         vm: MusicPlayerViewModel,
         svc: MusicPlayerServiceMock,
@@ -195,13 +209,19 @@ struct MusicPlayerViewModelTests {
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         // When: setRateを0.1（下限未満）で呼ぶ
         vm.setRate(to: 0.1)
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await MusicPlayerViewModelTests.waitUntil {
+            vm.rate == Constants.MusicPlayer.minPlaybackRate &&
+            svc.rateArgs.last == Constants.MusicPlayer.minPlaybackRate
+        }
         // Then: rateは最小値・setSessionRate(min)が呼ばれる
         #expect(vm.rate == Constants.MusicPlayer.minPlaybackRate, "rateは最小値に補正される")
         #expect(svc.rateArgs.last == Constants.MusicPlayer.minPlaybackRate, "setSessionRate(min)が呼ばれる")
         // When: setRateを3.0（上限超）で呼ぶ
         vm.setRate(to: 3.0)
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await MusicPlayerViewModelTests.waitUntil {
+            vm.rate == Constants.MusicPlayer.maxPlaybackRate &&
+            svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate
+        }
         // Then: rateは最大値・setSessionRate(max)が呼ばれる
         #expect(vm.rate == Constants.MusicPlayer.maxPlaybackRate, "rateは最大値に補正される")
         #expect(svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate, "setSessionRate(max)が呼ばれる")
@@ -214,7 +234,10 @@ struct MusicPlayerViewModelTests {
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         // When: setRateを1.5で呼ぶ
         vm.setRate(to: 1.5)
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await MusicPlayerViewModelTests.waitUntil {
+            vm.rate == 1.5 &&
+            svc.rateArgs.last == 1.5
+        }
         // Then: rateが1.5、setSessionRate(1.5)が呼ばれる
         #expect(vm.rate == 1.5, "rateが1.5にセットされる")
         #expect(svc.rateArgs.last == 1.5, "setSessionRate(1.5)が呼ばれる")
@@ -241,7 +264,10 @@ struct MusicPlayerViewModelTests {
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         // When: adjustRate(by: 上限を超える値)を呼ぶ
         vm.adjustRate(by: Constants.MusicPlayer.maxPlaybackRate * 2)
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await MusicPlayerViewModelTests.waitUntil {
+            vm.rate == Constants.MusicPlayer.maxPlaybackRate &&
+            svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate
+        }
         // Then: rateが最大値、service.setSessionRateも最大値で呼ばれる
         #expect(vm.rate == Constants.MusicPlayer.maxPlaybackRate, "rate が最大値にクランプされること")
         #expect(svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate, "service.setSessionRate(max) が呼ばれること")

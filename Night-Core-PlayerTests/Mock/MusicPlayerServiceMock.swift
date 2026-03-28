@@ -187,6 +187,7 @@ final class MusicPlayerServiceMock: MusicPlayerService {
     public private(set) var repeatMode: Constants.RepeatMode = .none
     public private(set) var isAutoPlayEnabled: Bool = false
     
+    public func start() async {}
 
     public func setQueue(songs: [Song], startAt index: Int, autoPlay: Bool) async {
         setQueueArgs.append((songs, index))
@@ -311,4 +312,3 @@ extension MusicPlayerSnapshot {
               isPlaying: isPlaying)
     }
 }
-
