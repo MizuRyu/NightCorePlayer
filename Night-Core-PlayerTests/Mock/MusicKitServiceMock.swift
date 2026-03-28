@@ -17,6 +17,8 @@ final class MusicKitServiceMock: MusicKitService, @unchecked Sendable {
     var searchArtistsError: Error?
     var fetchArtistTopSongsCallCount = 0
     var fetchArtistTopSongsResult: Result<[Song], Error> = .success([])
+    var fetchArtistSongsCallArgs: [(limit: Int, offset: Int)] = []
+    var fetchArtistSongsResult: Result<[Song], Error> = .success([])
 
     // MARK: - Playlist トラッキング
     var fetchLibraryPlaylistsCallCount = 0
@@ -48,6 +50,14 @@ final class MusicKitServiceMock: MusicKitService, @unchecked Sendable {
     func fetchArtistTopSongs(artist: Artist) async throws -> [Song] {
         fetchArtistTopSongsCallCount += 1
         switch fetchArtistTopSongsResult {
+        case .success(let songs): return songs
+        case .failure(let error): throw error
+        }
+    }
+
+    func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song] {
+        fetchArtistSongsCallArgs.append((limit, offset))
+        switch fetchArtistSongsResult {
         case .success(let songs): return songs
         case .failure(let error): throw error
         }

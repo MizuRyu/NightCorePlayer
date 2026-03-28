@@ -9,6 +9,7 @@ protocol MusicKitService: Sendable {
     func searchSongs(keyword: String, limit: Int, offset: Int) async throws -> [Song]
     func searchArtists(keyword: String, limit: Int) async throws -> [Artist]
     func fetchArtistTopSongs(artist: Artist) async throws -> [Song]
+    func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song]
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist]
     func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song]
     func fetchPersonalRecommendations(limit: Int) async throws -> [Song]
@@ -27,6 +28,7 @@ protocol MusicKitClient: Sendable {
     func searchCatalogSongs(term: String, limit: Int, offset: Int) async throws -> [Song]
     func searchCatalogArtists(term: String, limit: Int) async throws -> [Artist]
     func fetchArtistTopSongs(artist: Artist) async throws -> [Song]
+    func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song]
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist]
     func fetchSongs(in playlist: Playlist) async throws -> [Song]
 }
@@ -64,6 +66,16 @@ struct DefaultMusicKitClient: MusicKitClient {
         req.limit = 25
         let res = try await req.response()
         return Array(res.songs)
+    }
+    func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song] {
+        var req = MusicCatalogSearchRequest(term: artist.name, types: [Song.self])
+        req.limit = limit
+        req.offset = offset
+        let res = try await req.response()
+        // アーティストIDに一致する楽曲のみフィルタリング
+        return res.songs.filter { song in
+            song.artistURL == artist.url || song.artistName == artist.name
+        }
     }
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist] {
         var req = MusicLibraryRequest<Playlist>()
@@ -118,6 +130,10 @@ final class MusicKitServiceImpl: MusicKitService {
     func fetchArtistTopSongs(artist: Artist) async throws -> [Song] {
         try await ensureAuth()
         return try await client.fetchArtistTopSongs(artist: artist)
+    }
+    func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song] {
+        try await ensureAuth()
+        return try await client.fetchArtistSongs(artist: artist, limit: limit, offset: offset)
     }
     func fetchLibraryPlaylists(limit: Int = 10) async throws -> [Playlist] {
         try await ensureAuth()

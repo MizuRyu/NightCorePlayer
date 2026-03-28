@@ -480,18 +480,24 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             return
         }
 
-        // 非ローテーション descriptor では player index の delta が
-        // そのまま queue.currentIndex の delta に対応する。
+        // nowPlayingItem の ID で内部キューを照合（シャッフル時も正確）
+        if let nowPlaying = player.nowPlayingItem,
+           let persistentID = nowPlaying.value(forProperty: MPMediaItemPropertyPersistentID) as? UInt64 {
+            let idString = String(persistentID)
+            if let matchIndex = queue.items.firstIndex(where: { $0.id.rawValue == idString }) {
+                queue.currentIndex = matchIndex
+                updateSnapshot()
+                return
+            }
+        }
+
+        // ID 照合できない場合は delta ベースのフォールバック
         let delta = playerIndex - previousPlayerIndex
         let newIndex = queue.currentIndex + delta
 
         if newIndex >= 0 && newIndex < queue.items.count {
             queue.currentIndex = newIndex
         } else if newIndex < 0 {
-            // repeat all でラップアラウンド: descriptor 先頭に戻る
-            // descriptor は queue.items[descriptorStart...] なので先頭は不明だが、
-            // playerIndex=0 は「descriptor 構築時の currentIndex」に対応。
-            // 現時点の currentIndex - previousPlayerIndex でベースを推定。
             let baseIndex = queue.currentIndex - previousPlayerIndex
             let wrapped = max(baseIndex + playerIndex, 0)
             queue.currentIndex = min(wrapped, queue.items.count - 1)

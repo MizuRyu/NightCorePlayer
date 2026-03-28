@@ -71,6 +71,13 @@ struct SearchView: View {
                         nav.searchBarFocusRequested = false
                     }
                 }
+                .onChange(of: nav.searchResetRequested) { _, requested in
+                    if requested {
+                        vm.resetToHistory()
+                        isSearchBarFocused = false
+                        nav.searchResetRequested = false
+                    }
+                }
 
                 if vm.isLoading {
                     ProgressView().padding(.top, 40)

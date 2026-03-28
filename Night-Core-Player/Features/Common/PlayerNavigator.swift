@@ -13,5 +13,6 @@ final class PlayerNavigator {
     var initialIndex: Int = 0
 
     var searchBarFocusRequested: Bool = false
+    var searchResetRequested: Bool = false
     var isScrolling: Bool = false
 }

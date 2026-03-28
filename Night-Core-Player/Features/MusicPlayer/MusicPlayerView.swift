@@ -66,22 +66,20 @@ struct MusicPlayerView: View {
                     .padding(.top, 8)
                 Spacer()
                 
-                if vm.artworkData != nil {
-                    vm.artworkImage
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 250, height: 250)
-                        .cornerRadius(12)
-                        .padding(.horizontal)
-                } else {
-                    Image(systemName: "music.note")
-                        .font(.system(size: 80))
-                        .foregroundColor(.secondary)
-                        .frame(width: 250, height: 250)
-                        .background(Color(.secondarySystemBackground))
-                        .cornerRadius(12)
-                        .padding(.horizontal)
-                }
+                artworkView
+                    .gesture(
+                        DragGesture(minimumDistance: 50)
+                            .onEnded { value in
+                                let horizontal = value.translation.width
+                                let vertical = value.translation.height
+                                guard abs(horizontal) > abs(vertical) else { return }
+                                if horizontal < -50 {
+                                    vm.nextTrack()
+                                } else if horizontal > 50 {
+                                    vm.previousTrack()
+                                }
+                            }
+                    )
                 HStack(spacing: 24) {
                     Button { vm.previousTrack() } label: {
                         Image(systemName: "backward.fill")
@@ -198,17 +196,28 @@ struct MusicPlayerView: View {
                     }
                 }
                 
-                Button(action: {
-                    isQueuePresented = true
-                }) {
-                    VStack(spacing: 4) {
-                        Image(systemName: "list.bullet")
-                            .font(.title2)
-                            .foregroundColor(.indigo)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 30)
-                    .contentShape(Rectangle())
+                VStack(spacing: 4) {
+                    Image(systemName: "chevron.up")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Image(systemName: "list.bullet")
+                        .font(.title2)
+                        .foregroundColor(.indigo)
                 }
+                .frame(maxWidth: .infinity, minHeight: 30)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isQueuePresented = true
+                }
+                .gesture(
+                    DragGesture(minimumDistance: 40)
+                        .onEnded { value in
+                            if value.translation.height < -40,
+                               abs(value.translation.height) > abs(value.translation.width) {
+                                isQueuePresented = true
+                            }
+                        }
+                )
             }
             .sheet(isPresented: $isQueuePresented) {
                 PlayingQueueView()
@@ -221,6 +230,26 @@ struct MusicPlayerView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .enableInjection()
+        }
+    }
+
+    @ViewBuilder
+    private var artworkView: some View {
+        if vm.artworkData != nil {
+            vm.artworkImage
+                .resizable()
+                .scaledToFit()
+                .frame(width: 250, height: 250)
+                .cornerRadius(12)
+                .padding(.horizontal)
+        } else {
+            Image(systemName: "music.note")
+                .font(.system(size: 80))
+                .foregroundColor(.secondary)
+                .frame(width: 250, height: 250)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
+                .padding(.horizontal)
         }
     }
 }

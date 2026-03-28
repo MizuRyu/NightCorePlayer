@@ -50,6 +50,20 @@ struct MainTabView: View {
             .onScrollDetected { scrolling in
                 nav.isScrolling = scrolling
             }
+            .overlay(alignment: .bottom) {
+                // 検索タブ位置にオーバーレイして長押しジェスチャーを検出
+                GeometryReader { geo in
+                    let tabWidth = geo.size.width / 4
+                    Color.clear
+                        .frame(width: tabWidth, height: 50)
+                        .contentShape(Rectangle())
+                        .position(x: tabWidth * 1.5, y: geo.size.height - 25)
+                        .onLongPressGesture(minimumDuration: 0.5) {
+                            nav.searchResetRequested = true
+                            nav.selectedTab = .search
+                        }
+                }
+            }
 
             if showMiniPlayer {
                 MiniMusicPlayerView()
