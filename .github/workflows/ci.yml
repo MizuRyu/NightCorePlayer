@@ -18,35 +18,113 @@ jobs:
     name: Build & Test
     runs-on: macos-15
     timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
 
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app
-
       - name: Show environment
         run: |
           xcodebuild -version
           swift --version
+          xcrun simctl list devices available
 
-      - name: Build
+      - name: Resolve simulator
+        shell: bash
         run: |
-          xcodebuild build-for-testing \
-            -project Night-Core-Player.xcodeproj \
-            -scheme Night-Core-Player \
-            -destination 'generic/platform=iOS Simulator' \
-            -quiet
+          set -euo pipefail
+
+          simctl_json="$(mktemp)"
+          xcrun simctl list --json devices available > "$simctl_json"
+
+          simulator_id="$(
+            jq -r '
+              [
+                .devices[]?[]?
+                | select(.isAvailable == true)
+                | select(.name == "iPhone 16")
+                | .udid
+              ][0] //
+              [
+                .devices[]?[]?
+                | select(.isAvailable == true)
+                | select(.name == "iPhone 16 Pro")
+                | .udid
+              ][0] //
+              [
+                .devices[]?[]?
+                | select(.isAvailable == true)
+                | select(.name | startswith("iPhone"))
+                | .udid
+              ][0] // empty
+            ' "$simctl_json"
+          )"
+
+          if [ -z "$simulator_id" ]; then
+            echo "No available iPhone simulator found"
+            exit 1
+          fi
+
+          simulator_name="$(
+            jq -r --arg id "$simulator_id" '
+              .devices[]?[]?
+              | select(.udid == $id)
+              | .name
+            ' "$simctl_json"
+          )"
+
+          echo "SIMULATOR_ID=$simulator_id" >> "$GITHUB_ENV"
+          echo "Selected simulator: $simulator_name ($simulator_id)"
+
+      - name: Boot simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun simctl shutdown all || true
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          xcrun simctl list devices | grep "$SIMULATOR_ID"
 
       - name: Test
+        shell: bash
         run: |
-          xcodebuild test \
-            -project Night-Core-Player.xcodeproj \
-            -scheme Night-Core-Player \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
-            -resultBundlePath TestResults.xcresult \
-            -quiet
+          set -euo pipefail
+
+          test_log="$(mktemp)"
+
+          run_tests() {
+            rm -rf TestResults.xcresult
+            set +e
+            xcodebuild test \
+              -project Night-Core-Player.xcodeproj \
+              -scheme Night-Core-Player \
+              -destination "id=$SIMULATOR_ID" \
+              -destination-timeout 180 \
+              -resultBundlePath TestResults.xcresult \
+              -quiet 2>&1 | tee "$test_log"
+            status=${PIPESTATUS[0]}
+            set -e
+            return "$status"
+          }
+
+          if run_tests; then
+            exit 0
+          else
+            last_status=$?
+          fi
+
+          if ! grep -Eq "Unable to connect to simulator|Early unexpected exit|operation never finished bootstrapping" "$test_log"; then
+            exit "$last_status"
+          fi
+
+          echo "Retrying tests after rebooting simulator..."
+          xcrun simctl shutdown "$SIMULATOR_ID" || true
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+
+          run_tests
 
       - name: Upload test results
         if: failure()
