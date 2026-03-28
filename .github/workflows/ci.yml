@@ -24,10 +24,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.3.app
-
-      - name: Ensure iOS platform runtime
-        run: xcodebuild -downloadPlatform iOS
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app
 
       - name: Show environment
         run: |
