@@ -200,5 +200,12 @@ final class MusicPlayerViewModel {
                 self.history = self.service.playHistory
             }
             .store(in: &cancellables)
+
+        service.playbackErrorPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.errorMessage = "再生するには Apple Music のサブスクリプションが必要です"
+            }
+            .store(in: &cancellables)
     }
 }

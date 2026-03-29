@@ -8,6 +8,7 @@ final class PlaylistDetailViewModel {
     let playlist: Playlist
     private(set) var songs: [Song] = []
     private(set) var isLoading = false
+    private(set) var isEmpty = false
     private(set) var errorMessage: String?
     
     private var musicKitService: MusicKitService
@@ -25,10 +26,22 @@ final class PlaylistDetailViewModel {
         
         do {
             songs = try await musicKitService.fetchPlaylistSongs(in: playlist)
+            isEmpty = songs.isEmpty
             errorMessage = nil
+        } catch let error as PlaylistSongsFetchError {
+            songs = []
+            switch error {
+            case .emptyPlaylist:
+                isEmpty = true
+                errorMessage = nil
+            case .tracksUnavailable:
+                isEmpty = false
+                errorMessage = error.localizedDescription
+            }
         } catch {
             errorMessage = error.localizedDescription
             songs = []
+            isEmpty = false
         }
     }
 }

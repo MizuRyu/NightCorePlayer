@@ -20,7 +20,7 @@ struct MainTabView: View {
             get: { nav.selectedTab },
             set: { newTab in
                 if newTab == nav.selectedTab && newTab == .search {
-                    nav.searchBarFocusRequested = true
+                    nav.searchBarFocusRequestID += 1
                 }
                 nav.selectedTab = newTab
             }
@@ -51,16 +51,23 @@ struct MainTabView: View {
                 nav.isScrolling = scrolling
             }
             .overlay(alignment: .bottom) {
-                // 検索タブ位置にオーバーレイして長押しジェスチャーを検出
+                // 検索タブ位置にオーバーレイしてタップ/長押しを検出
                 GeometryReader { geo in
                     let tabWidth = geo.size.width / 4
                     Color.clear
                         .frame(width: tabWidth, height: 50)
                         .contentShape(Rectangle())
                         .position(x: tabWidth * 1.5, y: geo.size.height - 25)
+                        .onTapGesture {
+                            if nav.selectedTab == .search {
+                                nav.searchBarFocusRequestID += 1
+                            } else {
+                                nav.selectedTab = .search
+                            }
+                        }
                         .onLongPressGesture(minimumDuration: 0.5) {
-                            nav.searchResetRequested = true
                             nav.selectedTab = .search
+                            nav.searchBarFocusRequestID += 1
                         }
                 }
             }

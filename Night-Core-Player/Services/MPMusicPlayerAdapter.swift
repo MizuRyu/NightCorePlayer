@@ -37,6 +37,17 @@ final class MPMusicPlayerAdapter: PlayerControllable {
     func seek(to time: TimeInterval) { player.currentPlaybackTime = time }
     func skipToNext() { player.skipToNextItem() }
     func skipToPrevious() { player.skipToPreviousItem() }
+    func prepareToPlay() async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            player.prepareToPlay { error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
     func setQueue(with descriptor: MPMusicPlayerPlayParametersQueueDescriptor) { player.setQueue(with: descriptor) }
     func prepend(_ descriptor: MPMusicPlayerPlayParametersQueueDescriptor) { player.prepend(descriptor) }
     func stop() { player.stop() }

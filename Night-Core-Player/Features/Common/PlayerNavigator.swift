@@ -12,7 +12,7 @@ final class PlayerNavigator {
     var songs: [Song] = []
     var initialIndex: Int = 0
 
-    var searchBarFocusRequested: Bool = false
-    var searchResetRequested: Bool = false
+    var searchBarFocusRequestID: Int = 0
+    var pendingArtist: Artist? = nil
     var isScrolling: Bool = false
 }

@@ -51,6 +51,7 @@ struct MusicPlayerView: View {
     @ObserveInjection var inject
     @Environment(PlayerNavigator.self) private var nav
     @Environment(MusicPlayerViewModel.self) private var vm
+    @Environment(\.musicKitService) private var musicKitService
     @State private var isQueuePresented = false
     
     init() {
@@ -110,9 +111,12 @@ struct MusicPlayerView: View {
                             delayBeforeScroll: Constants.MarqueeText.defaultDelay,
                             selectedTab: nav.selectedTab
                         )
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.indigo)
                         .frame(width: 100, height: subtitleHeight)
                         .clipped()
+                        .onTapGesture {
+                            navigateToArtist()
+                        }
                     }
                     Button { vm.nextTrack() } label: {
                         Image(systemName: "forward.fill")
@@ -197,9 +201,6 @@ struct MusicPlayerView: View {
                 }
                 
                 VStack(spacing: 4) {
-                    Image(systemName: "chevron.up")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                     Image(systemName: "list.bullet")
                         .font(.title2)
                         .foregroundColor(.indigo)
@@ -229,7 +230,25 @@ struct MusicPlayerView: View {
                 )
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .alert("再生エラー", isPresented: Binding<Bool>(
+                get: { vm.errorMessage != nil },
+                set: { if !$0 { vm.errorMessage = nil } }
+            )) {
+                Button("OK") { vm.errorMessage = nil }
+            } message: {
+                Text(vm.errorMessage ?? "")
+            }
             .enableInjection()
+        }
+    }
+
+    private func navigateToArtist() {
+        let artistName = vm.artist
+        guard artistName != "—" else { return }
+        Task {
+            guard let artist = try? await musicKitService.searchArtists(keyword: artistName, limit: 1).first else { return }
+            nav.pendingArtist = artist
+            nav.selectedTab = .search
         }
     }
 

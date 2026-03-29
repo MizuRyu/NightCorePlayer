@@ -60,7 +60,20 @@ struct SettingsView: View {
                                     .padding(.vertical, 12)
                                 }
                             } else if name == "ご意見・お問い合わせ" {
-                                Link(destination: contactMailURL) {
+                                Link(destination: contactFormURL) {
+                                    HStack {
+                                        Text(name)
+                                            .font(.body)
+                                            .foregroundColor(.primary)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(.vertical, 12)
+                                }
+                            } else if name == "利用規約・プライバシーポリシー" {
+                                Link(destination: termsURL) {
                                     HStack {
                                         Text(name)
                                             .font(.body)
@@ -105,8 +118,6 @@ struct SettingsView: View {
                     SettingsPlaybackSpeedView(settingsVM: settingsVM)
                         .navigationTitle("サウンド設定")
                         .navigationBarTitleDisplayMode(.inline)
-                case "利用規約・プライバシーポリシー":
-                    TermsView()
                 default:
                     Text(name)
                         .font(.title2)
@@ -119,9 +130,11 @@ struct SettingsView: View {
         .enableInjection()
     }
 
-    private var contactMailURL: URL {
-        let subject = "NightCore Player お問い合わせ"
-        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        return URL(string: "mailto:rmizutani.work@example.com?subject=\(encodedSubject)")!
+    private var contactFormURL: URL {
+        URL(string: "https://forms.gle/p5CTaqH4omaJiEFx6")!
+    }
+
+    private var termsURL: URL {
+        URL(string: "https://mizuryu.github.io/NightCorePlayer/terms/")!
     }
 }
