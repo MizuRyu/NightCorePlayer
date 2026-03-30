@@ -1,0 +1,426 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Player": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレイヤー"
+          }
+        }
+      }
+    },
+    "Search": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索"
+          }
+        }
+      }
+    },
+    "Playlist": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレイリスト"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定"
+          }
+        }
+      }
+    },
+    "Sound Settings": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サウンド設定"
+          }
+        }
+      }
+    },
+    "Playback Speed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再生速度"
+          }
+        }
+      }
+    },
+    "Other": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "その他"
+          }
+        }
+      }
+    },
+    "Terms & Privacy Policy": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "利用規約・プライバシーポリシー"
+          }
+        }
+      }
+    },
+    "Feedback & Contact": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ご意見・お問い合わせ"
+          }
+        }
+      }
+    },
+    "Write a Review": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "レビューを書く"
+          }
+        }
+      }
+    },
+    "On app launch, music will play at the configured playback speed.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリ起動時、設定した再生速度で音楽が再生されるようになります。"
+          }
+        }
+      }
+    },
+    "※Recommended ×1.15 ~ ×1.25": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "※推奨 ×1.15 ~ ×1.25"
+          }
+        }
+      }
+    },
+    "Failed to load terms.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "利用規約を読み込めませんでした。"
+          }
+        }
+      }
+    },
+    "Song or artist name": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "曲名・アーティスト名"
+          }
+        }
+      }
+    },
+    "Error": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エラー"
+          }
+        }
+      }
+    },
+    "Recent Searches": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近の検索"
+          }
+        }
+      }
+    },
+    "Delete All": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべて削除"
+          }
+        }
+      }
+    },
+    "Delete History": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "履歴を削除"
+          }
+        }
+      }
+    },
+    "Loading…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み込み中…"
+          }
+        }
+      }
+    },
+    "Retry": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リトライ"
+          }
+        }
+      }
+    },
+    "Play": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再生"
+          }
+        }
+      }
+    },
+    "Shuffle": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シャッフル"
+          }
+        }
+      }
+    },
+    "Play History": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再生履歴"
+          }
+        }
+      }
+    },
+    "Delete all history?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "履歴をすべて削除しますか？"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キャンセル"
+          }
+        }
+      }
+    },
+    "Up Next": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次に再生"
+          }
+        }
+      }
+    },
+    "%lld items": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 曲"
+          }
+        }
+      }
+    },
+    "Playing Now": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再生中"
+          }
+        }
+      }
+    },
+    "Playback Error": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再生エラー"
+          }
+        }
+      }
+    },
+    "Playlists": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレイリスト"
+          }
+        }
+      }
+    },
+    "No displayable songs in this playlist": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このプレイリストには表示できる曲がありません"
+          }
+        }
+      }
+    },
+    "Play This Song": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この曲を再生"
+          }
+        }
+      }
+    },
+    "Play Next": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次に再生"
+          }
+        }
+      }
+    },
+    "MusicKit Error: %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MusicKit エラー: %@"
+          }
+        }
+      }
+    },
+    "Playback Error: %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再生エラー: %@"
+          }
+        }
+      }
+    },
+    "Data Save Error: %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "データ保存エラー: %@"
+          }
+        }
+      }
+    },
+    "An Apple Music subscription is required to play.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再生するには Apple Music のサブスクリプションが必要です"
+          }
+        }
+      }
+    },
+    "MusicKit permission denied": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MusicKit の権限がありません"
+          }
+        }
+      }
+    },
+    "Could not get songs from playlist \"%@\"": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレイリスト「%@」の曲を取得できませんでした"
+          }
+        }
+      }
+    },
+    "No displayable songs in playlist \"%@\"": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレイリスト「%@」には表示できる曲がありません"
+          }
+        }
+      }
+    },
+    "Could not get songs from playlist \"%@\": %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレイリスト「%1$@」の曲を取得できませんでした: %2$@"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

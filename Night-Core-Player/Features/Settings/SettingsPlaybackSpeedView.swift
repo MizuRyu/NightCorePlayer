@@ -14,7 +14,7 @@ struct SettingsPlaybackSpeedView: View {
     
     var body: some View {
         List {
-            Text("再生速度")
+            Text("Playback Speed")
                 .font(.headline)
                 .foregroundColor(.primary)
                 .padding(.leading, 16)
@@ -48,10 +48,10 @@ struct SettingsPlaybackSpeedView: View {
             
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("アプリ起動時、設定した再生速度で音楽が再生されるようになります。")
+                    Text("On app launch, music will play at the configured playback speed.")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text("※推奨 ×1.15 ~ ×1.25")
+                    Text("※Recommended ×1.15 ~ ×1.25")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

@@ -225,7 +225,7 @@ private struct AppStoreSearchScreenshotView: View {
             }
             .scrollContentBackground(.hidden)
             .background(Color(uiColor: .systemBackground))
-            .navigationTitle("検索")
+            .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.large)
         }
     }
@@ -270,7 +270,7 @@ private struct AppStorePlaylistScreenshotView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Color(uiColor: .systemBackground))
-            .navigationTitle("プレイリスト")
+            .navigationTitle("Playlists")
         }
     }
 }
@@ -338,12 +338,12 @@ private struct AppStoreQueueScreenshotView: View {
             List {
                 // 再生履歴
                 HStack {
-                    Text("再生履歴")
+                    Text("Play History")
                         .font(.body).bold()
                         .foregroundStyle(.primary)
                         .padding(.vertical, 8)
                     Spacer()
-                    Label("履歴を削除", systemImage: "trash")
+                    Label("Delete History", systemImage: "trash")
                         .labelStyle(.titleAndIcon)
                         .font(.subheadline)
                         .foregroundColor(.red)
@@ -355,7 +355,7 @@ private struct AppStoreQueueScreenshotView: View {
                 }
 
                 // 次に再生
-                Text("次に再生")
+                Text("Up Next")
                     .font(.body).bold()
                     .foregroundStyle(.primary)
                     .padding(.vertical, 8)
@@ -383,8 +383,7 @@ private struct AppStoreQueueScreenshotView: View {
                 queueToggle("infinity", active: true)
                 Spacer()
             }
-            .padding(.top, 12)
-            .padding(.bottom, 4)
+            .padding(.vertical, 8)
 
             // 再生コントロール
             VStack(spacing: 16) {
@@ -421,7 +420,7 @@ private struct AppStoreQueueScreenshotView: View {
                 .foregroundColor(.indigo)
                 .padding(.vertical, 8)
             }
-            .padding(.bottom, 60)
+            .padding(.bottom, 16)
         }
         .background(Color(uiColor: .systemBackground))
     }

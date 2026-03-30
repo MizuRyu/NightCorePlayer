@@ -10,12 +10,12 @@ struct SongContextMenu: View {
             Button {
                 playerVM.playNow(song)
             } label: {
-                Label("この曲を再生", systemImage: "play.fill")
+                Label("Play This Song", systemImage: "play.fill")
             }
             Button {
                 playerVM.insertNext(song)
             } label: {
-                Label("次に再生", systemImage: "text.line.first.and.arrowtriangle.forward")
+                Label("Play Next", systemImage: "text.line.first.and.arrowtriangle.forward")
             }
         } label: {
             Image(systemName: "ellipsis")

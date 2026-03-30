@@ -7,22 +7,37 @@ struct SettingsView: View {
     @Environment(SettingsViewModel.self) private var settingsVM
     @Environment(\.requestReview) private var requestReview
 
-    private let soundSettings = ["再生速度"]
-    private let others = [
-        "利用規約・プライバシーポリシー",
-        "ご意見・お問い合わせ",
-        "レビューを書く"
-    ]
-    
+    private enum SoundItem: String, CaseIterable, Hashable {
+        case playbackSpeed
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .playbackSpeed: return "Playback Speed"
+            }
+        }
+    }
+
+    private enum OtherItem: String, CaseIterable, Hashable {
+        case terms, feedback, review
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .terms: return "Terms & Privacy Policy"
+            case .feedback: return "Feedback & Contact"
+            case .review: return "Write a Review"
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    ForEach(soundSettings, id: \.self) { name in
+                    ForEach(SoundItem.allCases, id: \.self) { item in
                         VStack(spacing: 0) {
-                            NavigationLink(value: name) {
+                            NavigationLink(value: item) {
                                 HStack {
-                                    Text(name)
+                                    Text(item.title)
                                         .font(.body)
                                         .foregroundColor(.primary)
                                     Spacer()
@@ -35,74 +50,23 @@ struct SettingsView: View {
                         .listRowSeparator(.hidden)
                     }
                 } header: {
-                    Text("サウンド設定")
+                    Text("Sound Settings")
                         .font(.headline)
                         .foregroundColor(.primary)
                         .padding(.top, 8)
                 }
                 
                 Section {
-                    ForEach(others, id: \.self) { name in
+                    ForEach(OtherItem.allCases, id: \.self) { item in
                         VStack(spacing: 0) {
-                            if name == "レビューを書く" {
-                                Button {
-                                    requestReview()
-                                } label: {
-                                    HStack {
-                                        Text(name)
-                                            .font(.body)
-                                            .foregroundColor(.primary)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .padding(.vertical, 12)
-                                }
-                            } else if name == "ご意見・お問い合わせ" {
-                                Link(destination: contactFormURL) {
-                                    HStack {
-                                        Text(name)
-                                            .font(.body)
-                                            .foregroundColor(.primary)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .padding(.vertical, 12)
-                                }
-                            } else if name == "利用規約・プライバシーポリシー" {
-                                Link(destination: termsURL) {
-                                    HStack {
-                                        Text(name)
-                                            .font(.body)
-                                            .foregroundColor(.primary)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .padding(.vertical, 12)
-                                }
-                            } else {
-                                NavigationLink(value: name) {
-                                    HStack {
-                                        Text(name)
-                                            .font(.body)
-                                            .foregroundColor(.primary)
-                                        Spacer()
-                                    }
-                                    .padding(.vertical, 12)
-                                }
-                            }
+                            otherRow(item)
                             Divider()
                                 .padding(.leading, 16)
                         }
                         .listRowSeparator(.hidden)
                     }
                 } header: {
-                    Text("その他")
+                    Text("Other")
                         .font(.headline)
                         .foregroundColor(.primary)
                         .padding(.top, 8)
@@ -111,23 +75,51 @@ struct SettingsView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Color(.systemBackground))
-            .navigationTitle("設定")
-            .navigationDestination(for: String.self) { name in
-                switch name {
-                case "再生速度":
+            .navigationTitle("Settings")
+            .navigationDestination(for: SoundItem.self) { item in
+                switch item {
+                case .playbackSpeed:
                     SettingsPlaybackSpeedView(settingsVM: settingsVM)
-                        .navigationTitle("サウンド設定")
-                        .navigationBarTitleDisplayMode(.inline)
-                default:
-                    Text(name)
-                        .font(.title2)
-                        .navigationTitle(name)
+                        .navigationTitle("Sound Settings")
                         .navigationBarTitleDisplayMode(.inline)
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .enableInjection()
+    }
+
+    @ViewBuilder
+    private func otherRow(_ item: OtherItem) -> some View {
+        switch item {
+        case .review:
+            Button {
+                requestReview()
+            } label: {
+                rowLabel(item.title)
+            }
+        case .feedback:
+            Link(destination: contactFormURL) {
+                rowLabel(item.title)
+            }
+        case .terms:
+            Link(destination: termsURL) {
+                rowLabel(item.title)
+            }
+        }
+    }
+
+    private func rowLabel(_ title: LocalizedStringKey) -> some View {
+        HStack {
+            Text(title)
+                .font(.body)
+                .foregroundColor(.primary)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, 12)
     }
 
     private var contactFormURL: URL {

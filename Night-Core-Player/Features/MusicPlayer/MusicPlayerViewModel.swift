@@ -204,7 +204,7 @@ final class MusicPlayerViewModel {
         service.playbackErrorPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.errorMessage = "再生するには Apple Music のサブスクリプションが必要です"
+                self?.errorMessage = String(localized: "An Apple Music subscription is required to play.")
             }
             .store(in: &cancellables)
     }
