@@ -20,7 +20,7 @@ struct MainTabView: View {
             get: { nav.selectedTab },
             set: { newTab in
                 if newTab == nav.selectedTab && newTab == .search {
-                    nav.searchBarFocusRequested = true
+                    nav.searchBarFocusRequestID += 1
                 }
                 nav.selectedTab = newTab
             }
@@ -49,6 +49,30 @@ struct MainTabView: View {
             }
             .onScrollDetected { scrolling in
                 nav.isScrolling = scrolling
+            }
+            .overlay(alignment: .bottom) {
+                // 検索タブ位置にオーバーレイしてタップ/長押しを検出
+                GeometryReader { geo in
+                    let tabs = PlayerNavigator.Tab.allCases
+                    let tabCount = max(1, CGFloat(tabs.count))
+                    let tabWidth = geo.size.width / tabCount
+                    let searchIndex = CGFloat(tabs.firstIndex(of: .search) ?? 1)
+                    Color.clear
+                        .frame(width: tabWidth, height: 50)
+                        .contentShape(Rectangle())
+                        .position(x: tabWidth * (searchIndex + 0.5), y: geo.size.height - 25)
+                        .onTapGesture {
+                            if nav.selectedTab == .search {
+                                nav.searchBarFocusRequestID += 1
+                            } else {
+                                nav.selectedTab = .search
+                            }
+                        }
+                        .onLongPressGesture(minimumDuration: 0.5) {
+                            nav.selectedTab = .search
+                            nav.searchBarFocusRequestID += 1
+                        }
+                }
             }
 
             if showMiniPlayer {

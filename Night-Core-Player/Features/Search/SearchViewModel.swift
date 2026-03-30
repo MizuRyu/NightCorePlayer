@@ -126,6 +126,20 @@ final class SearchViewModel {
         query = keyword
     }
 
+    func resetToHistory() {
+        searchTask?.cancel()
+        searchTask = nil
+        query = ""
+        songs = []
+        artists = []
+        isLoading = false
+        isLoadingMore = false
+        hasMoreSongs = false
+        currentOffset = 0
+        lastSearchedQuery = ""
+        errorMessage = nil
+    }
+
     func removeHistoryItem(at index: Int) {
         guard searchHistory.indices.contains(index) else { return }
         searchHistory.remove(at: index)

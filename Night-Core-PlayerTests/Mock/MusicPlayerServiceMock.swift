@@ -24,20 +24,25 @@ final class PlayerControllableMock: PlayerControllable {
     private(set) var setQueueDescriptors: [MPMusicPlayerPlayParametersQueueDescriptor] = []
     private(set) var prependDescriptors: [MPMusicPlayerPlayParametersQueueDescriptor] = []
     private(set) var stopCount = 0
+    private(set) var prepareToPlayCount = 0
+    private(set) var actionLog: [String] = []
 
     func play() {
         playCount += 1
         playbackState = .playing
+        actionLog.append("play")
     }
 
     func pause() {
         pauseCount += 1
         playbackState = .paused
+        actionLog.append("pause")
     }
 
     func seek(to time: TimeInterval) {
         seekArgs.append(time)
         currentTime = time
+        actionLog.append("seek")
     }
 
     func skipToNext() {
@@ -50,17 +55,38 @@ final class PlayerControllableMock: PlayerControllable {
         indexOfNowPlayingItem = max(0, indexOfNowPlayingItem - 1)
     }
 
+    func prepareToPlay() async throws {
+        prepareToPlayCount += 1
+        actionLog.append("prepare")
+    }
+
     func setQueue(with descriptor: MPMusicPlayerPlayParametersQueueDescriptor) {
         setQueueDescriptors.append(descriptor)
+        actionLog.append("setQueue")
     }
 
     func prepend(_ descriptor: MPMusicPlayerPlayParametersQueueDescriptor) {
         prependDescriptors.append(descriptor)
+        actionLog.append("prepend")
     }
 
     func stop() {
         stopCount += 1
         playbackState = .stopped
+        actionLog.append("stop")
+    }
+
+    func resetRecording() {
+        playCount = 0
+        pauseCount = 0
+        seekArgs = []
+        skipNextCount = 0
+        skipPreviousCount = 0
+        setQueueDescriptors = []
+        prependDescriptors = []
+        stopCount = 0
+        prepareToPlayCount = 0
+        actionLog = []
     }
 }
 
@@ -176,6 +202,10 @@ final class MusicPlayerServiceMock: MusicPlayerService {
     public let snapshotSubject = PassthroughSubject<MusicPlayerSnapshot, Never>()
     public var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> {
         snapshotSubject.eraseToAnyPublisher()
+    }
+    public let playbackErrorSubject = PassthroughSubject<Error, Never>()
+    public var playbackErrorPublisher: AnyPublisher<Error, Never> {
+        playbackErrorSubject.eraseToAnyPublisher()
     }
 
     // ViewModel が参照する状態

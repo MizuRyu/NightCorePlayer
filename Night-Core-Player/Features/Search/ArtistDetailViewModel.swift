@@ -45,8 +45,8 @@ final class ArtistDetailViewModel {
 
         while hasMoreSongs {
             do {
-                let more = try await musicKitService.searchSongs(
-                    keyword: artist.name,
+                let more = try await musicKitService.fetchArtistSongs(
+                    artist: artist,
                     limit: Constants.MusicAPI.musicKitSearchLimit,
                     offset: currentOffset
                 )
@@ -70,8 +70,8 @@ final class ArtistDetailViewModel {
         defer { isLoadingMore = false }
 
         do {
-            let more = try await musicKitService.searchSongs(
-                keyword: artist.name,
+            let more = try await musicKitService.fetchArtistSongs(
+                artist: artist,
                 limit: Constants.MusicAPI.musicKitSearchLimit,
                 offset: currentOffset
             )

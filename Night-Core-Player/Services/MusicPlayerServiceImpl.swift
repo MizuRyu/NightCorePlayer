@@ -13,9 +13,14 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
 
     private var originalQueue: [Song] = []
     private var lastSnapshotSongID: String? = nil
+    private let playbackErrorSubject = PassthroughSubject<Error, Never>()
 
     public var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> {
         $snapshot.eraseToAnyPublisher()
+    }
+
+    public var playbackErrorPublisher: AnyPublisher<Error, Never> {
+        playbackErrorSubject.eraseToAnyPublisher()
     }
 
     public var musicPlayerQueue: [Song] { queue.items }
@@ -36,6 +41,8 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
 
     private var timerCancellable: AnyCancellable?
     private var lastPlayerIndex: Int? = nil
+    private var pendingNativeNowPlayingIndex: Int? = nil
+    private var pendingShuffleResync: Bool = false
     private var needsQueueRefresh: Bool = false
     private var isFetchingRecommendations: Bool = false
     private var hasStarted: Bool = false
@@ -112,9 +119,18 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     @objc private func handlePlaybackStateChange(_ notification: Notification) {
         if player.playbackState == .playing {
             player.playbackRate = currentPlaybackRate
+            return
         }
-        // キュー末尾で停止した場合のみ自動再生をチェック（一時停止では発火しない）
+
         if player.playbackState == .stopped {
+            if repeatMode == .one, queue.currentSong != nil {
+                player.seek(to: 0)
+                player.play()
+                player.playbackRate = currentPlaybackRate
+                updateSnapshot()
+                return
+            }
+            // キュー末尾で停止した場合のみ自動再生をチェック（一時停止では発火しない）
             checkAutoPlayOnQueueEnd()
         }
     }
@@ -145,27 +161,51 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     }
 
     public func next() async {
-        let advanced = await queue.advanceToNextTrack()
-        if advanced {
+        if repeatMode == .one {
+            let advanced = await queue.advanceToNextTrack()
+            guard advanced else { return }
             await handleQueueAction(.playNewQueue)
             return
         }
-        // キュー末尾到達: repeat all なら先頭へラップ
+
+        if queue.currentIndex + 1 < queue.items.count {
+            if pendingShuffleResync {
+                queue.currentIndex += 1
+                await handleQueueAction(.playNewQueue)
+                return
+            }
+            pendingNativeNowPlayingIndex = queue.currentIndex + 1
+            player.skipToNext()
+            return
+        }
+
         if repeatMode == .all && !queue.isEmpty {
             queue.currentIndex = 0
             await handleQueueAction(.playNewQueue)
             return
         }
-        // キュー末尾で自動再生が有効なら推薦楽曲を取得して再生
+
         if isAutoPlayEnabled && repeatMode == .none {
             await fetchAndPlayRecommendations()
         }
     }
 
     public func previous() async {
-        let regressed = await queue.regressToPreviousTrack()
-        guard regressed else { return }
-        await handleQueueAction(.playNewQueue)
+        if repeatMode == .one {
+            let regressed = await queue.regressToPreviousTrack()
+            guard regressed else { return }
+            await handleQueueAction(.playNewQueue)
+            return
+        }
+
+        guard queue.currentIndex > 0 else { return }
+        if pendingShuffleResync {
+            queue.currentIndex -= 1
+            await handleQueueAction(.playNewQueue)
+            return
+        }
+        pendingNativeNowPlayingIndex = queue.currentIndex - 1
+        player.skipToPrevious()
     }
 
     public func seek(to time: TimeInterval) async {
@@ -184,8 +224,11 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     // MARK: - Queue Operations
 
     public func moveItem(from src: Int, to dst: Int) async {
-        let _ = await queue.moveItem(from: src, to: dst)
-        needsQueueRefresh = true
+        let action = await queue.moveItem(from: src, to: dst)
+        if action == .updatePlayerQueueOnly {
+            // 再生中はキュー再構築を遅延して音途切れを防ぐ
+            pendingShuffleResync = true
+        }
         updateSnapshot()
     }
 
@@ -242,11 +285,12 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     // MARK: - Shuffle / Repeat
 
     public func toggleShuffle() async {
+        let shouldResumePlayback = player.playbackState == .playing
         if isShuffled {
-            // シャッフル OFF: 元の順序に復元
             guard !originalQueue.isEmpty else {
                 isShuffled = false
                 player.shuffleMode = .off
+                saveState()
                 updateSnapshot()
                 return
             }
@@ -257,23 +301,20 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             if let song = currentSong,
                let idx = restoredItems.firstIndex(where: { $0.id == song.id }) {
                 let _ = await queue.setQueue(restoredItems, startAt: idx)
-                await handleQueueAction(.updatePlayerQueueOnly)
             } else {
                 let _ = await queue.setQueue(restoredItems, startAt: 0)
-                await handleQueueAction(.playNewQueue)
             }
             isShuffled = false
         } else {
-            // シャッフル ON: 現在のキューを保存してシャッフル
             guard !queue.items.isEmpty else {
                 isShuffled = true
+                saveState()
                 updateSnapshot()
                 return
             }
             originalQueue = queue.items
             let currentSong = queue.currentSong
             var remaining = queue.items
-            // 現在の曲を除外してシャッフルし、先頭に再配置
             if let song = currentSong,
                let idx = remaining.firstIndex(where: { $0.id == song.id }) {
                 remaining.remove(at: idx)
@@ -283,15 +324,21 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
                 remaining.shuffle()
             }
             let _ = await queue.setQueue(remaining, startAt: 0)
-            await handleQueueAction(.updatePlayerQueueOnly)
             isShuffled = true
         }
         player.shuffleMode = .off
+        if shouldResumePlayback {
+            pendingShuffleResync = true
+            saveState()
+            updateSnapshot()
+            return
+        }
+        await syncPlayerQueue(autoPlay: shouldResumePlayback, preserveCurrentTime: true)
+        saveState()
         updateSnapshot()
     }
 
     public func cycleRepeatMode() async {
-        // player.repeatMode は .default を返す場合があるため、自前の repeatMode で状態管理
         let next: Constants.RepeatMode
         switch repeatMode {
         case .none: next = .all
@@ -299,11 +346,9 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         case .one:  next = .none
         }
         repeatMode = next
-        switch next {
-        case .none: player.repeatMode = .none
-        case .all:  player.repeatMode = .all
-        case .one:  player.repeatMode = .one
-        }
+
+        applyRepeatModeToPlayer()
+        saveState()
         updateSnapshot()
     }
 
@@ -359,29 +404,13 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     private func handleQueueAction(_ action: QueueUpdateAction, autoPlay: Bool = true) async {
         switch action {
         case .playNewQueue:
-            lastPlayerIndex = nil
-            if let descriptor = try? buildQueueDescriptor(from: await queue.items, startAt: queue.currentIndex) {
-                player.setQueue(with: descriptor)
-                if autoPlay {
-                    player.play()
-                }
-                player.playbackRate = currentPlaybackRate
-            } else {
-                player.stop()
-            }
+            await syncPlayerQueue(autoPlay: autoPlay, preserveCurrentTime: false)
             updateSnapshot()
         case .updatePlayerQueueOnly:
-            lastPlayerIndex = nil
-            if let descriptor = try? buildQueueDescriptor(from: await queue.items, startAt: queue.currentIndex) {
-                let wasPlaying = player.playbackState == .playing
-                let currentPos = player.currentTime
-                player.setQueue(with: descriptor)
-                player.seek(to: currentPos)
-                if wasPlaying {
-                    player.play()
-                }
-                player.playbackRate = currentPlaybackRate
-            }
+            await syncPlayerQueue(
+                autoPlay: player.playbackState == .playing,
+                preserveCurrentTime: true
+            )
             updateSnapshot()
         case .playerShouldStop:
             player.stop()
@@ -451,8 +480,29 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         }
     }
 
+    private func applyRepeatModeToPlayer() {
+        switch repeatMode {
+        case .none:
+            player.repeatMode = .none
+        case .all:
+            player.repeatMode = .all
+        case .one:
+            player.repeatMode = .one
+        }
+    }
+
     private func trackChanged() {
         let playerIndex = player.indexOfNowPlayingItem
+
+        if let pendingIndex = pendingNativeNowPlayingIndex {
+            pendingNativeNowPlayingIndex = nil
+            lastPlayerIndex = playerIndex
+            if queue.items.indices.contains(pendingIndex) {
+                queue.currentIndex = pendingIndex
+            }
+            updateSnapshot()
+            return
+        }
 
         if needsQueueRefresh {
             needsQueueRefresh = false
@@ -480,18 +530,24 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             return
         }
 
-        // 非ローテーション descriptor では player index の delta が
-        // そのまま queue.currentIndex の delta に対応する。
+        // nowPlayingItem の ID で内部キューを照合（シャッフル時も正確）
+        if let nowPlaying = player.nowPlayingItem,
+           let persistentID = nowPlaying.value(forProperty: MPMediaItemPropertyPersistentID) as? UInt64 {
+            let idString = String(persistentID)
+            if let matchIndex = queue.items.firstIndex(where: { $0.id.rawValue == idString }) {
+                queue.currentIndex = matchIndex
+                updateSnapshot()
+                return
+            }
+        }
+
+        // ID 照合できない場合は delta ベースのフォールバック
         let delta = playerIndex - previousPlayerIndex
         let newIndex = queue.currentIndex + delta
 
         if newIndex >= 0 && newIndex < queue.items.count {
             queue.currentIndex = newIndex
         } else if newIndex < 0 {
-            // repeat all でラップアラウンド: descriptor 先頭に戻る
-            // descriptor は queue.items[descriptorStart...] なので先頭は不明だが、
-            // playerIndex=0 は「descriptor 構築時の currentIndex」に対応。
-            // 現時点の currentIndex - previousPlayerIndex でベースを推定。
             let baseIndex = queue.currentIndex - previousPlayerIndex
             let wrapped = max(baseIndex + playerIndex, 0)
             queue.currentIndex = min(wrapped, queue.items.count - 1)
@@ -515,9 +571,10 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         guard !songs.isEmpty, songs.indices.contains(index) else {
             throw NSError(domain: "MusicPlayerUtils", code: -2, userInfo: nil)
         }
-        // repeat all の場合は全曲ループが必要なのでローテーションして全曲含める
         let target: [Song]
-        if repeatMode == .all {
+        if repeatMode == .one {
+            target = [songs[index]]
+        } else if repeatMode == .all {
             target = Array(songs[index...]) + Array(songs[..<index])
         } else {
             target = Array(songs[index...])
@@ -529,6 +586,39 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         return MPMusicPlayerPlayParametersQueueDescriptor(playParametersQueue: params)
     }
 
+    private func syncPlayerQueue(autoPlay: Bool, preserveCurrentTime: Bool) async {
+        lastPlayerIndex = nil
+        pendingNativeNowPlayingIndex = nil
+        pendingShuffleResync = false
+
+        guard let descriptor = try? buildQueueDescriptor(from: queue.items, startAt: queue.currentIndex) else {
+            player.stop()
+            return
+        }
+
+        let currentPos = preserveCurrentTime ? player.currentTime : 0
+        player.setQueue(with: descriptor)
+        if autoPlay {
+            do {
+                try await player.prepareToPlay()
+            } catch {
+                #if DEBUG
+                print("⚠️ prepareToPlay failed: \(error.localizedDescription)")
+                #endif
+                playbackErrorSubject.send(error)
+                return
+            }
+            if preserveCurrentTime {
+                player.seek(to: currentPos)
+            }
+            player.play()
+        } else if preserveCurrentTime {
+            player.seek(to: currentPos)
+        }
+        applyRepeatModeToPlayer()
+        player.playbackRate = currentPlaybackRate
+    }
+
     private func restore() async {
         let st: (queueIDs: [String], currentIndex: Int, playbackRate: Double, shuffleModeRaw: Int, repeatModeRaw: Int, isAutoPlayEnabled: Bool)
         do {
@@ -537,6 +627,15 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             st = ([], 0, Constants.MusicPlayer.defaultPlaybackRate,
                   MPMusicShuffleMode.off.rawValue, MPMusicRepeatMode.none.rawValue, false)
         }
+
+        let restoredRepeat = MPMusicRepeatMode(rawValue: st.repeatModeRaw) ?? .none
+        isShuffled = st.shuffleModeRaw != Int(MPMusicShuffleMode.off.rawValue)
+        switch restoredRepeat {
+        case .all:  repeatMode = .all
+        case .one:  repeatMode = .one
+        default:    repeatMode = .none
+        }
+        isAutoPlayEnabled = st.isAutoPlayEnabled
 
         do {
             let songs = try await persistenceService.fetchCatalogSongs(st.queueIDs)
@@ -561,15 +660,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         currentPlaybackRate = rateManager.defaultRate
         player.playbackRate = rateManager.defaultRate
         player.shuffleMode  = .off  // アプリ側シャッフルのため常にoff
-        let restoredRepeat = MPMusicRepeatMode(rawValue: st.repeatModeRaw) ?? .none
-        player.repeatMode   = restoredRepeat
-        isShuffled = st.shuffleModeRaw != Int(MPMusicShuffleMode.off.rawValue)
-        switch restoredRepeat {
-        case .all:  repeatMode = .all
-        case .one:  repeatMode = .one
-        default:    repeatMode = .none
-        }
-        isAutoPlayEnabled = st.isAutoPlayEnabled
+        applyRepeatModeToPlayer()
     }
 
     private func saveState() {

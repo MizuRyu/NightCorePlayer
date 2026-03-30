@@ -9,6 +9,7 @@ protocol MusicKitService: Sendable {
     func searchSongs(keyword: String, limit: Int, offset: Int) async throws -> [Song]
     func searchArtists(keyword: String, limit: Int) async throws -> [Artist]
     func fetchArtistTopSongs(artist: Artist) async throws -> [Song]
+    func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song]
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist]
     func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song]
     func fetchPersonalRecommendations(limit: Int) async throws -> [Song]
@@ -20,6 +21,23 @@ extension MusicKitService {
     }
 }
 
+enum PlaylistSongsFetchError: LocalizedError {
+    case tracksUnavailable(name: String, playlistID: String, kind: String?, reason: String?)
+    case emptyPlaylist(name: String, playlistID: String, kind: String?)
+
+    var errorDescription: String? {
+        switch self {
+        case let .tracksUnavailable(name, _, _, reason):
+            if let reason, !reason.isEmpty {
+                return "プレイリスト「\(name)」の曲を取得できませんでした: \(reason)"
+            }
+            return "プレイリスト「\(name)」の曲を取得できませんでした"
+        case let .emptyPlaylist(name, _, _):
+            return "プレイリスト「\(name)」には表示できる曲がありません"
+        }
+    }
+}
+
 // MARK: - MusicKitClient
 
 protocol MusicKitClient: Sendable {
@@ -27,6 +45,7 @@ protocol MusicKitClient: Sendable {
     func searchCatalogSongs(term: String, limit: Int, offset: Int) async throws -> [Song]
     func searchCatalogArtists(term: String, limit: Int) async throws -> [Artist]
     func fetchArtistTopSongs(artist: Artist) async throws -> [Song]
+    func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song]
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist]
     func fetchSongs(in playlist: Playlist) async throws -> [Song]
 }
@@ -65,6 +84,15 @@ struct DefaultMusicKitClient: MusicKitClient {
         let res = try await req.response()
         return Array(res.songs)
     }
+    func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song] {
+        var req = MusicCatalogSearchRequest(term: artist.name, types: [Song.self])
+        req.limit = limit
+        req.offset = offset
+        let res = try await req.response()
+        return res.songs.filter { song in
+            song.artistURL == artist.url || song.artistName == artist.name
+        }
+    }
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist] {
         var req = MusicLibraryRequest<Playlist>()
         req.limit = limit
@@ -72,13 +100,89 @@ struct DefaultMusicKitClient: MusicKitClient {
         return Array(res.items.prefix(limit))
     }
     func fetchSongs(in playlist: Playlist) async throws -> [Song] {
-        let detailed: Playlist = try await playlist.with([.tracks])
-        return detailed.tracks?
-            .compactMap { track in
-                if case let .song(song) = track { return song }
-                else { return nil}
+        let playlistID = playlist.id.rawValue
+        let playlistKind = playlist.kind.map { String(describing: $0) }
+        var lastErrorDescription: String?
+
+        do {
+            let detailed: Playlist = try await playlist.with([.tracks])
+            let songs = extractSongs(from: detailed.tracks)
+            if !songs.isEmpty {
+                return songs
             }
-        ?? []
+        } catch {
+            lastErrorDescription = error.localizedDescription
+            #if DEBUG
+            print("⚠️ playlist.with([.tracks]) failed: \(error.localizedDescription)")
+            #endif
+        }
+
+        var req = MusicLibraryRequest<Playlist>()
+        req.filter(matching: \.id, equalTo: playlist.id)
+        let res = try await req.response()
+        guard let libraryPlaylist = res.items.first else {
+            throw PlaylistSongsFetchError.tracksUnavailable(
+                name: playlist.name,
+                playlistID: playlistID,
+                kind: playlistKind,
+                reason: lastErrorDescription
+            )
+        }
+
+        do {
+            let detailed = try await libraryPlaylist.with([.tracks])
+            let songs = extractSongs(from: detailed.tracks)
+            if !songs.isEmpty {
+                return songs
+            }
+        } catch {
+            lastErrorDescription = error.localizedDescription
+            #if DEBUG
+            print("⚠️ libraryPlaylist.with([.tracks]) failed: \(error.localizedDescription)")
+            #endif
+        }
+
+        do {
+            let detailed = try await libraryPlaylist.with([.entries])
+            let songs = extractSongs(from: detailed.entries)
+            if !songs.isEmpty {
+                return songs
+            }
+            throw PlaylistSongsFetchError.emptyPlaylist(
+                name: playlist.name,
+                playlistID: playlistID,
+                kind: playlistKind
+            )
+        } catch let error as PlaylistSongsFetchError {
+            throw error
+        } catch {
+            lastErrorDescription = error.localizedDescription
+            #if DEBUG
+            print("⚠️ libraryPlaylist.with([.entries]) failed: \(error.localizedDescription)")
+            #endif
+        }
+
+        throw PlaylistSongsFetchError.tracksUnavailable(
+            name: playlist.name,
+            playlistID: playlistID,
+            kind: playlistKind,
+            reason: lastErrorDescription
+        )
+    }
+
+    private func extractSongs(from tracks: MusicItemCollection<Track>?) -> [Song] {
+        tracks?.compactMap { track -> Song? in
+            if case let .song(song) = track { return song }
+            return nil
+        } ?? []
+    }
+
+    @available(iOS 16.0, *)
+    private func extractSongs(from entries: MusicItemCollection<Playlist.Entry>?) -> [Song] {
+        entries?.compactMap { entry -> Song? in
+            if case let .song(song)? = entry.item { return song }
+            return nil
+        } ?? []
     }
 }
 
@@ -119,13 +223,21 @@ final class MusicKitServiceImpl: MusicKitService {
         try await ensureAuth()
         return try await client.fetchArtistTopSongs(artist: artist)
     }
+    func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song] {
+        try await ensureAuth()
+        return try await client.fetchArtistSongs(artist: artist, limit: limit, offset: offset)
+    }
     func fetchLibraryPlaylists(limit: Int = 10) async throws -> [Playlist] {
         try await ensureAuth()
         return try await client.fetchLibraryPlaylists(limit: limit)
     }
     func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song] {
         try await ensureAuth()
-        return try await client.fetchSongs(in: playlist)
+        let songs = try await client.fetchSongs(in: playlist)
+        #if DEBUG
+        print("🎵 fetchPlaylistSongs: \(songs.count) songs loaded for '\(playlist.name)' [id=\(playlist.id.rawValue)]")
+        #endif
+        return songs
     }
 
     func fetchPersonalRecommendations(limit: Int = Constants.Recommendation.defaultLimit) async throws -> [Song] {

@@ -4,7 +4,7 @@ import MusicKit
 
 @Observable
 final class PlayerNavigator {
-    enum Tab: Hashable {
+    enum Tab: Hashable, CaseIterable {
         case player, search, playlist, settings
     }
 
@@ -12,6 +12,7 @@ final class PlayerNavigator {
     var songs: [Song] = []
     var initialIndex: Int = 0
 
-    var searchBarFocusRequested: Bool = false
+    var searchBarFocusRequestID: Int = 0
+    var pendingArtist: Artist? = nil
     var isScrolling: Bool = false
 }

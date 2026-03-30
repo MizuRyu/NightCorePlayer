@@ -21,6 +21,16 @@ struct PlaylistDetailView: View {
                 ProgressView("読み込み中…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            else if vm.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "music.note.list")
+                        .font(.largeTitle)
+                        .foregroundColor(.secondary)
+                    Text("このプレイリストには表示できる曲がありません")
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
             else if let msg = vm.errorMessage {
                 VStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle.fill")

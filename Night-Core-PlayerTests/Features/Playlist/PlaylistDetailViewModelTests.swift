@@ -29,6 +29,7 @@ struct PlaylistDetailViewModelTests {
         #expect(vm.songs.isEmpty, "songsが空であること")
         #expect(vm.errorMessage == nil, "errorMessageがnilであること")
         #expect(vm.isLoading == false, "isLoadingがfalseであること")
+        #expect(vm.isEmpty == false, "isEmptyがfalseであること")
     }
 
     @Test("load: 成功時、songsに取得した曲が設定され、errorMessageがnilであること")
@@ -49,6 +50,7 @@ struct PlaylistDetailViewModelTests {
         #expect(viewModel.songs == expectedSongs, "取得した曲がsongsに設定されること")
         #expect(viewModel.errorMessage == nil, "errorMessageがnilであること")
         #expect(viewModel.isLoading == false, "isLoadingがfalseに戻っていること")
+        #expect(viewModel.isEmpty == false, "isEmptyはfalseのままであること")
     }
 
     @Test("load: 失敗時、songsが空でerrorMessageが設定されること")
@@ -66,6 +68,7 @@ struct PlaylistDetailViewModelTests {
         #expect(viewModel.songs.isEmpty, "songsが空配列であること")
         #expect(viewModel.errorMessage == "失敗しました", "errorMessageにエラーの説明が設定されること")
         #expect(viewModel.isLoading == false, "isLoadingがfalseに戻っていること")
+        #expect(viewModel.isEmpty == false, "失敗時はisEmptyにならないこと")
     }
 
     @Test("load: 同時起動時、isLoadingがtrueのときは二重呼び出しを防止すること")
@@ -84,11 +87,17 @@ struct PlaylistDetailViewModelTests {
         #expect(serviceMock.fetchPlaylistSongsCallCount == 1, "同時呼び出しでも一度しかfetchされないこと")
     }
 
-    @Test("load: 結果が空の場合、songsが空で errorMessage が nil であること")
-    func load_emptyResult_hasEmptySongs() async {
+    @Test("load: emptyPlaylist エラーの場合、empty state になること")
+    func load_emptyPlaylist_setsEmptyState() async {
         // Given
         let (viewModel, serviceMock) = PlaylistDetailViewModelTests.setUp()
-        serviceMock.fetchPlaylistSongsResult = .success([])
+        serviceMock.fetchPlaylistSongsResult = .failure(
+            PlaylistSongsFetchError.emptyPlaylist(
+                name: "testTitle",
+                playlistID: "test",
+                kind: nil
+            )
+        )
 
         // When
         await viewModel.load()
@@ -97,6 +106,6 @@ struct PlaylistDetailViewModelTests {
         #expect(viewModel.songs.isEmpty, "songsが空であること")
         #expect(viewModel.errorMessage == nil, "errorMessageがnilであること")
         #expect(viewModel.isLoading == false, "isLoadingがfalseであること")
+        #expect(viewModel.isEmpty == true, "isEmptyがtrueであること")
     }
 }
-

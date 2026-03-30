@@ -9,6 +9,7 @@ final class MusicKitClientMock: MusicKitClient, @unchecked Sendable {
     var searchResult: [Song] = []
     var artistSearchResult: [Artist] = []
     var artistTopSongs: [Song] = []
+    var artistSongs: [Song] = []
     var playlists: [Playlist] = []
     var playlistSongs: [Song] = []
 
@@ -16,6 +17,7 @@ final class MusicKitClientMock: MusicKitClient, @unchecked Sendable {
     private(set) var searchCalls: [(term: String, limit: Int)] = []
     private(set) var searchArtistCalls: [(term: String, limit: Int)] = []
     private(set) var fetchArtistTopSongsCalls = 0
+    private(set) var fetchArtistSongsCalls: [(limit: Int, offset: Int)] = []
     private(set) var fetchPlaylistCalls: [Int] = []
     private(set) var fetchSongsCalls: [Playlist] = []
     
@@ -34,6 +36,10 @@ final class MusicKitClientMock: MusicKitClient, @unchecked Sendable {
     func fetchArtistTopSongs(artist: Artist) async throws -> [Song] {
         fetchArtistTopSongsCalls += 1
         return artistTopSongs
+    }
+    func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song] {
+        fetchArtistSongsCalls.append((limit: limit, offset: offset))
+        return Array(artistSongs.dropFirst(offset).prefix(limit))
     }
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist] {
         fetchPlaylistCalls.append(limit)

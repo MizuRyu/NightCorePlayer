@@ -23,6 +23,7 @@ public protocol PlayerControllable: Sendable {
     func seek(to time: TimeInterval)
     func skipToNext()
     func skipToPrevious()
+    func prepareToPlay() async throws
     func setQueue(with descriptor: MPMusicPlayerPlayParametersQueueDescriptor)
     func prepend(_ descriptor: MPMusicPlayerPlayParametersQueueDescriptor)
     func stop()
@@ -107,4 +108,6 @@ protocol MusicPlayerService: Sendable {
     var nowPlayingIndex: Int { get }
     var playHistory: [Song] { get }
     func clearHistory() throws
+
+    var playbackErrorPublisher: AnyPublisher<Error, Never> { get }
 }

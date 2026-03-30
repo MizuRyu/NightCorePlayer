@@ -45,10 +45,12 @@ struct SearchView: View {
     @Environment(MusicPlayerViewModel.self) private var playerVM
     @Environment(\.musicKitService) private var musicKitService
     @FocusState private var isSearchBarFocused: Bool
+    @State private var lastHandledSearchFocusRequestID: Int = 0
+    @State private var navigationPath = NavigationPath()
 
     var body: some View {
         @Bindable var vm = vm
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             VStack(spacing: 0) {
                 HStack {
                     Image(systemName: "magnifyingglass")
@@ -65,11 +67,15 @@ struct SearchView: View {
                 .cornerRadius(10)
                 .padding(.horizontal)
                 .padding(.top, 8)
-                .onChange(of: nav.searchBarFocusRequested) { _, requested in
-                    if requested {
-                        isSearchBarFocused = true
-                        nav.searchBarFocusRequested = false
-                    }
+                .onAppear {
+                    applyPendingSearchFocusIfNeeded()
+                }
+                .onChange(of: nav.searchBarFocusRequestID) { _, _ in
+                    applyPendingSearchFocusIfNeeded()
+                }
+                .onChange(of: nav.selectedTab) { _, selectedTab in
+                    guard selectedTab == .search else { return }
+                    applyPendingSearchFocusIfNeeded()
                 }
 
                 if vm.isLoading {
@@ -126,6 +132,11 @@ struct SearchView: View {
             } message: {
                 Text(vm.errorMessage ?? "")
             }
+            .onChange(of: nav.pendingArtist) { _, artist in
+                guard let artist else { return }
+                nav.pendingArtist = nil
+                navigationPath.append(artist)
+            }
             .enableInjection()
         }
     }
@@ -175,5 +186,16 @@ struct SearchView: View {
             }
             .listStyle(.plain)
         }
+    }
+
+    private func applyPendingSearchFocusIfNeeded() {
+        guard nav.selectedTab == .search else { return }
+        guard nav.searchBarFocusRequestID > lastHandledSearchFocusRequestID else { return }
+        lastHandledSearchFocusRequestID = nav.searchBarFocusRequestID
+        // ネスト画面（アーティスト詳細等）にいる場合はルートに戻す
+        if !navigationPath.isEmpty {
+            navigationPath = NavigationPath()
+        }
+        isSearchBarFocused = true
     }
 }

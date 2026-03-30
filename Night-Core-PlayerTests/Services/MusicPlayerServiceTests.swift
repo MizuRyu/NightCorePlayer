@@ -144,19 +144,39 @@ struct MusicQueueManagerTests {
 
     @Test("moveItem: 非再生中の曲を移動すると即時再生操作は呼ばれず、フラグだけ立つ")
     func testMoveItemNonCurrent() async {
+        // Given
         let sut = SUT.make()
         let A = makeDummySong(id: "A")
         let B = makeDummySong(id: "B")
         let C = makeDummySong(id: "C")
-        // A(0) 再生中
         await sut.service.setQueue(songs: [A,B,C], startAt: 0)
         let beforeSet = sut.adapter.setQueueDescriptors.count
         let beforeSeek = sut.adapter.seekArgs.count
-        // C(2) を 1 に移動
+        // When
         await sut.service.moveItem(from: 2, to: 1)
-        // すぐには adapter.setQueue も seek も呼ばれない
+        // Then
         #expect(sut.adapter.setQueueDescriptors.count == beforeSet)
         #expect(sut.adapter.seekArgs.count == beforeSeek)
+    }
+
+    @Test("moveItem: 再生中の並び替えは即時にプレイヤーキューを再構築せず遅延する")
+    func testMoveItemWhilePlayingDefersResync() async {
+        // Given
+        let sut = SUT.make()
+        let A = makeDummySong(id: "A")
+        let B = makeDummySong(id: "B")
+        let C = makeDummySong(id: "C")
+        let D = makeDummySong(id: "D")
+        await sut.service.setQueue(songs: [A, B, C, D], startAt: 0)
+        sut.adapter.playbackState = .playing
+        sut.adapter.resetRecording()
+        // When
+        await sut.service.moveItem(from: 1, to: 3)
+        // Then: 内部キューは更新されるが、プレイヤーには即時反映しない（音途切れ防止）
+        #expect(sut.adapter.setQueueDescriptors.isEmpty, "moveItem 時点では setQueue しない")
+        #expect(sut.adapter.prepareToPlayCount == 0, "moveItem 時点では prepare しない")
+        #expect(sut.service.nowPlayingIndex == 0, "現在曲の index は変わらない")
+        #expect(sut.service.musicPlayerQueue.map(\.id.rawValue) == ["A", "C", "D", "B"], "内部キューは更新済み")
     }
 
 
@@ -212,14 +232,12 @@ struct MusicQueueManagerTests {
             queueManager:  queueMock
         )
         
-        // 4) 前後のコール数をキャプチャ
+        // Given
         let beforeSet  = adapter.setQueueDescriptors.count
         let beforeStop = adapter.stopCount
-        
-        // — 実行 —
+        // When
         await service.removeItem(at: 5)   // 範囲外
-        
-        // — 検証 —
+        // Then
         #expect(adapter.setQueueDescriptors.count == beforeSet,
                 "範囲外なら setQueue(with:) が呼ばれない")
         #expect(adapter.stopCount == beforeStop,
@@ -519,30 +537,32 @@ struct MusicPlayerServiceImplTests {
         #expect(sut.service.snapshot.rate == Constants.MusicPlayer.maxPlaybackRate)
     }
 
-    @Test("next: .playNewQueueでadapter.setQueueが呼ばれること")
+    @Test("next: 通常ケースではadapter.skipToNextが呼ばれること")
     func testNextNormal() async {
-        // Given: 2曲セット済み、index=0
+        // Given
         let sut = SUT.make()
         let songs = [ makeDummySong(id: "A"), makeDummySong(id: "B") ]
         await sut.service.setQueue(songs: songs, startAt: 0)
-        let before = sut.adapter.setQueueDescriptors.count
-        // When: nextを呼ぶ
+        let beforeSetQueue = sut.adapter.setQueueDescriptors.count
+        // When
         await sut.service.next()
-        // Then: setQueueDescriptorsが1増える
-        #expect(sut.adapter.setQueueDescriptors.count == before + 1, "adapter.setQueue が呼ばれる")
+        // Then
+        #expect(sut.adapter.skipNextCount == 1, "adapter.skipToNext が呼ばれる")
+        #expect(sut.adapter.setQueueDescriptors.count == beforeSetQueue, "通常 next では setQueue を呼ばない")
     }
 
     @Test("next: 最後の曲で next() を呼んでも何もしないこと")
     func testNextAtEndNoOp() async {
-        // Given: 2曲セット、indexは末尾
+        // Given
         let sut = SUT.make()
         let songs = [ makeDummySong(id: "A"), makeDummySong(id: "B") ]
         await sut.service.setQueue(songs: songs, startAt: songs.count - 1)
         let before = sut.adapter.setQueueDescriptors.count
-        // When: nextを呼ぶ
+        // When
         await sut.service.next()
-        // Then: setQueueDescriptorsは変化しない
+        // Then
         #expect(sut.adapter.setQueueDescriptors.count == before, "末端では何もしない")
+        #expect(sut.adapter.skipNextCount == 0, "末端では skipToNext も呼ばれない")
     }
 
     @Test("previous: 最初の曲で previous() を呼んでも何もしないこと")
@@ -558,17 +578,18 @@ struct MusicPlayerServiceImplTests {
         #expect(sut.adapter.setQueueDescriptors.count == before, "先頭では何もしない")
     }
 
-    @Test("previous: .playNewQueueでadapter.setQueueが呼ばれること")
+    @Test("previous: 通常ケースではadapter.skipToPreviousが呼ばれること")
     func testPreviousNormal() async {
-        // Given: 2曲セット、index=1
+        // Given
         let sut = SUT.make()
         let songs = [ makeDummySong(id: "A"), makeDummySong(id: "B") ]
         await sut.service.setQueue(songs: songs, startAt: 1)
-        let before = sut.adapter.setQueueDescriptors.count
-        // When: previousを呼ぶ
+        let beforeSetQueue = sut.adapter.setQueueDescriptors.count
+        // When
         await sut.service.previous()
-        // Then: setQueueDescriptorsが1増える
-        #expect(sut.adapter.setQueueDescriptors.count == before + 1, "adapter.setQueue が呼ばれる")
+        // Then
+        #expect(sut.adapter.skipPreviousCount == 1, "adapter.skipToPrevious が呼ばれる")
+        #expect(sut.adapter.setQueueDescriptors.count == beforeSetQueue, "通常 previous では setQueue を呼ばない")
     }
 
     @Test("playNow: 指定した曲のみで即座に再生開始されること")
@@ -674,37 +695,32 @@ struct MusicPlayerServiceImplTests {
         let testSong2 = makeDummySong(id: "HIST_B")
         await sut.service.setQueue(songs: [testSong, testSong2], startAt: 0)
         let historyBefore = sut.service.playHistory.count
-        // When: next()で次の曲に進む（内部でsetQueue→updateSnapshot→履歴追加）
         sut.adapter.indexOfNowPlayingItem = 1
         await sut.service.next()
-        // Then: 履歴が増える（next()はplayNewQueueを呼び、updateSnapshotが新曲を検出）
+        NotificationCenter.default.post(
+            name: .MPMusicPlayerControllerNowPlayingItemDidChange,
+            object: nil
+        )
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
         #expect(sut.service.playHistory.count > historyBefore, "履歴が追加される")
     }
 
-    @Test("trackChanged: moveItem 後に trackChanged 発火で実際に setQueue/seek が呼ばれる")
-    func testMoveThenTrackChanged() async {
+    @Test("moveItem 後の next() でプレイヤーキューが再構築されること")
+    func testMoveThenNextResyncsQueue() async {
+        // Given
         let sut = SUT.make()
         let A = makeDummySong(id: "A")
         let B = makeDummySong(id: "B")
         let C = makeDummySong(id: "C")
-        // A(0) 再生中
-        await sut.service.setQueue(songs: [A,B,C], startAt: 0)
-        let beforeSet = sut.adapter.setQueueDescriptors.count
-        // C(2) → 1 に移動
+        await sut.service.setQueue(songs: [A, B, C], startAt: 0)
         await sut.service.moveItem(from: 2, to: 1)
-        // nowPlayingItem／indexOfNowPlayingItem を合わせておく
-        sut.adapter.indexOfNowPlayingItem = 0
-        // 曲変更通知をポスト
-        NotificationCenter.default.post(
-        name: .MPMusicPlayerControllerNowPlayingItemDidChange,
-        object: nil
-        )
-        // 少し待つか、async で待機
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        // adapter.setQueue(with:) が１回増えている
-        #expect(sut.adapter.setQueueDescriptors.count == beforeSet + 1)
-        // seek(0) も呼ばれている
-        #expect(sut.adapter.seekArgs.last == 0)
+        sut.adapter.resetRecording()
+        // When
+        await sut.service.next()
+        // Then: 遅延再同期により setQueue + prepare + play が呼ばれる
+        #expect(sut.adapter.actionLog.starts(with: ["setQueue", "prepare", "play"]))
+        #expect(sut.service.nowPlayingIndex == 1)
     }
 
     @Test("toggleShuffle: アプリ側でキューがシャッフルされること")
@@ -731,6 +747,64 @@ struct MusicPlayerServiceImplTests {
         #expect(sut.service.musicPlayerQueue.map(\.id.rawValue) == ["A","B","C"],
                 "元のキュー順が復元される")
     }
+
+    @Test("toggleShuffle: 再生中は即再キューせずキュー順だけ更新する")
+    func testToggleShuffleDefersQueueResyncWhilePlaying() async {
+        let sut = SUT.make()
+        let songs = [makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C")]
+        await sut.service.setQueue(songs: songs, startAt: 0)
+
+        sut.adapter.playbackState = .playing
+        sut.adapter.currentTime = 42
+        sut.adapter.resetRecording()
+
+        await sut.service.toggleShuffle()
+
+        #expect(sut.service.isShuffled)
+        #expect(sut.adapter.setQueueDescriptors.isEmpty, "toggle 時点では setQueue しない")
+        #expect(sut.adapter.prepareToPlayCount == 0, "toggle 時点では prepare しない")
+        #expect(sut.adapter.seekArgs.isEmpty, "toggle 時点では seek しない")
+        #expect(sut.service.musicPlayerQueue.first?.id.rawValue == "A")
+    }
+
+    @Test("toggleShuffle: 再生中に切り替えた後の next で初めて再同期する")
+    func testToggleShuffleResyncsOnNextWhilePlaying() async {
+        let sut = SUT.make()
+        let songs = [makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C")]
+        await sut.service.setQueue(songs: songs, startAt: 0)
+
+        sut.adapter.playbackState = .playing
+        await sut.service.toggleShuffle()
+        sut.adapter.resetRecording()
+
+        await sut.service.next()
+
+        #expect(sut.adapter.skipNextCount == 0, "pending resync 中は native skip しない")
+        #expect(sut.adapter.actionLog.starts(with: ["setQueue", "prepare", "play"]))
+    }
+
+    @Test("toggleShuffle: 再生中に切り替えた後の自然な trackChanged では再同期しない")
+    func testToggleShuffleDoesNotResyncOnNaturalTrackChange() async {
+        let sut = SUT.make()
+        let songs = [makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C")]
+        await sut.service.setQueue(songs: songs, startAt: 0)
+
+        sut.adapter.playbackState = .playing
+        sut.adapter.resetRecording()
+        await sut.service.toggleShuffle()
+        sut.adapter.resetRecording()
+
+        sut.adapter.indexOfNowPlayingItem = 1
+        NotificationCenter.default.post(
+            name: .MPMusicPlayerControllerNowPlayingItemDidChange,
+            object: nil
+        )
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        #expect(sut.adapter.setQueueDescriptors.isEmpty, "自然な曲送りでは setQueue しない")
+        #expect(sut.adapter.prepareToPlayCount == 0, "自然な曲送りでは prepare しない")
+        #expect(sut.adapter.playCount == 0, "自然な曲送りでは play を再度呼ばない")
+    }
     
     @Test("cycleRepeatMode: none→all→one→none の順に切り替わること")
     func testCycleRepeatMode() async {
@@ -750,6 +824,50 @@ struct MusicPlayerServiceImplTests {
         await sut.service.cycleRepeatMode()
         #expect(sut.adapter.repeatMode == .none, "adapter.repeatMode が .none に戻る")
         #expect(sut.service.repeatMode == .none, "service.repeatMode が .none に戻る")
+    }
+
+    @Test("repeat one: 再生中に設定したあと停止したら現在曲の先頭から再開する")
+    func testRepeatOneRestartsCurrentSongOnStop() async {
+        let sut = SUT.make()
+        await sut.service.setQueue(songs: [makeDummySong(id: "A")], startAt: 0)
+        await sut.service.cycleRepeatMode()
+        await sut.service.cycleRepeatMode()
+        #expect(sut.service.repeatMode == .one)
+
+        sut.adapter.resetRecording()
+        sut.adapter.playbackState = .stopped
+
+        NotificationCenter.default.post(
+            name: .MPMusicPlayerControllerPlaybackStateDidChange,
+            object: nil
+        )
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        #expect(sut.adapter.actionLog.starts(with: ["seek", "play"]))
+        #expect(sut.adapter.seekArgs.last == 0)
+        #expect(sut.adapter.playCount == 1)
+    }
+
+    @Test("cycleRepeatMode: 再生中は .one へ入っても即再キューしない")
+    func testCycleRepeatModeDefersResyncWhenEnteringOneWhilePlaying() async {
+        let sut = SUT.make()
+        await sut.service.setQueue(
+            songs: [makeDummySong(id: "A"), makeDummySong(id: "B")],
+            startAt: 0
+        )
+        sut.adapter.playbackState = .playing
+        sut.adapter.currentTime = 21
+        sut.adapter.resetRecording()
+
+        await sut.service.cycleRepeatMode()
+        sut.adapter.resetRecording()
+        await sut.service.cycleRepeatMode()
+
+        #expect(sut.service.repeatMode == .one)
+        #expect(sut.adapter.repeatMode == .one)
+        #expect(sut.adapter.setQueueDescriptors.isEmpty, "repeat toggle 時点では setQueue しない")
+        #expect(sut.adapter.prepareToPlayCount == 0, "repeat toggle 時点では prepare しない")
+        #expect(sut.adapter.seekArgs.isEmpty, "repeat toggle 時点では seek しない")
     }
 }
 
