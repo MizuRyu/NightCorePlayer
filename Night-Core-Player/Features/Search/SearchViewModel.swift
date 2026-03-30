@@ -128,9 +128,12 @@ final class SearchViewModel {
 
     func resetToHistory() {
         searchTask?.cancel()
+        searchTask = nil
         query = ""
         songs = []
         artists = []
+        isLoading = false
+        isLoadingMore = false
         hasMoreSongs = false
         currentOffset = 0
         lastSearchedQuery = ""

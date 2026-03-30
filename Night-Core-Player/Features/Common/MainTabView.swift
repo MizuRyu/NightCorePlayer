@@ -53,11 +53,14 @@ struct MainTabView: View {
             .overlay(alignment: .bottom) {
                 // 検索タブ位置にオーバーレイしてタップ/長押しを検出
                 GeometryReader { geo in
-                    let tabWidth = geo.size.width / 4
+                    let tabs = PlayerNavigator.Tab.allCases
+                    let tabCount = max(1, CGFloat(tabs.count))
+                    let tabWidth = geo.size.width / tabCount
+                    let searchIndex = CGFloat(tabs.firstIndex(of: .search) ?? 1)
                     Color.clear
                         .frame(width: tabWidth, height: 50)
                         .contentShape(Rectangle())
-                        .position(x: tabWidth * 1.5, y: geo.size.height - 25)
+                        .position(x: tabWidth * (searchIndex + 0.5), y: geo.size.height - 25)
                         .onTapGesture {
                             if nav.selectedTab == .search {
                                 nav.searchBarFocusRequestID += 1

@@ -4,7 +4,7 @@ import MusicKit
 
 @Observable
 final class PlayerNavigator {
-    enum Tab: Hashable {
+    enum Tab: Hashable, CaseIterable {
         case player, search, playlist, settings
     }
 

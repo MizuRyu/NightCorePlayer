@@ -39,7 +39,7 @@ final class MusicKitClientMock: MusicKitClient, @unchecked Sendable {
     }
     func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song] {
         fetchArtistSongsCalls.append((limit: limit, offset: offset))
-        return Array(artistSongs.prefix(limit))
+        return Array(artistSongs.dropFirst(offset).prefix(limit))
     }
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist] {
         fetchPlaylistCalls.append(limit)

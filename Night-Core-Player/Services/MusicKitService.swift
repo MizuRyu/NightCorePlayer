@@ -89,7 +89,6 @@ struct DefaultMusicKitClient: MusicKitClient {
         req.limit = limit
         req.offset = offset
         let res = try await req.response()
-        // アーティストIDに一致する楽曲のみフィルタリング
         return res.songs.filter { song in
             song.artistURL == artist.url || song.artistName == artist.name
         }
@@ -113,7 +112,9 @@ struct DefaultMusicKitClient: MusicKitClient {
             }
         } catch {
             lastErrorDescription = error.localizedDescription
+            #if DEBUG
             print("⚠️ playlist.with([.tracks]) failed: \(error.localizedDescription)")
+            #endif
         }
 
         var req = MusicLibraryRequest<Playlist>()
@@ -136,7 +137,9 @@ struct DefaultMusicKitClient: MusicKitClient {
             }
         } catch {
             lastErrorDescription = error.localizedDescription
+            #if DEBUG
             print("⚠️ libraryPlaylist.with([.tracks]) failed: \(error.localizedDescription)")
+            #endif
         }
 
         do {
@@ -154,7 +157,9 @@ struct DefaultMusicKitClient: MusicKitClient {
             throw error
         } catch {
             lastErrorDescription = error.localizedDescription
+            #if DEBUG
             print("⚠️ libraryPlaylist.with([.entries]) failed: \(error.localizedDescription)")
+            #endif
         }
 
         throw PlaylistSongsFetchError.tracksUnavailable(
@@ -229,7 +234,9 @@ final class MusicKitServiceImpl: MusicKitService {
     func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song] {
         try await ensureAuth()
         let songs = try await client.fetchSongs(in: playlist)
+        #if DEBUG
         print("🎵 fetchPlaylistSongs: \(songs.count) songs loaded for '\(playlist.name)' [id=\(playlist.id.rawValue)]")
+        #endif
         return songs
     }
 

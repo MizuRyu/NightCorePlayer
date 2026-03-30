@@ -602,16 +602,20 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             do {
                 try await player.prepareToPlay()
             } catch {
+                #if DEBUG
                 print("⚠️ prepareToPlay failed: \(error.localizedDescription)")
+                #endif
                 playbackErrorSubject.send(error)
                 return
             }
+            if preserveCurrentTime {
+                player.seek(to: currentPos)
+            }
             player.play()
-        }
-        applyRepeatModeToPlayer()
-        if preserveCurrentTime {
+        } else if preserveCurrentTime {
             player.seek(to: currentPos)
         }
+        applyRepeatModeToPlayer()
         player.playbackRate = currentPlaybackRate
     }
 

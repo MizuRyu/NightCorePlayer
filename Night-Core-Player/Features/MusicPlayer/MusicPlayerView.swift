@@ -244,7 +244,7 @@ struct MusicPlayerView: View {
 
     private func navigateToArtist() {
         let artistName = vm.artist
-        guard artistName != "—" else { return }
+        guard artistName != "—", artistName != "-" else { return }
         Task {
             guard let artist = try? await musicKitService.searchArtists(keyword: artistName, limit: 1).first else { return }
             nav.pendingArtist = artist
