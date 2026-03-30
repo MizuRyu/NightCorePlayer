@@ -159,8 +159,8 @@ struct MusicQueueManagerTests {
         #expect(sut.adapter.seekArgs.count == beforeSeek)
     }
 
-    @Test("moveItem: 再生中に次曲以降を並び替えると即時に player queue へ反映される")
-    func testMoveItemWhilePlayingSyncsPlayerQueueImmediately() async {
+    @Test("moveItem: 再生中の並び替えは即時にプレイヤーキューを再構築せず遅延する")
+    func testMoveItemWhilePlayingDefersResync() async {
         // Given
         let sut = SUT.make()
         let A = makeDummySong(id: "A")
@@ -169,15 +169,14 @@ struct MusicQueueManagerTests {
         let D = makeDummySong(id: "D")
         await sut.service.setQueue(songs: [A, B, C, D], startAt: 0)
         sut.adapter.playbackState = .playing
-        sut.adapter.currentTime = 18
         sut.adapter.resetRecording()
         // When
         await sut.service.moveItem(from: 1, to: 3)
-        // Then
-        #expect(sut.adapter.actionLog.starts(with: ["setQueue", "prepare", "play", "seek"]))
-        #expect(sut.adapter.seekArgs.last == 18)
+        // Then: 内部キューは更新されるが、プレイヤーには即時反映しない（音途切れ防止）
+        #expect(sut.adapter.setQueueDescriptors.isEmpty, "moveItem 時点では setQueue しない")
+        #expect(sut.adapter.prepareToPlayCount == 0, "moveItem 時点では prepare しない")
         #expect(sut.service.nowPlayingIndex == 0, "現在曲の index は変わらない")
-        #expect(sut.service.musicPlayerQueue.map(\.id.rawValue) == ["A", "C", "D", "B"])
+        #expect(sut.service.musicPlayerQueue.map(\.id.rawValue) == ["A", "C", "D", "B"], "内部キューは更新済み")
     }
 
 
@@ -707,30 +706,21 @@ struct MusicPlayerServiceImplTests {
         #expect(sut.service.playHistory.count > historyBefore, "履歴が追加される")
     }
 
-    @Test("trackChanged: moveItem 後に trackChanged 発火で実際に setQueue/seek が呼ばれる")
-    func testMoveThenTrackChanged() async {
+    @Test("moveItem 後の next() でプレイヤーキューが再構築されること")
+    func testMoveThenNextResyncsQueue() async {
+        // Given
         let sut = SUT.make()
         let A = makeDummySong(id: "A")
         let B = makeDummySong(id: "B")
         let C = makeDummySong(id: "C")
-        // A(0) 再生中
-        await sut.service.setQueue(songs: [A,B,C], startAt: 0)
-        let beforeSet = sut.adapter.setQueueDescriptors.count
-        // C(2) → 1 に移動
+        await sut.service.setQueue(songs: [A, B, C], startAt: 0)
         await sut.service.moveItem(from: 2, to: 1)
-        // nowPlayingItem／indexOfNowPlayingItem を合わせておく
-        sut.adapter.indexOfNowPlayingItem = 0
-        // 曲変更通知をポスト
-        NotificationCenter.default.post(
-        name: .MPMusicPlayerControllerNowPlayingItemDidChange,
-        object: nil
-        )
-        // 少し待つか、async で待機
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        // adapter.setQueue(with:) が１回増えている
-        #expect(sut.adapter.setQueueDescriptors.count == beforeSet + 1)
-        // seek(0) も呼ばれている
-        #expect(sut.adapter.seekArgs.last == 0)
+        sut.adapter.resetRecording()
+        // When
+        await sut.service.next()
+        // Then: 遅延再同期により setQueue + prepare + play が呼ばれる
+        #expect(sut.adapter.actionLog.starts(with: ["setQueue", "prepare", "play"]))
+        #expect(sut.service.nowPlayingIndex == 1)
     }
 
     @Test("toggleShuffle: アプリ側でキューがシャッフルされること")

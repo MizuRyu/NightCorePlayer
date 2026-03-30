@@ -251,11 +251,10 @@ struct PlayingQueueView: View {
                 }
                 Spacer()
             }
-            .padding(.top, 12)
-            .padding(.bottom, 4)
-            
+            .padding(.vertical, 8)
+
             MusicPlayerControlsView()
-                .padding(.vertical, 60)
+                .padding(.bottom, 16)
         }
         .background(Color(.systemBackground))
     }

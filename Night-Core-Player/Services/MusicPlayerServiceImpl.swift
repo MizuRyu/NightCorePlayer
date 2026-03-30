@@ -225,11 +225,10 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
 
     public func moveItem(from src: Int, to dst: Int) async {
         let action = await queue.moveItem(from: src, to: dst)
-        if action == .updatePlayerQueueOnly, player.playbackState == .playing {
-            await handleQueueAction(action)
-            return
+        if action == .updatePlayerQueueOnly {
+            // 再生中はキュー再構築を遅延して音途切れを防ぐ
+            pendingShuffleResync = true
         }
-        needsQueueRefresh = action == .updatePlayerQueueOnly
         updateSnapshot()
     }
 

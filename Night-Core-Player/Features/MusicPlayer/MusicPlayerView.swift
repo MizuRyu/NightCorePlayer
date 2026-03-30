@@ -111,7 +111,7 @@ struct MusicPlayerView: View {
                             delayBeforeScroll: Constants.MarqueeText.defaultDelay,
                             selectedTab: nav.selectedTab
                         )
-                        .foregroundColor(.indigo)
+                        .foregroundColor(.secondary)
                         .frame(width: 100, height: subtitleHeight)
                         .clipped()
                         .onTapGesture {
