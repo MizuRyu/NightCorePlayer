@@ -18,7 +18,7 @@ struct ArtistDetailView: View {
     var body: some View {
         Group {
             if vm.isLoading {
-                ProgressView("読み込み中…")
+                ProgressView("Loading…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let msg = vm.errorMessage {
                 VStack(spacing: 12) {
@@ -27,7 +27,7 @@ struct ArtistDetailView: View {
                         .foregroundColor(.orange)
                     Text(msg)
                         .multilineTextAlignment(.center)
-                    Button("リトライ") {
+                    Button("Retry") {
                         Task { await vm.load() }
                     }
                 }
@@ -35,7 +35,7 @@ struct ArtistDetailView: View {
             } else {
                 VStack(spacing: 16) {
                     HStack(spacing: 16) {
-                        actionButton(title: "再生", systemImage: "play.fill") {
+                        actionButton(title: String(localized: "Play"), systemImage: "play.fill") {
                             Task {
                                 await vm.loadAllAvailable()
                                 playerVM.loadPlaylist(
@@ -46,7 +46,7 @@ struct ArtistDetailView: View {
                                 nav.selectedTab = .player
                             }
                         }
-                        actionButton(title: "シャッフル", systemImage: "shuffle") {
+                        actionButton(title: String(localized: "Shuffle"), systemImage: "shuffle") {
                             Task {
                                 await vm.loadAllAvailable()
                                 playerVM.loadPlaylist(

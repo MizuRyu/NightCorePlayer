@@ -8,11 +8,11 @@ enum AppError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .musicKit(let error):
-            return "MusicKit エラー: \(error.localizedDescription)"
+            return String(localized: "MusicKit Error: \(error.localizedDescription)")
         case .player(let message):
-            return "再生エラー: \(message)"
+            return String(localized: "Playback Error: \(message)")
         case .persistence(let error):
-            return "データ保存エラー: \(error.localizedDescription)"
+            return String(localized: "Data Save Error: \(error.localizedDescription)")
         }
     }
 }

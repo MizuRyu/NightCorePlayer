@@ -90,7 +90,7 @@ struct HistorySectionView: View {
     var body: some View {
         if !vm.history.isEmpty {
             HStack {
-                Text("再生履歴")
+                Text("Play History")
                     .font(.body).bold()
                     .foregroundStyle(.primary)
                     .padding(.vertical, 8)
@@ -98,7 +98,7 @@ struct HistorySectionView: View {
                 Button {
                     showDeleteAlert = true
                 } label: {
-                    Label("履歴を削除", systemImage: "trash")
+                    Label("Delete History", systemImage: "trash")
                         .labelStyle(.titleAndIcon)
                 }
                 .buttonStyle(.plain)
@@ -107,11 +107,11 @@ struct HistorySectionView: View {
                 .disabled(vm.history.isEmpty)
             }
             .padding(.vertical, 8)
-            .alert("履歴をすべて削除しますか？", isPresented: $showDeleteAlert) {
-                Button("削除", role: .destructive) {
+            .alert("Delete all history?", isPresented: $showDeleteAlert) {
+                Button("Delete", role: .destructive) {
                     vm.clearHistory()
                 }
-                Button("キャンセル", role: .cancel) { }
+                Button("Cancel", role: .cancel) { }
             }
                 ForEach(Array(vm.history.enumerated()), id: \.offset) { idx, song in
                     PlayingQueueItemRowView(
@@ -131,7 +131,7 @@ struct QueueSectionView: View {
     @Environment(MusicPlayerViewModel.self) private var vm
     
     var body: some View {
-        Text("次に再生")
+        Text("Up Next")
             .font(.body).bold()
             .foregroundStyle(.primary)
             .padding(.vertical, 8)

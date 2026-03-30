@@ -230,7 +230,7 @@ struct MusicPlayerView: View {
                 )
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .alert("再生エラー", isPresented: Binding<Bool>(
+            .alert("Playback Error", isPresented: Binding<Bool>(
                 get: { vm.errorMessage != nil },
                 set: { if !$0 { vm.errorMessage = nil } }
             )) {

@@ -29,11 +29,11 @@ enum PlaylistSongsFetchError: LocalizedError {
         switch self {
         case let .tracksUnavailable(name, _, _, reason):
             if let reason, !reason.isEmpty {
-                return "プレイリスト「\(name)」の曲を取得できませんでした: \(reason)"
+                return String(localized: "Could not get songs from playlist \"\(name)\": \(reason)")
             }
-            return "プレイリスト「\(name)」の曲を取得できませんでした"
+            return String(localized: "Could not get songs from playlist \"\(name)\"")
         case let .emptyPlaylist(name, _, _):
-            return "プレイリスト「\(name)」には表示できる曲がありません"
+            return String(localized: "No displayable songs in playlist \"\(name)\"")
         }
     }
 }
@@ -200,7 +200,7 @@ final class MusicKitServiceImpl: MusicKitService {
             throw NSError(
                 domain: "MusicKit",
                 code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "MusicKit の権限がありません"]
+                userInfo: [NSLocalizedDescriptionKey: String(localized: "MusicKit permission denied")]
             )
         }
     }

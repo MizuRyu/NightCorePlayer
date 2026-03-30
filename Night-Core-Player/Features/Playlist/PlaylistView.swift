@@ -10,7 +10,7 @@ struct PlaylistView: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("プレイリスト")
+                .navigationTitle("Playlists")
                 .navigationDestination(for: PlaylistRowModel.self) { row in
                     PlaylistDetailView(pl: row.playlist, musicKitService: musicKitService)
                 }
@@ -34,7 +34,7 @@ struct PlaylistView: View {
     }
     
     private var loadingView: some View {
-        ProgressView("読み込み中...")
+        ProgressView("Loading…")
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
@@ -45,7 +45,7 @@ struct PlaylistView: View {
                 .foregroundColor(.orange)
             Text(msg)
                 .multilineTextAlignment(.center)
-            Button("リトライ") {
+            Button("Retry") {
                 Task { await vm.load() }
             }
         }

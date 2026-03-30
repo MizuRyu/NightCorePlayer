@@ -54,7 +54,7 @@ struct SearchView: View {
             VStack(spacing: 0) {
                 HStack {
                     Image(systemName: "magnifyingglass")
-                    TextField("曲名・アーティスト名", text: $vm.query)
+                    TextField("Song or artist name", text: $vm.query)
                         .focused($isSearchBarFocused)
                         .textInputAutocapitalization(.never)
                         .disableAutocorrection(true)
@@ -119,12 +119,12 @@ struct SearchView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .scrollContentBackground(.hidden)
             .background(Color(.systemBackground))
-            .navigationTitle("検索")
+            .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.large)
             .navigationDestination(for: Artist.self) { artist in
                 ArtistDetailView(artist: artist, musicKitService: musicKitService)
             }
-            .alert("エラー", isPresented: Binding<Bool>(
+            .alert("Error", isPresented: Binding<Bool>(
                 get: { vm.errorMessage != nil },
                 set: { if !$0 { vm.errorMessage = nil } }
             )) {
@@ -146,11 +146,11 @@ struct SearchView: View {
     private var searchHistoryView: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("最近の検索")
+                Text("Recent Searches")
                     .font(.headline)
                     .foregroundColor(.primary)
                 Spacer()
-                Button("すべて削除") {
+                Button("Delete All") {
                     vm.clearSearchHistory()
                 }
                 .font(.subheadline)
@@ -173,7 +173,7 @@ struct SearchView: View {
                             Image(systemName: "xmark")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                                .accessibilityLabel("履歴を削除")
+                                .accessibilityLabel("Delete History")
                         }
                         .buttonStyle(.borderless)
                     }

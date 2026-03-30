@@ -8,7 +8,7 @@ struct TermsView: View {
            let content = try? String(contentsOf: url, encoding: .utf8) {
             self.markdownContent = content
         } else {
-            self.markdownContent = "利用規約を読み込めませんでした。"
+            self.markdownContent = "Failed to load terms."
         }
     }
 
@@ -18,7 +18,7 @@ struct TermsView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .navigationTitle("利用規約・プライバシーポリシー")
+        .navigationTitle("Terms & Privacy Policy")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

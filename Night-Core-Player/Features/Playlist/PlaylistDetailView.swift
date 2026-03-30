@@ -18,7 +18,7 @@ struct PlaylistDetailView: View {
     var body: some View {
         Group {
             if vm.isLoading {
-                ProgressView("読み込み中…")
+                ProgressView("Loading…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             else if vm.isEmpty {
@@ -26,7 +26,7 @@ struct PlaylistDetailView: View {
                     Image(systemName: "music.note.list")
                         .font(.largeTitle)
                         .foregroundColor(.secondary)
-                    Text("このプレイリストには表示できる曲がありません")
+                    Text("No displayable songs in this playlist")
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -38,7 +38,7 @@ struct PlaylistDetailView: View {
                         .foregroundColor(.orange)
                     Text(msg)
                         .multilineTextAlignment(.center)
-                    Button("リトライ") {
+                    Button("Retry") {
                         Task { await vm.load() }
                     }
                 }
@@ -48,7 +48,7 @@ struct PlaylistDetailView: View {
                 VStack(spacing: 16) {
                     HStack(spacing: 16) {
                         playlistActionButton(
-                            title: "再生",
+                            title: String(localized: "Play"),
                             systemImage: "play.fill"
                         ) {
                             playerVM.loadPlaylist(
@@ -58,7 +58,7 @@ struct PlaylistDetailView: View {
                             )
                         }
                         playlistActionButton(
-                            title: "シャッフル",
+                            title: String(localized: "Shuffle"),
                             systemImage: "shuffle"
                         ) {
                             playerVM.loadPlaylist(
