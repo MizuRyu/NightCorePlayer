@@ -1,0 +1,21 @@
+Play the songs you already love at the speed you want. No downloads needed.
+
+Night Core Player connects to Apple Music and changes playback speed while the track plays. You are not limited to files stored on your device, so anything in the catalog can become nightcore.
+
+WHAT YOU CAN DO
+- Set playback speed from 0.5x to 3.0x, in 0.01 steps
+- Pitch follows the speed: raise it for a nightcore sound, lower it for daycore
+- Play your Apple Music playlists as they are
+- Search the catalog, manage the play queue, look back at your history
+- Shuffle and repeat
+
+MADE FOR
+- Gaming sessions that want faster background music
+- Hearing a sped up version of a song that never got one
+- Study and focus playlists with a little more tempo
+- Slowing a track down when you want it calmer
+
+PRICING
+The core features are free, with a daily listening limit. Pro is a one-time purchase that removes the limit and the ads.
+
+An Apple Music subscription is required.
