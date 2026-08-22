@@ -4,7 +4,7 @@ import MusicKit
 struct SongContextMenu: View {
     let song: Song
     @Environment(MusicPlayerViewModel.self) private var playerVM
-    
+
     var body: some View {
         Menu {
             Button {

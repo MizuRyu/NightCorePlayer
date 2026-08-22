@@ -22,7 +22,7 @@ private func waitUntil(
 @Suite("SearchViewModel Tests", .serialized)
 @MainActor
 struct SearchViewModelTests {
-    
+
     /// 共通セットアップ
     static let testSuiteName = "SearchViewModelTests"
 
@@ -36,7 +36,7 @@ struct SearchViewModelTests {
         let vm  = SearchViewModel(musicKitService: svc, userDefaults: defaults)
         return (vm, svc)
     }
-    
+
     @Test("初期化時: プロパティは全て初期値であること")
     func initialState() {
         // Given
@@ -47,27 +47,27 @@ struct SearchViewModelTests {
         #expect(vm.isLoading == false, "isLoading が false であること")
         #expect(vm.errorMessage == nil, "errorMessage が nil であること")
     }
-    
+
     @Test("空白クエリ: searchSongs を呼ばず songs をクリアすること")
     func blankQuery() async {
         // Given
         let (vm, svc) = SearchViewModelTests.setUp()
-        
+
         // When
         vm.query = "   "
         try? await Task.sleep(nanoseconds: UInt64(Constants.Timing.searchDebounce + 50) * 1_000_000)
-        
+
         // Then
         #expect(svc.searchCallArgs.isEmpty, "searchSongs が呼ばれないこと")
         #expect(vm.songs.isEmpty, "songs が空配列であること")
     }
-    
+
     @Test("検索成功: isLoading の変遷と songs 更新")
     func searchSuccess() async {
         // Given
         let (vm, svc) = SearchViewModelTests.setUp()
         svc.stubSongs = [makeDummySong(id: "S1")]
-        
+
         // When
         vm.query = "  Rock  "
         await waitUntil {
@@ -75,30 +75,30 @@ struct SearchViewModelTests {
                 && vm.songs.count == 1
                 && vm.isLoading == false
         }
-        
+
         // Then
         #expect(svc.searchCallArgs.count == 1, "searchSongs が1回呼ばれること")
         #expect(svc.searchCallArgs.first?.keyword == "Rock", "キーワードの前後空白が除去されていること")
         #expect(vm.isLoading == false, "完了後 isLoading が false であること")
         #expect(vm.songs.count == 1, "songs が更新されること")
     }
-    
+
     @Test("同一クエリ重複入力: removeDuplicates で1回のみ呼ばれること")
     func duplicateQuery() async {
         // Given
         let (vm, svc) = SearchViewModelTests.setUp()
         svc.stubSongs = [makeDummySong(id: "S1")]
-        
+
         // When
         vm.query = "Jazz"
         await waitUntil { svc.searchCallArgs.count == 1 }
         vm.query = "Jazz"
         try? await Task.sleep(nanoseconds: UInt64(Constants.Timing.searchDebounce + 150) * 1_000_000)
-        
+
         // Then
         #expect(svc.searchCallArgs.count == 1, "同一クエリは1回のみ検索されること")
     }
-    
+
     @Test("検索失敗: error が設定され songs が空になること")
     func searchError() async {
         // Given

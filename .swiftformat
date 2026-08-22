@@ -1,0 +1,8 @@
+--swiftversion 5
+
+--indent 4
+--linebreaks lf
+
+--importgrouping testable-bottom
+
+--disable wrapArguments,wrapMultilineStatementBraces,wrapMultilineFunctionChains,wrapMultilineLiteralBrackets

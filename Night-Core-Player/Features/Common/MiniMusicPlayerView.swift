@@ -5,7 +5,7 @@ struct MiniMusicPlayerView: View {
     @ObserveInjection var inject
     @Environment(PlayerNavigator.self) private var nav
     @Environment(MusicPlayerViewModel.self) private var vm
-    
+
     var body: some View {
         VStack(spacing: 0) {
             GeometryReader { geo in
@@ -15,17 +15,17 @@ struct MiniMusicPlayerView: View {
                 Capsule()
                     .fill(Color.indigo)
                     .frame(width: geo.size.width * CGFloat(progress), height: 2)
-                    .offset(y:geo.size.height - 2)
+                    .offset(y: geo.size.height - 2)
             }
             .frame(height: 2)
-            
+
             HStack(spacing: 12) {
                 vm.artworkImage
                     .resizable()
                     .scaledToFit()
                     .frame(width: 40, height: 40)
                     .cornerRadius(4)
-                
+
                 MarqueeText(
                     text: vm.title,
                     font: .subheadline,
@@ -37,7 +37,7 @@ struct MiniMusicPlayerView: View {
                     selectedTab: nav.selectedTab
                 )
                 Spacer()
-                
+
                 Button(action: vm.previousTrack) {
                     Image(systemName: "backward.fill")
                         .font(.system(size: 20))

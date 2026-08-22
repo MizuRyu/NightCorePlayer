@@ -8,10 +8,10 @@ import MediaPlayer
 final class PlayerControllableMock: PlayerControllable {
     var playbackState: MPMusicPlaybackState = .paused
     var currentTime: TimeInterval = 0
-    var nowPlayingItem: MPMediaItem? = nil
+    var nowPlayingItem: MPMediaItem?
     var indexOfNowPlayingItem: Int = 0
     var playbackRate: Double = 1.0
-    
+
     var shuffleMode: MPMusicShuffleMode = .off
     var repeatMode: MPMusicRepeatMode = .none
 
@@ -212,11 +212,11 @@ final class MusicPlayerServiceMock: MusicPlayerService {
     public var musicPlayerQueue: [Song] = []
     public var nowPlayingIndex: Int     = 0
     public var playHistory: [Song]      = []
-    
+
     public private(set) var isShuffled: Bool       = false
     public private(set) var repeatMode: Constants.RepeatMode = .none
     public private(set) var isAutoPlayEnabled: Bool = false
-    
+
     public func start() async {}
 
     public func setQueue(songs: [Song], startAt index: Int, autoPlay: Bool) async {
@@ -294,11 +294,11 @@ final class MusicPlayerServiceMock: MusicPlayerService {
         clearHistoryCallCount += 1
         playHistory.removeAll()
     }
-    
+
     public func toggleShuffle() async {
         isShuffled.toggle()
     }
-    
+
     public func cycleRepeatMode() async {
         switch repeatMode {
         case .none: repeatMode = .all
@@ -306,7 +306,7 @@ final class MusicPlayerServiceMock: MusicPlayerService {
         case .one:  repeatMode = .none
         }
     }
-    
+
     public func toggleAutoPlay() async {
         isAutoPlayEnabled.toggle()
     }

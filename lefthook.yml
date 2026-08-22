@@ -1,0 +1,30 @@
+# setup: lefthook install
+
+pre-commit:
+  commands:
+    swiftlint:
+      glob: "*.swift"
+      run: swiftlint lint --strict {staged_files}
+    gitleaks:
+      run: gitleaks protect --staged -v
+
+commit-msg:
+  commands:
+    conventional-commit:
+      run: |
+        msg="$(head -n 1 {1})"
+        # マージ / リバート / fixup はチェック対象外
+        case "$msg" in
+          Merge*|Revert*|"fixup!"*|"squash!"*) exit 0 ;;
+        esac
+        if ! printf '%s' "$msg" | grep -Eq '^(feat|fix|docs|style|refactor|test|chore)(\([A-Za-z0-9/_-]+\))?!?: .+'; then
+          echo ""
+          echo "[conventional-commit] コミットメッセージが規約に一致しません"
+          echo ""
+          echo "  形式:  <type>(<scope>)?!: <subject>"
+          echo "  type:  feat | fix | docs | style | refactor | test | chore"
+          echo ""
+          echo "  例:    feat: アーティスト検索機能を追加"
+          echo ""
+          exit 1
+        fi

@@ -1,0 +1,93 @@
+# NightCorePlayer 用 SwiftLint 設定
+#
+# 既存コードスタイル（docs/specs/ARCHITECTURE.md）に合わせた現実的なしきい値。
+# - pre-commit（lefthook.yml）では変更ファイルのみ --strict で実行する
+#   → warning も error として扱われる。触ったファイルは警告ゼロが求められる
+# - Makefile の check ターゲットは --strict なしで全体を実行する
+#   → 既存コードの既存違反（print 等）で即座には落とさない
+#
+# 実測値に基づく緩和:
+#   - 最長行 ~143 文字                  → line_length warning 160
+#   - MusicPlayerServiceImpl.swift 691 行 → file_length warning 800
+#     （ARCHITECTURE.md が 300 行超の分割を「検討」扱いにしているため lint では強制しない）
+
+included:
+  - Night-Core-Player
+  - Night-Core-PlayerTests
+
+excluded:
+  - .build
+  - build
+
+disabled_rules:
+  # Protocol メソッド宣言での明示的な `-> Void` を許容する（MusicKitService 等）
+  - redundant_void_return
+
+opt_in_rules:
+  # 定番の低ノイズ系
+  - empty_count
+  - closure_spacing
+  - explicit_init
+  - closure_end_indentation
+  - first_where
+  - contains_over_first_not_nil
+  - sorted_first_last
+
+# ---- 既存コードから逸脱しないための緩和 ------------------------------------
+
+line_length:
+  warning: 160
+  error: 240
+
+file_length:
+  warning: 800
+  error: 1500
+
+type_body_length:
+  # legacy: MusicPlayerServiceImpl のクラス本体が 576 行
+  warning: 600
+  error: 1200
+
+function_body_length:
+  warning: 80
+  error: 200
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+identifier_name:
+  min_length: 1
+  excluded:
+    - id
+
+type_name:
+  min_length: 2
+  excluded:
+    - UI
+
+# LocalizationKeys / UIConstants の名前空間用ネストした enum を許容する
+nesting:
+  type_level:
+    warning: 2
+    error: 3
+
+# 永続化層のスナップショット型などで 3 要素以上のタプルを使っている
+large_tuple:
+  warning: 4
+  error: 6
+
+function_parameter_count:
+  warning: 7
+  error: 10
+
+# ---- プロジェクト固有ルール -------------------------------------------------
+
+custom_rules:
+  disallow_print:
+    name: "Disallow Print"
+    regex: '\bprint\b'
+    match_kinds:
+      - identifier
+    message: 'print() ではなく os.Logger を使用すること'
+    severity: warning

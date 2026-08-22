@@ -4,7 +4,7 @@ import SwiftData
 struct AppDataStore {
     static let shared = AppDataStore()
     let container: ModelContainer
-    
+
     private init() {
         do {
             container = try ModelContainer(
@@ -37,4 +37,3 @@ struct AppDataStore {
         }
     }
 }
-

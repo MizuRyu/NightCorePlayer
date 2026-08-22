@@ -98,7 +98,7 @@ struct PlayHistoryManagerTests {
         let songs = [
             makeDummySong(id: "r-1", title: "Restored 1"),
             makeDummySong(id: "r-2", title: "Restored 2"),
-            makeDummySong(id: "r-3", title: "Restored 3"),
+            makeDummySong(id: "r-3", title: "Restored 3")
         ]
 
         manager.restoreHistory(songs)

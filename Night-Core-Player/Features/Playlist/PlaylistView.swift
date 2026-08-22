@@ -6,7 +6,7 @@ struct PlaylistView: View {
     @ObserveInjection var inject
     @Environment(PlaylistViewModel.self) private var vm
     @Environment(\.musicKitService) private var musicKitService
-    
+
     var body: some View {
         NavigationStack {
             content
@@ -19,25 +19,23 @@ struct PlaylistView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .enableInjection()
     }
-    
+
     @ViewBuilder
     private var content: some View {
         if vm.isLoading {
             loadingView
-        }
-        else if let msg = vm.errorMessage {
+        } else if let msg = vm.errorMessage {
             errorView(msg)
-        }
-        else {
+        } else {
             listView
         }
     }
-    
+
     private var loadingView: some View {
         ProgressView("Loading…")
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private func errorView(_ msg: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle.fill")
@@ -51,7 +49,7 @@ struct PlaylistView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private var listView: some View {
         List {
             ForEach(vm.rows) { row in
@@ -85,5 +83,3 @@ struct PlaylistView: View {
         .background(Color(.systemBackground))
     }
 }
-
-

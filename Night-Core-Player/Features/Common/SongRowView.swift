@@ -5,7 +5,7 @@ import MusicKit
 struct SongRowView: View {
     @ObserveInjection var inject
     let song: Song
-    
+
     var body: some View {
         HStack {
             if song.artwork != nil {

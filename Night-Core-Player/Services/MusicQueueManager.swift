@@ -27,9 +27,7 @@ public final class MusicQueueManager: QueueManaging {
               items.indices.contains(dst) else { return .noAction }
         let song = items.remove(at: src)
         items.insert(song, at: dst)
-        if src == currentIndex { currentIndex = dst }
-        else if src < currentIndex && dst >= currentIndex { currentIndex -= 1 }
-        else if src > currentIndex && dst <= currentIndex { currentIndex += 1 }
+        if src == currentIndex { currentIndex = dst } else if src < currentIndex && dst >= currentIndex { currentIndex -= 1 } else if src > currentIndex && dst <= currentIndex { currentIndex += 1 }
         return .updatePlayerQueueOnly
     }
 

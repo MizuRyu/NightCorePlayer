@@ -5,7 +5,7 @@ import SwiftUI
 // MARK: - Protocol
 
 protocol MusicKitService: Sendable {
-    func ensureAuth() async throws -> Void
+    func ensureAuth() async throws
     func searchSongs(keyword: String, limit: Int, offset: Int) async throws -> [Song]
     func searchArtists(keyword: String, limit: Int) async throws -> [Artist]
     func fetchArtistTopSongs(artist: Artist) async throws -> [Song]
@@ -194,7 +194,7 @@ final class MusicKitServiceImpl: MusicKitService {
     init(client: MusicKitClient = DefaultMusicKitClient()) {
         self.client = client
     }
-    func ensureAuth() async throws -> Void {
+    func ensureAuth() async throws {
         let status = await client.requestAuthorization()
         guard status == .authorized else {
             throw NSError(

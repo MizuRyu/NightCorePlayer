@@ -23,7 +23,7 @@ final class MusicKitServiceMock: MusicKitService, @unchecked Sendable {
     // MARK: - Playlist トラッキング
     var fetchLibraryPlaylistsCallCount = 0
     var fetchPlaylistSongsCallCount = 0
-    var fetchLibraryPlaylistsHandler: ((Int) throws -> [Playlist])? = nil
+    var fetchLibraryPlaylistsHandler: ((Int) throws -> [Playlist])?
     var fetchPlaylistSongsResult: Result<[Song], Error> = .success([])
 
     // MARK: - Recommendation トラッキング
@@ -89,4 +89,3 @@ final class MusicKitServiceMock: MusicKitService, @unchecked Sendable {
 // 後方互換エイリアス（テスト移行用、将来削除可）
 typealias MusicKitServiceMock_Search = MusicKitServiceMock
 typealias MusicKitServiceMock_Playlist = MusicKitServiceMock
-

@@ -106,7 +106,7 @@ struct MusicQueueManagerTests {
         let action = await mgr.moveItem(from: 1, to: 1)
         // Then: noActionが返り、順序もcurrentIndexも変わらない
         #expect(action == .noAction)
-        #expect(mgr.items.map(\.id.rawValue) == ["A","B","C"])
+        #expect(mgr.items.map(\.id.rawValue) == ["A", "B", "C"])
         #expect(mgr.currentIndex == 1)
     }
 
@@ -122,7 +122,7 @@ struct MusicQueueManagerTests {
         let action = await mgr.moveItem(from: 1, to: 0)
         // Then: updatePlayerQueueOnlyが返り、Bが先頭に
         #expect(action == .updatePlayerQueueOnly)
-        #expect(mgr.items.map(\.id.rawValue) == ["B","A","C"])
+        #expect(mgr.items.map(\.id.rawValue) == ["B", "A", "C"])
     }
 
     @Test("moveItem: 楽曲を後方に移動できること")
@@ -139,7 +139,7 @@ struct MusicQueueManagerTests {
         let action = await mgr.moveItem(from: 0, to: 2)
         // Then: updatePlayerQueueOnlyが返り、Aが末尾に
         #expect(action == .updatePlayerQueueOnly)
-        #expect(mgr.items.map(\.id.rawValue) == ["B","C","A"])
+        #expect(mgr.items.map(\.id.rawValue) == ["B", "C", "A"])
     }
 
     @Test("moveItem: 非再生中の曲を移動すると即時再生操作は呼ばれず、フラグだけ立つ")
@@ -149,7 +149,7 @@ struct MusicQueueManagerTests {
         let A = makeDummySong(id: "A")
         let B = makeDummySong(id: "B")
         let C = makeDummySong(id: "C")
-        await sut.service.setQueue(songs: [A,B,C], startAt: 0)
+        await sut.service.setQueue(songs: [A, B, C], startAt: 0)
         let beforeSet = sut.adapter.setQueueDescriptors.count
         let beforeSeek = sut.adapter.seekArgs.count
         // When
@@ -179,7 +179,6 @@ struct MusicQueueManagerTests {
         #expect(sut.service.musicPlayerQueue.map(\.id.rawValue) == ["A", "C", "D", "B"], "内部キューは更新済み")
     }
 
-
     @Test("removeItem: 1曲のみなら playerShouldStop")
     func testRemoveItemSingle() async {
         // Given: 1曲だけのキュー
@@ -205,7 +204,7 @@ struct MusicQueueManagerTests {
         let (action, _) = await mgr.removeItem(at: 1)
         // Then: playNewQueueが返り、キュー・indexが更新
         #expect(action == .playNewQueue)
-        #expect(mgr.items.map(\.id.rawValue) == ["A","C"])
+        #expect(mgr.items.map(\.id.rawValue) == ["A", "C"])
         #expect(mgr.currentIndex == 1)
     }
 
@@ -214,12 +213,12 @@ struct MusicQueueManagerTests {
         let A = makeDummySong(id: "A")
         let B = makeDummySong(id: "B")
         let C = makeDummySong(id: "C")
-        
+
         let adapter   = PlayerControllableMock()
         let queueMock = QueueManagingMock()
         queueMock.items = [A, B, C]
         queueMock.currentIndex = 0
-        
+
         let context = AppDataStore.shared.container.mainContext
         let repo = PlayerStateRepository(context: context)
         let historyRepo = HistoryRepository(context: context)
@@ -229,9 +228,9 @@ struct MusicQueueManagerTests {
             historyManager: PlayHistoryManagerImpl(historyRepo: historyRepo),
             artworkService: ArtworkCacheServiceImpl(),
             playerAdapter: adapter,
-            queueManager:  queueMock
+            queueManager: queueMock
         )
-        
+
         // Given
         let beforeSet  = adapter.setQueueDescriptors.count
         let beforeStop = adapter.stopCount
@@ -244,7 +243,6 @@ struct MusicQueueManagerTests {
                 "範囲外なら stop() も呼ばれない")
     }
 
-
     @Test("insertNext: 空キューに追加すると playNewQueue")
     func testInsertNextEmpty() async {
         // Given: 空のキュー
@@ -256,7 +254,7 @@ struct MusicQueueManagerTests {
         #expect(mgr.items.count == 1)
         #expect(mgr.currentIndex == 0)
     }
-    
+
     @Test("playNextAndPlay: キュー内の曲を移動して再生する")
     func testPlayNextAndPlayWhenSongInQueue() async {
         // Given
@@ -266,10 +264,10 @@ struct MusicQueueManagerTests {
         let C = makeDummySong(id: "C")
         sut.queueMock.items = [A, B, C]
         sut.queueMock.currentIndex = 1
-        
+
         // When
         await sut.service.playNextAndPlay(B)
-        
+
         // Then: QueueManagingMock にセットされたキューと index を検証
         #expect(sut.queueMock.items.map(\.id.rawValue) == ["A", "C", "B"])
         #expect(sut.queueMock.currentIndex == 2)
@@ -279,7 +277,7 @@ struct MusicQueueManagerTests {
         #expect(sut.adapter.playCount == 1,
                 "1回 play() が呼ばれる")
     }
-    
+
     @Test("playNextAndPlay: キュー外の曲を挿入して再生する")
     func testPlayNextAndPlayWhenSongNotInQueue() async {
         // Given
@@ -290,10 +288,10 @@ struct MusicQueueManagerTests {
         let D = makeDummySong(id: "D")
         sut.queueMock.items = [A, B, C]
         sut.queueMock.currentIndex = 0
-        
+
         // When
         await sut.service.playNextAndPlay(D)
-        
+
         // Then: QueueManagingMock にセットされたキューと index を検証
         #expect(sut.queueMock.items.map(\.id.rawValue) == ["A", "D", "B", "C"])
         #expect(sut.queueMock.currentIndex == 1)
@@ -302,7 +300,7 @@ struct MusicQueueManagerTests {
         #expect(sut.adapter.playCount == 1,
                 "1回 play() が呼ばれる")
     }
-    
+
     @Test("advanceToNextTrack: 次の曲がない場合は何もしないこと")
     func testAdvanceOutOfRange() async {
         // Given: 1曲だけのキュー
@@ -384,7 +382,7 @@ struct MusicQueueManagerTests {
         // When: songsForPlayerQueueDescriptorを呼ぶ
         let list = await mgr.songsForPlayerQueueDescriptor()
         // Then: indexから末尾までの配列が返る（ローテーションなし）
-        #expect(list.map(\.id.rawValue) == ["B","C"])
+        #expect(list.map(\.id.rawValue) == ["B", "C"])
     }
 }
 
@@ -626,20 +624,20 @@ struct MusicPlayerServiceImplTests {
 
     @Test("removeItem: 非再生中の曲を削除すると、trackChanged 後に adapter.setQueue + seek が呼ばれる")
     func testRemoveItemNonCurrentWithTrackChanged() async {
-        //-- Setup
+        // -- Setup
         let sut   = SUT.make()
         let A     = makeDummySong(id: "A")
         let B     = makeDummySong(id: "B")
         let C     = makeDummySong(id: "C")
         // A(0) を再生中としてセット
         await sut.service.setQueue(songs: [A, B, C], startAt: 0)
-        
+
         let beforeSet  = sut.adapter.setQueueDescriptors.count
-        
-        //-- 実行：非再生中の曲を削除（フラグだけ立つ）
+
+        // -- 実行：非再生中の曲を削除（フラグだけ立つ）
         await sut.service.removeItem(at: 2)
-        
-        //-- trackChanged() をシミュレートするための通知発火
+
+        // -- trackChanged() をシミュレートするための通知発火
         // 1) adapterの indexOfNowPlayingItem が queueMock.currentIndex と一致するようにする
         sut.adapter.indexOfNowPlayingItem = sut.queueMock.currentIndex
         // 2) 曲変更通知をポスト
@@ -649,8 +647,8 @@ struct MusicPlayerServiceImplTests {
         )
         // 非同期後処理が回るのを少しだけ待機
         try? await Task.sleep(nanoseconds: 100_000_000)
-        
-        //-- 検証
+
+        // -- 検証
         #expect(sut.adapter.setQueueDescriptors.count == beforeSet + 1,
                 "非再生中 remove 後の trackChanged で adapter.setQueue(with:) が呼ばれる")
         #expect(sut.adapter.seekArgs.last == 0,
@@ -664,7 +662,7 @@ struct MusicPlayerServiceImplTests {
         let A = makeDummySong(id: "A")
         let B = makeDummySong(id: "B")
         let C = makeDummySong(id: "C")
-        await sut.service.setQueue(songs: [A,B,C], startAt: 1)
+        await sut.service.setQueue(songs: [A, B, C], startAt: 1)
         let beforeSet = sut.adapter.setQueueDescriptors.count
         let beforePlay = sut.adapter.playCount
         // When: B(1)を削除
@@ -744,7 +742,7 @@ struct MusicPlayerServiceImplTests {
         #expect(sut.adapter.shuffleMode == .off, "player.shuffleMode は .off のまま")
         #expect(!sut.service.isShuffled, "isShuffled が false に戻る")
         // 元の順序に復元される
-        #expect(sut.service.musicPlayerQueue.map(\.id.rawValue) == ["A","B","C"],
+        #expect(sut.service.musicPlayerQueue.map(\.id.rawValue) == ["A", "B", "C"],
                 "元のキュー順が復元される")
     }
 
@@ -805,7 +803,7 @@ struct MusicPlayerServiceImplTests {
         #expect(sut.adapter.prepareToPlayCount == 0, "自然な曲送りでは prepare しない")
         #expect(sut.adapter.playCount == 0, "自然な曲送りでは play を再度呼ばない")
     }
-    
+
     @Test("cycleRepeatMode: none→all→one→none の順に切り替わること")
     func testCycleRepeatMode() async {
         let sut = SUT.make()
@@ -814,12 +812,12 @@ struct MusicPlayerServiceImplTests {
         #expect(sut.service.repeatMode == .none)
         // none → all
         await sut.service.cycleRepeatMode()
-        #expect(sut.adapter.repeatMode == .all,  "adapter.repeatMode が .all に")
-        #expect(sut.service.repeatMode == .all,  "service.repeatMode が .all に")
+        #expect(sut.adapter.repeatMode == .all, "adapter.repeatMode が .all に")
+        #expect(sut.service.repeatMode == .all, "service.repeatMode が .all に")
         // all → one
         await sut.service.cycleRepeatMode()
-        #expect(sut.adapter.repeatMode == .one,  "adapter.repeatMode が .one に")
-        #expect(sut.service.repeatMode == .one,  "service.repeatMode が .one に")
+        #expect(sut.adapter.repeatMode == .one, "adapter.repeatMode が .one に")
+        #expect(sut.service.repeatMode == .one, "service.repeatMode が .one に")
         // one → none
         await sut.service.cycleRepeatMode()
         #expect(sut.adapter.repeatMode == .none, "adapter.repeatMode が .none に戻る")

@@ -4,7 +4,7 @@ import MusicKit
 struct PlayingQueueItemRowView: View {
     let song: Song
     let isCurrent: Bool
-    
+
     var body: some View {
         HStack(spacing: 12) {
             if let url = song.artwork?.url(width: 44, height: 44) {
@@ -33,7 +33,7 @@ struct PlayingQueueItemRowView: View {
                     .background(Color(.secondarySystemBackground))
                     .cornerRadius(6)
             }
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(song.title)
                     .font(.subheadline)
@@ -44,7 +44,7 @@ struct PlayingQueueItemRowView: View {
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
-            
+
             Spacer()
         }
         .padding(.vertical, 4)

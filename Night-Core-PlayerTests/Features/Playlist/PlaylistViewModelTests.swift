@@ -3,7 +3,6 @@ import SwiftUI
 import MusicKit
 @testable import Night_Core_Player
 
-
 // MARK: - PlaylistViewModel Tests
 @Suite("PlaylistViewModel Tests")
 @MainActor
@@ -36,7 +35,7 @@ struct PlaylistViewModelTests {
             makeDummyPlaylist(id: "2", name: "P2")
         ]
         let (vm, svc) = PlaylistViewModelTests.setUp()
-        svc.fetchLibraryPlaylistsHandler = { limit in
+        svc.fetchLibraryPlaylistsHandler = { _ in
             return playlists
         }
 
@@ -53,7 +52,7 @@ struct PlaylistViewModelTests {
     func load_failure_setsErrorMessage() async {
         // Given
         let (vm, svc) = PlaylistViewModelTests.setUp()
-        svc.fetchLibraryPlaylistsHandler = { limit in
+        svc.fetchLibraryPlaylistsHandler = { _ in
             throw URLError(.badServerResponse)
         }
 

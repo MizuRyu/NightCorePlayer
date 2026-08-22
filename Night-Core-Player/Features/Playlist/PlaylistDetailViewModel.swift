@@ -10,20 +10,20 @@ final class PlaylistDetailViewModel {
     private(set) var isLoading = false
     private(set) var isEmpty = false
     private(set) var errorMessage: String?
-    
+
     private var musicKitService: MusicKitService
-    
+
     init(playlist: Playlist,
          musicKitService: MusicKitService) {
         self.playlist = playlist
         self.musicKitService = musicKitService
     }
-    
+
     func load() async {
         guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
-        
+
         do {
             songs = try await musicKitService.fetchPlaylistSongs(in: playlist)
             isEmpty = songs.isEmpty

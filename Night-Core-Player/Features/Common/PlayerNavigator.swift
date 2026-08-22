@@ -13,6 +13,6 @@ final class PlayerNavigator {
     var initialIndex: Int = 0
 
     var searchBarFocusRequestID: Int = 0
-    var pendingArtist: Artist? = nil
+    var pendingArtist: Artist?
     var isScrolling: Bool = false
 }
