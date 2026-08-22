@@ -20,8 +20,7 @@ struct PlaylistDetailView: View {
             if vm.isLoading {
                 ProgressView("Loading…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            else if vm.isEmpty {
+            } else if vm.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "music.note.list")
                         .font(.largeTitle)
@@ -30,8 +29,7 @@ struct PlaylistDetailView: View {
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            else if let msg = vm.errorMessage {
+            } else if let msg = vm.errorMessage {
                 VStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.largeTitle)
@@ -43,8 +41,7 @@ struct PlaylistDetailView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            else {
+            } else {
                 VStack(spacing: 16) {
                     HStack(spacing: 16) {
                         playlistActionButton(

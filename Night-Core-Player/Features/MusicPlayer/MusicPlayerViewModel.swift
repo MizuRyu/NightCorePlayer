@@ -10,10 +10,10 @@ final class MusicPlayerViewModel {
     private(set) var musicPlayerQueue: [Song] = []
     private(set) var currentIndex: Int = 0
     private(set) var history: [Song] = []
-    
+
     private(set) var title: String      = "—"
     private(set) var artist: String     = "—"
-    private(set) var artworkData: Data?  = nil
+    private(set) var artworkData: Data?
     private(set) var currentTime: Double = 0
 
     var artworkImage: Image {
@@ -35,7 +35,7 @@ final class MusicPlayerViewModel {
     var currentQueue: [Song] {
         Array(musicPlayerQueue.dropFirst(currentIndex + 1))
     }
-    
+
     var remainingTimeString: String {
         Self.formatRemainingTime(
             currentTime: currentTime,
@@ -44,16 +44,16 @@ final class MusicPlayerViewModel {
             rate: rate
             )
     }
-    
+
     // MARK: - Dependencies
     private let service: MusicPlayerService
     private var cancellables = Set<AnyCancellable>()
-    
+
     init(service: MusicPlayerService) {
         self.service = service
         bindService()
     }
-    
+
     func setQueue(_ songs: [Song], startAt idx: Int, autoPlay: Bool = true) {
         Task {
             await service.setQueue(songs: songs, startAt: idx, autoPlay: autoPlay)
@@ -111,23 +111,22 @@ final class MusicPlayerViewModel {
             errorMessage = (error as? AppError)?.errorDescription ?? error.localizedDescription
         }
     }
-    
+
     func toggleShuffle() {
         Task { await service.toggleShuffle() }
     }
-    
+
     func cycleRepeatMode() {
         Task { await service.cycleRepeatMode() }
     }
-    
+
     func toggleAutoPlay() {
         Task { await service.toggleAutoPlay() }
     }
-    
-    
-    func playPauseTrack()  { Task { await isPlaying ? service.pause() : service.play() } }
-    func nextTrack()       { Task { await service.next()     } }
-    func previousTrack()   { Task { await service.previous() } }
+
+    func playPauseTrack() { Task { await isPlaying ? service.pause() : service.play() } }
+    func nextTrack() { Task { await service.next()      } }
+    func previousTrack() { Task { await service.previous() } }
     func rewind15() {
         let newTime = max(currentTime - skipSeconds, 0)
         seek(to: newTime)
@@ -136,7 +135,7 @@ final class MusicPlayerViewModel {
         let newTime = min(currentTime + skipSeconds, duration)
         seek(to: newTime)
     }
-    func seek(to time: Double){
+    func seek(to time: Double) {
         currentTime = time
         Task {
             await service.seek(to: time)
@@ -152,13 +151,13 @@ final class MusicPlayerViewModel {
     func adjustRate(by delta: Double) {
         setRate(to: rate + delta)
     }
-    
+
     func loadPlaylist(songs: [Song], startAt index: Int = 0, autoPlay: Bool = true) {
         Task {
             await service.setQueue(songs: songs, startAt: index, autoPlay: autoPlay)
         }
     }
-    
+
     private var upcomingTracksDuration: Double {
         musicPlayerQueue
             .dropFirst(currentIndex + 1)
@@ -179,7 +178,7 @@ final class MusicPlayerViewModel {
         let s = Int(totalSec) % 60
         return String(format: "%02d:%02d", m, s)
     }
-    
+
     private func bindService() {
         service.snapshotPublisher
             .receive(on: DispatchQueue.main)

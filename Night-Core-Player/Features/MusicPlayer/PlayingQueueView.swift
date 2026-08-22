@@ -5,7 +5,7 @@ import MusicKit
 struct MusicPlayerControlsView: View {
     @ObserveInjection var inject
     @Environment(MusicPlayerViewModel.self) private var vm
-    
+
     var body: some View {
         VStack(spacing: 16) {
             VStack(spacing: 4) {
@@ -51,14 +51,14 @@ struct MusicPlayerControlsView: View {
             }
             .foregroundColor(.indigo)
             .padding(.vertical, 8)
-            
+
         }
     }
 }
 
 struct NowPlayingHeaderView: View {
     @Environment(MusicPlayerViewModel.self) private var vm
-    
+
     var body: some View {
         HStack {
             vm.artworkImage
@@ -79,7 +79,7 @@ struct NowPlayingHeaderView: View {
         }
         .padding(.horizontal)
         .padding(.bottom, 8)
-        
+
     }
 }
 
@@ -113,7 +113,7 @@ struct HistorySectionView: View {
                 }
                 Button("Cancel", role: .cancel) { }
             }
-                ForEach(Array(vm.history.enumerated()), id: \.offset) { idx, song in
+                ForEach(Array(vm.history.enumerated()), id: \.offset) { _, song in
                     PlayingQueueItemRowView(
                         song: song,
                         isCurrent: false
@@ -129,14 +129,14 @@ struct HistorySectionView: View {
 
 struct QueueSectionView: View {
     @Environment(MusicPlayerViewModel.self) private var vm
-    
+
     var body: some View {
         Text("Up Next")
             .font(.body).bold()
             .foregroundStyle(.primary)
             .padding(.vertical, 8)
             .id("queueHeader")
-                
+
         ForEach(Array(vm.currentQueue.enumerated()), id: \.element.id) { _, song in
             PlayingQueueItemRowView(
                 song: song,
@@ -149,7 +149,7 @@ struct QueueSectionView: View {
                     .padding(.trailing, 8)
             }
             .contentShape(Rectangle())
-            .onTapGesture{ vm.playNowNext(song) }
+            .onTapGesture { vm.playNowNext(song) }
             .listRowBackground(Color.clear)
         }
         .onMove(perform: vm.moveQueueItem)
@@ -159,13 +159,13 @@ struct QueueSectionView: View {
 
 struct CombinedListView: View {
     @Environment(MusicPlayerViewModel.self) private var vm
-    
+
     var body: some View {
         ScrollViewReader { proxy in
             List {
                 HistorySectionView()
                 QueueSectionView()
-                
+
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
@@ -185,19 +185,19 @@ struct CombinedListView: View {
         }
     }
 }
-    
+
 struct PlayingQueueView: View {
     @Environment(MusicPlayerViewModel.self) private var vm
-    
+
     var body: some View {
         VStack(spacing: 0) {
             Capsule()
                 .frame(width: 40, height: 5)
                 .foregroundColor(Color.secondary.opacity(0.6))
                 .padding(.vertical, 8)
-            
+
             NowPlayingHeaderView()
-            
+
             HStack {
                 Spacer()
                 Text("\(vm.currentQueue.count) items")
@@ -210,11 +210,11 @@ struct PlayingQueueView: View {
             .padding(.horizontal)
             .padding(.bottom, 8)
             .foregroundColor(.secondary)
-            
+
             CombinedListView()
-            
+
             Spacer()
-            
+
             HStack(spacing: 16) {
                 Spacer()
                 Button { vm.toggleShuffle() } label: {

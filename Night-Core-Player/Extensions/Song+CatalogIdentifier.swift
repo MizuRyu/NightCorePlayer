@@ -6,7 +6,7 @@ extension Song {
         case encodingFailed
         case decodingFailed
     }
-    
+
     /// 永続化用の識別子を取得
     /// - playParameters が無ければ id.rawValue
     /// - JSON 化→辞書化して catalogId キー値を探す

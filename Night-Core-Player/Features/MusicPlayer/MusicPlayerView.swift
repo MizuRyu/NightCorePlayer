@@ -6,7 +6,7 @@ struct SpeedControlButton: View {
     let label: String
     let color: Color
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Text(label)
@@ -32,7 +32,7 @@ struct SliderTickMarksOverlay: View {
                 let value  = minValue + Double(i) * step
                 let ratio  = (value - minValue) / (maxValue - minValue)
                 let xPos   = geo.size.width * ratio
-                
+
                 VStack(spacing: 4) {
                     Text(String(format: "%.1f", value))
                         .font(.caption2)
@@ -53,12 +53,12 @@ struct MusicPlayerView: View {
     @Environment(MusicPlayerViewModel.self) private var vm
     @Environment(\.musicKitService) private var musicKitService
     @State private var isQueuePresented = false
-    
+
     init() {
         let clearImage = UIImage()
         UISlider.appearance().setThumbImage(clearImage, for: .normal)
     }
-    
+
     var body: some View {
         ZStack {
             VStack(spacing: 16) {
@@ -66,7 +66,7 @@ struct MusicPlayerView: View {
                     .font(.headline)
                     .padding(.top, 8)
                 Spacer()
-                
+
                 artworkView
                     .gesture(
                         DragGesture(minimumDistance: 50)
@@ -87,7 +87,7 @@ struct MusicPlayerView: View {
                             .font(.title2)
                             .foregroundColor(.indigo)
                     }
-                    
+
                     VStack {
                         let titleHeight = UIFont.preferredFont(forTextStyle: .title3).lineHeight
                         let subtitleHeight = UIFont.preferredFont(forTextStyle: .subheadline).lineHeight
@@ -145,7 +145,7 @@ struct MusicPlayerView: View {
                             .font(.title2)
                             .foregroundColor(.indigo)
                     }
-                    Button (action: {
+                    Button(action: {
                         vm.playPauseTrack()
                     }) {
                         Image(systemName: vm.isPlaying ? "pause.fill" : "play.fill")
@@ -159,9 +159,9 @@ struct MusicPlayerView: View {
                     }
                 }
                 .padding(.vertical, 8)
-                
+
                 Spacer(minLength: 20)
-                
+
                 VStack(spacing: 10) {
                     Slider(
                         value: Binding(
@@ -170,15 +170,14 @@ struct MusicPlayerView: View {
                         ),
                         in: Constants.MusicPlayer.minPlaybackRate...Constants.MusicPlayer.maxPlaybackRate,
                         step: 0.01
-                    ) { editing in
+                    ) { _ in
                     }
-                    
+
                     .frame(width: 340)
                     .accentColor(.indigo)
                     .overlay(SliderTickMarksOverlay())
                     .padding(.horizontal)
-                    
-                    
+
                     HStack(spacing: 12) {
                         SpeedControlButton(label: "-\(Constants.MusicPlayer.rateStepLarge)", color: .red) {
                             vm.adjustRate(by: -Constants.MusicPlayer.rateStepLarge)
@@ -199,7 +198,7 @@ struct MusicPlayerView: View {
                         }
                     }
                 }
-                
+
                 VStack(spacing: 4) {
                     Image(systemName: "list.bullet")
                         .font(.title2)

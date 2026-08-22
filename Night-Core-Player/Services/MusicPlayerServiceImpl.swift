@@ -12,7 +12,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     @Published public private(set) var isAutoPlayEnabled: Bool = false
 
     private var originalQueue: [Song] = []
-    private var lastSnapshotSongID: String? = nil
+    private var lastSnapshotSongID: String?
     private let playbackErrorSubject = PassthroughSubject<Error, Never>()
 
     public var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> {
@@ -40,8 +40,8 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     private let maxPlaybackRate: Double = Constants.MusicPlayer.maxPlaybackRate
 
     private var timerCancellable: AnyCancellable?
-    private var lastPlayerIndex: Int? = nil
-    private var pendingNativeNowPlayingIndex: Int? = nil
+    private var lastPlayerIndex: Int?
+    private var pendingNativeNowPlayingIndex: Int?
     private var pendingShuffleResync: Bool = false
     private var needsQueueRefresh: Bool = false
     private var isFetchingRecommendations: Bool = false
@@ -53,8 +53,8 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         historyManager: PlayHistoryManaging,
         artworkService: ArtworkCacheService,
         musicKitService: MusicKitService? = nil,
-        playerAdapter : PlayerControllable? = nil,
-        queueManager : QueueManaging? = nil
+        playerAdapter: PlayerControllable? = nil,
+        queueManager: QueueManaging? = nil
     ) {
         self.rateManager = rateManager
         self.persistenceService = persistenceService
@@ -300,9 +300,9 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
 
             if let song = currentSong,
                let idx = restoredItems.firstIndex(where: { $0.id == song.id }) {
-                let _ = await queue.setQueue(restoredItems, startAt: idx)
+                _ = await queue.setQueue(restoredItems, startAt: idx)
             } else {
-                let _ = await queue.setQueue(restoredItems, startAt: 0)
+                _ = await queue.setQueue(restoredItems, startAt: 0)
             }
             isShuffled = false
         } else {
@@ -323,7 +323,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             } else {
                 remaining.shuffle()
             }
-            let _ = await queue.setQueue(remaining, startAt: 0)
+            _ = await queue.setQueue(remaining, startAt: 0)
             isShuffled = true
         }
         player.shuffleMode = .off
@@ -444,13 +444,13 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         let existingArtwork = snapshot.artworkData
 
         snapshot = MusicPlayerSnapshot(
-            title:       title,
-            artist:      artist,
+            title: title,
+            artist: artist,
             artworkData: existingArtwork,
             currentTime: currentTime,
-            duration:    duration,
-            rate:        rate,
-            isPlaying:   isPlaying
+            duration: duration,
+            rate: rate,
+            isPlaying: isPlaying
         )
 
         guard isNewSong else { return }
@@ -468,13 +468,13 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             guard let self = self else { return }
             let fetchedData = await self.artworkService.getArtwork(for: song)
             let updated = MusicPlayerSnapshot(
-                title:       title,
-                artist:      artist,
+                title: title,
+                artist: artist,
                 artworkData: fetchedData,
                 currentTime: currentTime,
-                duration:    duration,
-                rate:        rate,
-                isPlaying:   isPlaying
+                duration: duration,
+                rate: rate,
+                isPlaying: isPlaying
             )
             self.snapshot = updated
         }
@@ -677,11 +677,11 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
 
         do {
             try persistenceService.saveQueueState(
-                queueIDs:      queue.items.map { $0.id.rawValue },
-                currentIndex:  queue.currentIndex,
-                playbackRate:  rateManager.defaultRate,
+                queueIDs: queue.items.map { $0.id.rawValue },
+                currentIndex: queue.currentIndex,
+                playbackRate: rateManager.defaultRate,
                 shuffleModeRaw: shuffleModeRaw,
-                repeatModeRaw:  repeatModeRaw,
+                repeatModeRaw: repeatModeRaw,
                 isAutoPlayEnabled: isAutoPlayEnabled
             )
         } catch {

@@ -28,7 +28,6 @@ public func makeDummySong(
     return try! JSONDecoder().decode(Song.self, from: data)
 }
 
-
 public func makeDummyArtist(
     id: String = "AR1",
     name: String = "DummyArtist"

@@ -55,7 +55,7 @@ struct SettingsView: View {
                         .foregroundColor(.primary)
                         .padding(.top, 8)
                 }
-                
+
                 Section {
                     ForEach(OtherItem.allCases, id: \.self) { item in
                         VStack(spacing: 0) {

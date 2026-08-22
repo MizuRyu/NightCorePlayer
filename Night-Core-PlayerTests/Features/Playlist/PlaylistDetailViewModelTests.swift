@@ -38,7 +38,7 @@ struct PlaylistDetailViewModelTests {
         let (viewModel, serviceMock) = PlaylistDetailViewModelTests.setUp()
         let expectedSongs = [
             makeDummySong(id: "1", title: "A"),
-            makeDummySong(id: "2", title: "B"),
+            makeDummySong(id: "2", title: "B")
         ]
         serviceMock.fetchPlaylistSongsResult = .success(expectedSongs)
 

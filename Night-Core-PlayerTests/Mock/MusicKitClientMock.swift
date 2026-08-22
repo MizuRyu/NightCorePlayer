@@ -20,7 +20,7 @@ final class MusicKitClientMock: MusicKitClient, @unchecked Sendable {
     private(set) var fetchArtistSongsCalls: [(limit: Int, offset: Int)] = []
     private(set) var fetchPlaylistCalls: [Int] = []
     private(set) var fetchSongsCalls: [Playlist] = []
-    
+
     func requestAuthorization() async -> MusicAuthorization.Status {
         authorizationRequests += 1
         return authStatus

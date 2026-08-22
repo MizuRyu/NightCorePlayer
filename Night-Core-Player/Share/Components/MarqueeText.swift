@@ -16,12 +16,12 @@ struct MarqueeText: View {
     let speed: Double               // pt／秒
     let spacingBetweenTexts: CGFloat
     let delayBeforeScroll: Double   // 秒
-    
+
     @State private var contentWidth: CGFloat = 0
     @State private var isAnimating: Bool = false
 
     let selectedTab: PlayerNavigator.Tab
-    
+
     init(
         text: String,
         font: Font = .body,
@@ -41,20 +41,20 @@ struct MarqueeText: View {
         self.delayBeforeScroll = delayBeforeScroll
         self.selectedTab = selectedTab
     }
-    
+
     private var shouldScroll: Bool {
         contentWidth > visibleWidth
     }
-    
+
     private var animationDuration: Double {
         guard shouldScroll, speed > 0 else { return 0 }
         return (contentWidth + spacingBetweenTexts) / speed
     }
-    
+
     var body: some View {
         GeometryReader { geo in
             let currentVisibleWidth = min(visibleWidth, geo.size.width)
-            
+
             ZStack(alignment: .leading) {
                 Text(text)
                     .font(font)
@@ -68,7 +68,7 @@ struct MarqueeText: View {
                         }
                     )
                     .hidden()
-                
+
                 if shouldScroll {
                     HStack(spacing: spacingBetweenTexts) {
                         Text(text).font(font).lineLimit(1).fixedSize(horizontal: true, vertical: false)
@@ -103,7 +103,7 @@ struct MarqueeText: View {
             }
         }
     }
-    
+
     private func restartAnimation() {
         guard contentWidth > visibleWidth, speed > 0 else { return }
         withAnimation(.none) {

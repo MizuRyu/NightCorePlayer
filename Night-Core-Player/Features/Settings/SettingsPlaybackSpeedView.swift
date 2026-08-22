@@ -11,7 +11,7 @@ struct SettingsPlaybackSpeedView: View {
         self.settingsVM = settingsVM
         _currentSpeed = State(initialValue: settingsVM.defaultRate)
     }
-    
+
     var body: some View {
         List {
             Text("Playback Speed")
@@ -20,16 +20,16 @@ struct SettingsPlaybackSpeedView: View {
                 .padding(.leading, 16)
                 .padding(.top, 8)
                 .listRowSeparator(.hidden)
-            
+
             HStack {
                 Text("×\(String(format: "%.2f", currentSpeed))")
                     .font(.body)
                     .fontWeight(.bold)
                     .foregroundColor(.secondary)
                     .frame(alignment: .leading)
-                
+
                 Spacer()
-                
+
                 Stepper(
                     value: $currentSpeed,
                     in: Constants.MusicPlayer.minPlaybackRate...Constants.MusicPlayer.maxPlaybackRate,
@@ -41,11 +41,11 @@ struct SettingsPlaybackSpeedView: View {
                     settingsVM.updateDefaultRate(to: newVal)
                 }
                 .labelsHidden()
-                
+
             }
             .listRowSeparator(.hidden)
             .padding(.horizontal, 16)
-            
+
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("On app launch, music will play at the configured playback speed.")
@@ -60,7 +60,7 @@ struct SettingsPlaybackSpeedView: View {
             .padding(.leading, 16)
             .padding(.vertical, 0)
             .listRowSeparator(.hidden)
-            
+
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
