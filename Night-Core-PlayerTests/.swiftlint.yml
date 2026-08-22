@@ -1,0 +1,22 @@
+# 親 .swiftlint.yml とマージされるテスト向け緩和（nested configuration）
+#
+# 緩和の根拠:
+#   - force_try      : makeDummyData.swift が JSONDecoder().decode を try! で利用している
+#   - file_length    : MusicPlayerServiceTests.swift が 969 行（Given-When-Then を1メソッドで書く方針のため長くなる）
+#   - identifier_name: テスト内の一時変数に短い名前を使えるようにする
+#   - comma          : #expect(x == ["A","B","C"]) のようなリテラル内のコンパクトな書き方を許容する
+#   - large_tuple    : Mock の引数記録やアサーションで多要素タプルを使えるようにする
+#   - type_name      : MusicKitServiceMock_Search のような _ 区切りのグルーピング名を許容する
+
+disabled_rules:
+  - force_try
+  - force_cast
+  - identifier_name
+  - file_length
+  - function_body_length
+  - type_body_length
+  - cyclomatic_complexity
+  - comma
+  - non_optional_string_data_conversion
+  - large_tuple
+  - type_name
