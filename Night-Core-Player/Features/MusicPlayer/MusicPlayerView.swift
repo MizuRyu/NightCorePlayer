@@ -145,13 +145,14 @@ struct MusicPlayerView: View {
                             .font(.title2)
                             .foregroundColor(.indigo)
                     }
-                    Button(action: {
+                    Button {
                         vm.playPauseTrack()
-                    }) {
+                    } label: {
                         Image(systemName: vm.isPlaying ? "pause.fill" : "play.fill")
                             .font(.largeTitle)
                             .foregroundColor(.indigo)
                     }
+                    .accessibilityIdentifier("player_play_pause")
                     Button { vm.forward15() } label: {
                         Image(systemName: "goforward.15")
                             .font(.title2)
@@ -182,20 +183,25 @@ struct MusicPlayerView: View {
                         SpeedControlButton(label: "-\(Constants.MusicPlayer.rateStepLarge)", color: .red) {
                             vm.adjustRate(by: -Constants.MusicPlayer.rateStepLarge)
                         }
+                        .accessibilityIdentifier("speed_decrease_large")
                         SpeedControlButton(label: "-\(Constants.MusicPlayer.rateStepSmall)", color: .red) {
                             vm.adjustRate(by: -Constants.MusicPlayer.rateStepSmall)
                         }
+                        .accessibilityIdentifier("speed_decrease_small")
                         Text(String(format: "%.2fx", vm.rate))
                             .font(.callout)
                             .foregroundColor(.secondary)
                             .padding(.horizontal, 8)
                             .frame(minWidth: 40)
+                            .accessibilityIdentifier("playback_rate_label")
                         SpeedControlButton(label: "+\(Constants.MusicPlayer.rateStepSmall)", color: .green) {
                             vm.adjustRate(by: Constants.MusicPlayer.rateStepSmall)
                         }
+                        .accessibilityIdentifier("speed_increase_small")
                         SpeedControlButton(label: "+\(Constants.MusicPlayer.rateStepLarge)", color: .green) {
                             vm.adjustRate(by: Constants.MusicPlayer.rateStepLarge)
                         }
+                        .accessibilityIdentifier("speed_increase_large")
                     }
                 }
 

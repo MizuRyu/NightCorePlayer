@@ -37,8 +37,70 @@ done
 [ -n "$TITLE" ] || { echo "--title は必須" >&2; exit 1; }
 printf '%s' "$FEATURE" | grep -Eq '^[a-z0-9]+(-[a-z0-9]+)*$' || { echo "--feature は [a-z0-9-]+（連続/先頭末尾ハイフン不可）" >&2; exit 1; }
 
-# fail fast: ffmpeg (libx264)
+# fail fast: ffmpeg (libx264), python3 (attachment リネーム用)
 ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libx264 || { echo "ffmpeg(libx264) が必要" >&2; exit 1; }
+command -v python3 >/dev/null || { echo "python3 が必要" >&2; exit 1; }
+
+# xcresulttool が書き出した attachment ファイル群を OUT_DIR へコピーするユーティリティ
+copy_shots_as_is() {
+  local src="$1" dst="$2" n=0 f
+  for f in "$src"/*.png "$src"/*.jpeg "$src"/*.jpg; do
+    [ -e "$f" ] || continue
+    cp "$f" "$dst/$(basename "$f")"
+    n=$((n+1))
+  done
+  echo "スクショ ${n}枚を $dst/ へ抽出（UUID名）"
+}
+
+# manifest.json の suggestedHumanReadableName（無ければ displayName / name）へリネームしてコピー。
+# manifest 不備・対象0件時は非正常終了する（呼び出し元で UUID 名コピーへフォールバック）
+copy_shots_with_manifest_names() {
+  python3 - "$1" "$2" <<'PY' || return 1
+import json, os, re, shutil, sys
+
+shots_dir, out_dir = sys.argv[1], sys.argv[2]
+try:
+    with open(os.path.join(shots_dir, "manifest.json")) as f:
+        data = json.load(f)
+except (OSError, ValueError):
+    sys.exit(1)
+# xcresulttool のトップレベルはテストごとのリスト。attachments を平坦化する
+if isinstance(data, list):
+    attachments = [a for item in data for a in item.get("attachments", [])]
+else:
+    attachments = data.get("attachments", [])
+
+valid_exts = {".png", ".jpg", ".jpeg"}
+used = set()
+count = 0
+for att in attachments:
+    exported = att.get("exportedFileName")
+    if not exported or not os.path.isfile(os.path.join(shots_dir, exported)):
+        continue
+    human_name = next(
+        (att[k] for k in ("suggestedHumanReadableName", "displayName", "name") if att.get(k)),
+        "",
+    )
+    safe_name = re.sub(r"[^A-Za-z0-9._-]", "-", os.path.basename(human_name))
+    stem, ext = os.path.splitext(safe_name)
+    ext = ext.lower()
+    if ext not in valid_exts:
+        payload_ext = os.path.splitext(exported)[1].lower()
+        ext = payload_ext if payload_ext in valid_exts else ".png"
+    base = f"{stem}{ext}" if stem else f"screenshot-{count + 1}{ext}"
+    target, seq = base, 1
+    while target in used:
+        target = f"{os.path.splitext(base)[0]}-{seq}{ext}"
+        seq += 1
+    used.add(target)
+    shutil.copyfile(os.path.join(shots_dir, exported), os.path.join(out_dir, target))
+    count += 1
+
+if count == 0:
+    sys.exit(1)
+print(count)
+PY
+}
 
 # シミュレータ選定: SIMULATOR_UDID 優先。無ければ起動済み、それも無ければ利用可能な iPhone を起動
 UDID="${SIMULATOR_UDID:-}"
@@ -93,17 +155,18 @@ ffmpeg -hide_banner -loglevel error -y -i "$RAW" -i "$WORK/palette.png" \
   -lavfi "setpts=PTS/$GIF_SPEED,fps=$GIF_FPS,scale=$GIF_WIDTH:-1:flags=lanczos[x];[x][1:v]paletteuse" \
   "$OUT_DIR/$FEATURE.gif"
 
-# スクショ抽出: テスト内の XCTAttachment(.keepAlways) を xcresult から書き出す
+# スクショ抽出: テスト内の XCTAttachment(.keepAlways) を xcresult から書き出す。
+# export attachments は UUID 名のファイルと manifest.json を出力するので、
+# manifest が読めれば XCTAttachment の name へリネームしてコピーする
 SHOTS_DIR="$WORK/shots"
 mkdir -p "$SHOTS_DIR"
 if xcrun xcresulttool export attachments --path "$XCRESULT" --output-path "$SHOTS_DIR" >/dev/null 2>&1; then
-  n=0
-  for f in "$SHOTS_DIR"/*.png "$SHOTS_DIR"/*.jpeg "$SHOTS_DIR"/*.jpg; do
-    [ -e "$f" ] || continue
-    cp "$f" "$OUT_DIR/$(basename "$f")"
-    n=$((n+1))
-  done
-  echo "スクショ ${n}枚を $OUT_DIR/ へ抽出"
+  if n=$(copy_shots_with_manifest_names "$SHOTS_DIR" "$OUT_DIR"); then
+    echo "スクショ ${n}枚を $OUT_DIR/ へ抽出（XCTAttachment の名前を使用）"
+  else
+    echo "manifest.json を読めないため UUID 名のままコピーします" >&2
+    copy_shots_as_is "$SHOTS_DIR" "$OUT_DIR"
+  fi
 else
   echo "xcresulttool export attachments が使えないためスクショ抽出をスキップ" >&2
 fi

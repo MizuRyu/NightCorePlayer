@@ -24,7 +24,14 @@ struct NightcorePlayerApp: App {
             #endif
         #endif
 
-        let musicKitService = MusicKitServiceImpl()
+        // シミュレータは FairPlay 非対応のため、-DEMO 時のみ MusicKit カタログ系をスタブへ差し替える
+        // （ensureAuth を no-op にすることで MusicAuthorization.request() も迂回する）
+        let musicKitService: any MusicKitService
+        if ProcessInfo.processInfo.arguments.contains("-DEMO") {
+            musicKitService = DemoMusicKitService()
+        } else {
+            musicKitService = MusicKitServiceImpl()
+        }
 
         let context = AppDataStore.shared.container.mainContext
         let playerStateRepo = PlayerStateRepository(context: context)

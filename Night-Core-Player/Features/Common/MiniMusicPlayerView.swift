@@ -59,6 +59,7 @@ struct MiniMusicPlayerView: View {
             .padding(.trailing, 8)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityIdentifier("mini_player")
         .enableInjection()
     }
 }
