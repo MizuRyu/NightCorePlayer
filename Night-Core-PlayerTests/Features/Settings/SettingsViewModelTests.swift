@@ -196,4 +196,3 @@ struct SettingsViewModelTests {
         #expect(vm.infoMessage == nil)
     }
 }
-}

@@ -27,13 +27,14 @@ protocol ProStoreService: Sendable {
 @Observable
 @MainActor
 final class ProStoreServiceImpl: ProStoreService {
-    private let logger = Logger(subsystem: "MizuRyu.Night-Core-Player", category: "ProStore")
+    private let logger = Logger(subsystem: Constants.Logging.subsystem, category: "ProStore")
 
     static let productID = "MizuRyu.Night-Core-Player.pro"
 
     private(set) var isProEntitled = false
 
-    private var updatesTask: Task<Void, Never>?
+    // deinit(nonisolated)からcancelするため隔離を外す。書き込みはinitのみ
+    private nonisolated(unsafe) var updatesTask: Task<Void, Never>?
 
     /// 取得済みの商品。purchase()のたびの再取得を避ける
     private var cachedProduct: Product?
