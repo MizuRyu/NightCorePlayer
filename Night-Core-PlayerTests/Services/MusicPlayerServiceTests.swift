@@ -1,5 +1,6 @@
 import Testing
 import SwiftUI
+import Combine
 import MediaPlayer
 import MusicKit
 
@@ -27,9 +28,10 @@ private struct SUT {
     let queueMock: QueueManagingMock
     let rateManager: PlaybackRateManagerImpl
     let repo: PlayerStateRepository
+    let allowanceEnforcer: AllowanceEnforcer?
 
     @MainActor
-    static func make() -> SUT {
+    static func make(allowanceEnforcer: AllowanceEnforcer? = nil) -> SUT {
         let adapter   = PlayerControllableMock()
         let queueMock = QueueManagingMock()
         let context = AppDataStore.shared.container.mainContext
@@ -47,10 +49,11 @@ private struct SUT {
             historyManager: historyManager,
             artworkService: artworkService,
             playerAdapter: adapter,
-            queueManager: queueMock
+            queueManager: queueMock,
+            allowanceEnforcer: allowanceEnforcer
         )
         return SUT(service: service, adapter: adapter, queueMock: queueMock,
-                   rateManager: rateManager, repo: repo)
+                   rateManager: rateManager, repo: repo, allowanceEnforcer: allowanceEnforcer)
     }
 }
 
@@ -963,5 +966,98 @@ struct CharacterizationTests {
         #expect(sut.adapter.playbackRate == 1.8, "adapter.playbackRate にも反映される")
         // VM の表示値も更新される
         #expect(settingsVM.defaultRate == 1.8, "settingsVM.defaultRate も同期される")
+    }
+}
+
+// MARK: - Allowance Enforcement（残高枯渇時の曲境界停止）
+@Suite("AllowanceEnforcement Tests", .serialized)
+@MainActor
+struct AllowanceEnforcementTests {
+
+    @Test("枯渇時: 曲境界で一時停止しレートが等速に戻り、イベントが順に発行される")
+    func exhaustStopsAtSongBoundary() async {
+        // Given: 残高ありの状態で2曲セットし、Aを自動再生
+        let mock = AllowanceServiceMock()
+        let enforcer = AllowanceEnforcerImpl(allowanceService: mock)
+        let sut = SUT.make(allowanceEnforcer: enforcer)
+
+        var receivedEvents: [AllowanceEvent] = []
+        var cancellables: Set<AnyCancellable> = []
+        enforcer.events.sink { receivedEvents.append($0) }
+            .store(in: &cancellables)
+
+        await sut.service.setQueue(
+            songs: [makeDummySong(id: "A"), makeDummySong(id: "B")],
+            startAt: 0
+        )
+        await sut.service.setSessionRate(2.0)
+        #expect(sut.service.snapshot.isPlaying == true, "Aが再生中")
+        #expect(receivedEvents.isEmpty, "残高がある間はイベントなし")
+
+        // When: 残高を枯渇させ、updateSnapshot 経由で tick を走らせる
+        mock.entitlementResult = .exhausted
+        await sut.service.seek(to: 10)
+        #expect(receivedEvents == [.exhaustedPendingSongEnd], "枯渇検知イベントが1回発行される")
+        #expect(sut.adapter.pauseCount == 0, "枯渇検知では即座には止めない")
+
+        // 次の曲へ進み、曲替わりを検知させる
+        await sut.service.next()
+        NotificationCenter.default.post(
+            name: .MPMusicPlayerControllerNowPlayingItemDidChange,
+            object: nil
+        )
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        // Then: 曲境界で一時停止・レート等速に戻り、停止イベントが発行される
+        #expect(sut.service.nowPlayingIndex == 1)
+        #expect(sut.adapter.pauseCount == 1, "曲境界で pause する")
+        #expect(sut.adapter.playbackRate == Constants.MusicPlayer.normalPlaybackRate,
+                "player のレートが等速に戻る")
+        #expect(sut.service.snapshot.rate == Constants.MusicPlayer.normalPlaybackRate,
+                "session レートも等速に戻る")
+        #expect(sut.service.snapshot.isPlaying == false, "停止状態がスナップショットに反映される")
+        #expect(receivedEvents == [.exhaustedPendingSongEnd, .stoppedAtSongEnd])
+    }
+
+    @Test("枯渇後に等速で再開すると曲境界を跨いでも pause されない")
+    func resumeWithNormalRateDoesNotPauseAtNextBoundary() async {
+        // Given: 倍速で残高を枯渇させ、曲Bの頭で境界停止させておく
+        let mock = AllowanceServiceMock()
+        let enforcer = AllowanceEnforcerImpl(allowanceService: mock)
+        let sut = SUT.make(allowanceEnforcer: enforcer)
+
+        await sut.service.setQueue(
+            songs: [makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C")],
+            startAt: 0
+        )
+        await sut.service.setSessionRate(2.0)
+        mock.entitlementResult = .exhausted
+        await sut.service.seek(to: 10)
+
+        await sut.service.next()
+        NotificationCenter.default.post(
+            name: .MPMusicPlayerControllerNowPlayingItemDidChange,
+            object: nil
+        )
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        #expect(sut.service.nowPlayingIndex == 1)
+        #expect(sut.adapter.pauseCount == 1, "曲境界で一旦 pause する")
+
+        // When: 等速に戻して再開し、さらに次の曲へ送る
+        await sut.service.setSessionRate(Constants.MusicPlayer.normalPlaybackRate)
+        await sut.service.play()
+
+        await sut.service.next()
+        NotificationCenter.default.post(
+            name: .MPMusicPlayerControllerNowPlayingItemDidChange,
+            object: nil
+        )
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        // Then: 等速再生のため残高枯渇中でも曲境界で pause しない
+        #expect(sut.service.nowPlayingIndex == 2)
+        #expect(sut.adapter.pauseCount == 1, "等速では枯渇していても pause されない")
+        #expect(sut.service.snapshot.isPlaying == true, "再生が継続している")
     }
 }

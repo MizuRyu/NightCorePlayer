@@ -38,12 +38,18 @@ struct NightcorePlayerApp: App {
         let historyManager = PlayHistoryManagerImpl(historyRepo: historyRepo)
         let artworkService = ArtworkCacheServiceImpl()
 
+        let allowanceService = AllowanceServiceImpl(
+            repo: AllowanceRepository(context: context)
+        )
+        let allowanceEnforcer = AllowanceEnforcerImpl(allowanceService: allowanceService)
+
         let service = MusicPlayerServiceImpl(
             rateManager: rateManager,
             persistenceService: persistenceService,
             historyManager: historyManager,
             artworkService: artworkService,
-            musicKitService: musicKitService
+            musicKitService: musicKitService,
+            allowanceEnforcer: allowanceEnforcer
         )
 
         playerService = service

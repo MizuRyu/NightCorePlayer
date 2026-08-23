@@ -3,9 +3,11 @@ import MediaPlayer
 import MusicKit
 import Foundation
 import AVFoundation
+import os
 
 @MainActor
 public final class MusicPlayerServiceImpl: MusicPlayerService {
+    private let logger = Logger(subsystem: Constants.Logging.subsystem, category: "MusicPlayer")
     @Published public private(set) var snapshot: MusicPlayerSnapshot = .empty
     @Published public private(set) var isShuffled: Bool = false
     @Published public private(set) var repeatMode: Constants.RepeatMode = .none
@@ -34,6 +36,8 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     private let historyManager: PlayHistoryManaging
     private let artworkService: ArtworkCacheService
     private let musicKitService: MusicKitService?
+    private let allowanceEnforcer: AllowanceEnforcer?
+    private let now: () -> Date
 
     var currentPlaybackRate: Double = Constants.MusicPlayer.defaultPlaybackRate
     private let minPlaybackRate: Double = Constants.MusicPlayer.minPlaybackRate
@@ -54,13 +58,17 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         artworkService: ArtworkCacheService,
         musicKitService: MusicKitService? = nil,
         playerAdapter: PlayerControllable? = nil,
-        queueManager: QueueManaging? = nil
+        queueManager: QueueManaging? = nil,
+        allowanceEnforcer: AllowanceEnforcer? = nil,
+        now: @escaping () -> Date = Date.init
     ) {
         self.rateManager = rateManager
         self.persistenceService = persistenceService
         self.historyManager = historyManager
         self.artworkService = artworkService
         self.musicKitService = musicKitService
+        self.allowanceEnforcer = allowanceEnforcer
+        self.now = now
 
         self.player   = playerAdapter ?? MPMusicPlayerAdapter(defaultRate: rateManager.defaultRate)
         self.queue    = queueManager ?? MusicQueueManager()
@@ -70,7 +78,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             try session.setCategory(.playback, mode: .default)
             try session.setActive(true)
         } catch {
-            print("AVAudioSession error: \(error)")
+            logger.error("AVAudioSession error: \(error)")
         }
 
         timerCancellable = Timer.publish(every: 0.5, on: .main, in: .common)
@@ -124,6 +132,11 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
 
         if player.playbackState == .stopped {
             if repeatMode == .one, queue.currentSong != nil {
+                // 残高枯渇時はrepeat .oneの無限ループを抜けられないため、停止予約があればループ再生せず止める
+                if stopAtSongBoundaryIfNeeded(pausePlayer: false) {
+                    updateSnapshot()
+                    return
+                }
                 player.seek(to: 0)
                 player.play()
                 player.playbackRate = currentPlaybackRate
@@ -382,7 +395,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             let action = await queue.setQueue(newQueue, startAt: nextIndex)
             await handleQueueAction(action)
         } catch {
-            print("⚠️ Auto-play recommendation fetch error: \(error.localizedDescription)")
+            logger.error("Auto-play recommendation fetch error: \(error.localizedDescription)")
         }
     }
 
@@ -423,12 +436,18 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     private func updateSnapshot() {
         let item = player.nowPlayingItem
         let song = queue.currentSong
+        let timestamp = now()
+
+        allowanceEnforcer?.tick(
+            isPlaying: player.playbackState == .playing,
+            rate: currentPlaybackRate,
+            now: timestamp
+        )
+
         let title = song?.title ?? item?.title ?? "-"
         let artist = song?.artistName ?? item?.artist ?? "-"
         let duration = song?.duration ?? item?.playbackDuration ?? 0
         let currentTime = player.currentTime
-        let isPlaying = player.playbackState == .playing
-        let rate = currentPlaybackRate
 
         guard let song = song else {
             snapshot = MusicPlayerSnapshot.empty
@@ -437,6 +456,17 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
 
         let currentID = song.id.rawValue
         let isNewSong = (lastSnapshotSongID != currentID)
+
+        // MPMusicPlayerController.pause() の playbackState 反映は非同期のため、
+        // 停止ブロック内で明示的に書き換えられるよう先に読んでおく
+        var isPlaying = player.playbackState == .playing
+        let rate = currentPlaybackRate
+
+        // 残高枯渇時は現在の曲の末尾まで再生し、曲替わりのタイミングで停止する（ブツ切り防止）
+        if isNewSong, stopAtSongBoundaryIfNeeded(pausePlayer: true) {
+            isPlaying = false
+        }
+
         if isNewSong {
             lastSnapshotSongID = currentID
         }
@@ -459,7 +489,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             do {
                 try historyManager.append(newSong)
             } catch {
-                print("⚠️ History append error: \(error.localizedDescription)")
+                logger.error("History append error: \(error.localizedDescription)")
             }
         }
         saveState()
@@ -467,14 +497,15 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         Task { [weak self] in
             guard let self = self else { return }
             let fetchedData = await self.artworkService.getArtwork(for: song)
+            // 取得完了時点のライブ値で再構築し、古い再生状態（rate/isPlaying）を再配信しない
             let updated = MusicPlayerSnapshot(
                 title: title,
                 artist: artist,
                 artworkData: fetchedData,
-                currentTime: currentTime,
+                currentTime: self.player.currentTime,
                 duration: duration,
-                rate: rate,
-                isPlaying: isPlaying
+                rate: self.currentPlaybackRate,
+                isPlaying: self.player.playbackState == .playing
             )
             self.snapshot = updated
         }
@@ -603,7 +634,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
                 try await player.prepareToPlay()
             } catch {
                 #if DEBUG
-                print("⚠️ prepareToPlay failed: \(error.localizedDescription)")
+                logger.error("prepareToPlay failed: \(error.localizedDescription)")
                 #endif
                 playbackErrorSubject.send(error)
                 return
@@ -620,6 +651,8 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     }
 
     private func restore() async {
+        // #69 で構造体化するまでの暫定
+        // swiftlint:disable:next large_tuple
         let st: (queueIDs: [String], currentIndex: Int, playbackRate: Double, shuffleModeRaw: Int, repeatModeRaw: Int, isAutoPlayEnabled: Bool)
         do {
             st = try persistenceService.loadState()
@@ -685,7 +718,21 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
                 isAutoPlayEnabled: isAutoPlayEnabled
             )
         } catch {
-            print("⚠️ State save error: \(error.localizedDescription)")
+            logger.error("State save error: \(error.localizedDescription)")
         }
+    }
+}
+
+private extension MusicPlayerServiceImpl {
+    /// 枯渇時は曲境界でのみ停止する。素の（等速）再生は制限しない
+    func stopAtSongBoundaryIfNeeded(pausePlayer: Bool) -> Bool {
+        guard let enforcer = allowanceEnforcer, enforcer.shouldStopAtSongBoundary() else { return false }
+        if pausePlayer {
+            player.pause()
+        }
+        currentPlaybackRate = Constants.MusicPlayer.normalPlaybackRate
+        player.playbackRate = currentPlaybackRate
+        enforcer.markStoppedAtSongEnd()
+        return true
     }
 }
