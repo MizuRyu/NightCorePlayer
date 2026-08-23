@@ -13,6 +13,7 @@ https://ja.wikipedia.org/wiki/%E3%83%8A%E3%82%A4%E3%83%88%E3%82%B3%E3%82%A2
 - 再生キュー管理
 - 再生履歴の記録
 - アートワークキャッシュ
+- フリーミアム課金（下記「収益化モデル」を参照）
 
 ## Tech Stack
 
@@ -23,8 +24,22 @@ https://ja.wikipedia.org/wiki/%E3%83%8A%E3%82%A4%E3%83%88%E3%82%B3%E3%82%A2
 | 最小 OS | iOS 17.0 |
 | 音楽 API | MusicKit / MediaPlayer |
 | 永続化 | SwiftData |
+| 課金 | StoreKit 2（非消耗型） |
 | アーキテクチャ | MVVM + Service Layer（Protocol-based DI） |
-| テスト | Swift Testing |
+| テスト | Swift Testing / XCTest（デモ録画用 UI テスト） |
+| 品質ゲート | SwiftLint / SwiftFormat / lefthook |
+
+## 収益化モデル
+
+Apple Music の等速再生は無料・無制限。Nightcore 変換（`playbackRate != 1.0`）にのみ残高ゲートを掛ける（MusicKit 利用規約上、素の再生を制限できないため）。
+
+- 初回起動から 7 日間: 無制限トライアル
+- トライアル終了後: 1日 3600 秒（日次リセット、繰越なし）
+- リワード広告視聴で +1800 秒
+- 累計 5 回のリワード後に Pro 訴求を 1 回表示
+- Pro（`MizuRyu.Night-Core-Player.pro`、StoreKit 2 非消耗型）購入で無制限化
+
+残高が尽きても即停止はせず、曲の切れ目まで再生してから停止する（BGM 用途でのブツ切りを避けるため）。詳細は [docs/adr/003-allowance-design.md](docs/adr/003-allowance-design.md) を参照。
 
 ## Directory Structure
 
@@ -34,12 +49,15 @@ Night-Core-Player/          # アプリ本体
 ├── Models/                 # 共有データ型
 ├── Services/               # ビジネスロジック + 外部接続
 ├── Data/                   # SwiftData 永続化
-├── Features/               # 機能単位の View + ViewModel
+├── Features/               # 機能単位の View + ViewModel（Allowance 含む）
 ├── Extensions/             # 型拡張
 └── Share/                  # 共有 UI コンポーネント
 
-Night-Core-PlayerTests/     # テスト
+Night-Core-PlayerTests/     # ユニットテスト
+Night-Core-PlayerUITests/   # デモ録画専用の UI テスト
+scripts/                    # デモ録画・カタログ生成・スクリーンショット生成
 docs/specs/                 # 仕様書
+docs/adr/                   # Architecture Decision Record
 ```
 
 詳細は [docs/specs/PROJECT-STRUCTURE.md](docs/specs/PROJECT-STRUCTURE.md) を参照。
@@ -52,6 +70,28 @@ docs/specs/                 # 仕様書
 | [TESTING-STRATEGY.md](docs/specs/TESTING-STRATEGY.md) | テスト方針・Mock 規約 |
 | [PROJECT-RULES.md](docs/specs/PROJECT-RULES.md) | 運用ルール |
 | [PROJECT-STRUCTURE.md](docs/specs/PROJECT-STRUCTURE.md) | ディレクトリ構造 |
+| [docs/adr/](docs/adr/) | 設計判断の記録（ADR） |
+| [docs/conventions/pr-assets.md](docs/conventions/pr-assets.md) | PR 成果物（スクショ・デモ動画）の置き場 |
+
+## Development Workflow
+
+初回のみ:
+
+```sh
+lefthook install
+```
+
+```sh
+make check   # build + lint + swiftformat-lint
+make build   # デバッグビルド
+make lint    # SwiftLint
+make test    # ユニットテスト（デモ用 UI テストは -skip-testing で除外）
+make format  # SwiftFormat で自動整形
+```
+
+- pre-commit（lefthook）: 変更ファイルに対して `swiftlint lint --strict` + `gitleaks protect --staged`
+- commit-msg（lefthook）: Conventional Commits 形式を強制
+- UI に変更がある PR は `scripts/record-demo.sh` でデモ GIF / mp4 / スクショを生成し、`docs/conventions/pr-assets.md` の手順で `pr-assets` ブランチへ添付する
 
 ## Legal Pages
 

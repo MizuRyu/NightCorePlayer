@@ -1,6 +1,6 @@
 # NightCorePlayer 運用ルール
 
-> 最終更新: 2026-03-23
+> 最終更新: 2026-08-23
 
 ---
 
@@ -17,11 +17,15 @@ Issue 作成（gh issue create）
     ↓
 実装 + テスト
     ↓
+[UI に変更があれば scripts/record-demo.sh でデモ生成]（任意）
+    ↓
+make check（lint + build。lefthook が commit 時にも変更分を検査）
+    ↓
 PR 作成（gh pr create）
     ↓
-レビュー + マージ
+レビュー + CI green + マージ
     ↓
-ブランチ削除
+ブランチ削除（merge 時に demo-catalog ワークフローが pr-assets/features/ を更新）
 ```
 
 ---
@@ -136,10 +140,40 @@ refactor: MusicPlayerServiceImpl から PlaybackRateManager を抽出
 - 1コミットは1つの論理的変更
 - ビルドが通る状態でコミットする
 - WIP コミットは PR マージ時にスカッシュ
+- コミットメッセージは Conventional Commits 形式を機械的に強制する（下記「品質ゲート」参照）。ルールに合わないと commit-msg フックで弾かれる
 
 ---
 
-## 4. PR（Pull Request）
+## 4. 品質ゲート
+
+初回セットアップ:
+
+```bash
+lefthook install
+```
+
+| タイミング | 内容 |
+|-----------|------|
+| pre-commit | `swiftlint lint --strict {staged_files}` + `gitleaks protect --staged`。変更ファイルのみ対象で、警告もエラー扱いになる |
+| commit-msg | コミットメッセージが `<type>(<scope>)?!: <subject>` 形式（type: `feat`/`fix`/`docs`/`style`/`refactor`/`test`/`chore`）に一致するか検査。`Merge`/`Revert`/`fixup!`/`squash!` は対象外 |
+
+設定ファイル: `.swiftlint.yml`（ルート）、`Night-Core-PlayerTests/.swiftlint.yml`（テスト向け nested configuration。緩和理由はファイル内コメント参照）、`.swiftformat`、`lefthook.yml`。
+
+`make` タスク:
+
+```bash
+make check   # build + lint + swiftformat-lint
+make build   # デバッグビルド
+make lint    # SwiftLint（--strict なし。既存違反では落ちない）
+make test    # ユニットテスト（Night-Core-PlayerUITests は -skip-testing で除外）
+make format  # SwiftFormat で自動整形
+```
+
+CI（`.github/workflows/ci.yml`）は push / PR ごとに `xcodebuild test` を実行する（シミュレータ起動失敗時は自動リトライ）。
+
+---
+
+## 5. PR（Pull Request）
 
 ### PR 作成
 
@@ -166,8 +200,9 @@ EOF
 
 - **タイトルに Issue 番号を含める**（`#34`）
 - **`Closes #XX`** で Issue を自動クローズ
+- **UI に変更がある PR はスクショとデモ動画を本文に添付する**。`scripts/record-demo.sh` で生成し、`docs/conventions/pr-assets.md` の形式で `pr-assets` ブランチへ push してから本文に埋め込む
 - Squash merge を基本とする（`gh pr merge --squash`）
-- マージ後にブランチ自動削除
+- マージ後にブランチ自動削除（`demo-catalog` ワークフローが `pr-<番号>/manifest.json` を `features/` へ昇格）
 
 ### マージ
 
@@ -177,7 +212,7 @@ gh pr merge --squash --delete-branch
 
 ---
 
-## 5. task/ ディレクトリの使い方
+## 6. task/ ディレクトリの使い方
 
 仕様が曖昧な場合、Issue を切る前に `docs/task/` で壁打ちする。
 
@@ -202,7 +237,7 @@ docs/task/
 
 ---
 
-## 6. よく使う gh コマンド
+## 7. よく使う gh コマンド
 
 ```bash
 # --- Issue ---
@@ -224,8 +259,8 @@ gh pr checkout 5                        # PR のブランチに切替
 
 ---
 
-## 7. やらないこと
+## 8. やらないこと
 
 - GitHub Projects / Milestones は使わない（個人開発では過剰）
-- CI/CD はまだ設定しない（App Store 公開時に検討）
+- CI（`ci.yml`）はビルド + テストのみ。デプロイの自動化は App Store 公開後に検討
 - 厳密なリリースタグ管理はしない（リリース前のため）

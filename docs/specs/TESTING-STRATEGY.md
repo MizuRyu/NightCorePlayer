@@ -1,6 +1,6 @@
 # NightCorePlayer テスト方針
 
-> 最終更新: 2026-03-23
+> 最終更新: 2026-08-23
 
 ---
 
@@ -34,7 +34,7 @@
 ## テストピラミッド
 
 ```
-        /  UI/E2E  \        省略（個人開発。必要になったら追加）
+        /  UI/E2E  \        カバレッジ目的では使わない。デモ録画専用（後述）
        /  Integration \      ~20%
       /     Unit       \     ~80%
 ```
@@ -43,7 +43,15 @@
 |--------|------|---------|
 | **Unit** | Service, ViewModel, Repository の純粋ロジック | ~ms |
 | **Integration** | SwiftData + Repository の往復、Service 間連携 | ~100ms |
-| **UI** | 省略。主要フロー 2-3 本は将来追加を検討 | — |
+| **UI** | `Night-Core-PlayerUITests`（`DemoUITests`）。品質ゲートではなくデモ録画用 | ~分 |
+
+### `Night-Core-PlayerUITests` の位置づけ
+
+このターゲットはカバレッジ目標・品質ゲートには含めない。`scripts/record-demo.sh` から `-only-testing:Night-Core-PlayerUITests` で実行し、PR 添付用の GIF / mp4 / スクショを撮るためだけに存在する。
+
+- `make test` と CI（`.github/workflows/ci.yml`）は `-skip-testing:Night-Core-PlayerUITests` で除外する
+- 起動引数 `-DEMO` を付けて `DemoMusicKitService`（MusicKit カタログ系のスタブ）に切り替えて動かす。シミュレータは FairPlay 非対応で Apple Music の実再生ができないため
+- 落ちても品質ゲート（lefthook / CI）は失敗しない。シナリオが壊れたら手動で気づいて直す運用
 
 ---
 
@@ -120,7 +128,7 @@ func addSongToQueue() throws {
 
 - Mock は `Tests/Mock/` に集約
 - Protocol ごとに 1 Mock クラス
-- Mock の命名: `{Protocol名}Mock`（例: `MusicKitServiceMock`）
+- Mock の命名: `{Protocol名}Mock`（例: `MusicKitServiceMock`、`AllowanceServiceMock`、`ProStoreServiceMock`）
 - 呼び出し記録: `callCount`, `lastArgs`, `allArgs` の命名規約を統一
 - stub の設定: `stub{メソッド名}Result` プロパティ
 
@@ -150,26 +158,28 @@ Xcode GUI: Product > Test 実行後、Report Navigator (Cmd+9) > Coverage タブ
 
 ## 現状の評価と不足
 
-### 現在のテスト状況（218 ケース）
+### 現在のテスト状況（210 ケース、`@Test` 数ベース）
 
 | 対象 | ケース数 | カバレッジ（推定） |
 |------|---------|-----------------|
-| MusicPlayerServiceImpl + QueueManager | 98 | 高 |
-| MusicPlayerViewModel | 60 | 高 |
-| MusicKitService | 12 | 中 |
-| PlaybackRateManager | 10 | 高 |
-| PlayHistoryManager | 10 | 高 |
-| PlayerPersistenceService | 8 | 中 |
-| SettingsViewModel | 6 | 中 |
-| PlaylistViewModel | 6 | 低 |
-| SearchViewModel | 5 | 低 |
-| PlaylistDetailViewModel | 3 | 低 |
+| MusicPlayerServiceImpl（QueueManager 含む） | 57 | 高 |
+| MusicPlayerViewModel | 34 | 高 |
+| SearchViewModel | 17 | 中 |
+| MusicKitService | 15 | 中 |
+| AllowanceService | 15 | 高 |
+| AllowanceEnforcer | 15 | 高 |
+| SettingsViewModel | 14 | 中 |
+| AllowanceSheetViewModel | 14 | 高 |
+| PlayHistoryManager | 5 | 高 |
+| PlaybackRateManager | 5 | 高 |
+| ArtistDetailViewModel | 5 | 中 |
+| PlaylistViewModel | 5 | 低 |
+| PlaylistDetailViewModel | 5 | 低 |
+| PlayerPersistenceService | 4 | 中 |
 
 ### 不足しているテスト
 
 | 対象 | 不足内容 | 優先度 |
 |------|---------|--------|
-| SearchViewModel | アーティスト検索、無限スクロール（loadMoreSongsIfNeeded） | 高 |
-| ArtistDetailViewModel | load、loadMoreIfNeeded | 高 |
 | MusicKitService | searchArtists、fetchArtistTopSongs | 高 |
 | MusicKitClient | searchCatalogArtists、fetchArtistTopSongs | 中 |
