@@ -1,0 +1,17 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSUserTrackingUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "広告の関連性を高めるために使用します。許可しない場合も広告は表示されます。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

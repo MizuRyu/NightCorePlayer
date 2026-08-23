@@ -18,6 +18,9 @@ struct NightcorePlayerApp: App {
     @State private var keyboard = KeyboardResponder()
     @State private var allowanceSheetVM: AllowanceSheetViewModel
     private let playerService: MusicPlayerService
+    private let isDemo: Bool
+    private let trackingService: TrackingAuthorizationService
+    private let rewardedAdService: RewardedAdService?
 
     init() {
         #if DEBUG
@@ -30,6 +33,8 @@ struct NightcorePlayerApp: App {
         _nav = State(initialValue: navigator)
 
         let isDemo = ProcessInfo.processInfo.arguments.contains("-DEMO")
+        self.isDemo = isDemo
+        trackingService = TrackingAuthorizationServiceImpl()
 
         // シミュレータは FairPlay 非対応のため、-DEMO 時のみ MusicKit カタログ系をスタブへ差し替える
         // （ensureAuth を no-op にすることで MusicAuthorization.request() も迂回する）
@@ -40,18 +45,15 @@ struct NightcorePlayerApp: App {
             musicKitService = MusicKitServiceImpl()
         }
 
-        // デモ録画に広告が出ると困るため、-DEMO 時は初期化しない
+        // デモ録画に広告が出ると困るため、-DEMO 時はATT要求・SDK初期化とも行わない
+        // 実際の要求とSDK初期化はメインUI表示後（mainRootView の .task）にまとめて行う
         let rewardedAdService: RewardedAdService?
         if isDemo {
             rewardedAdService = nil
         } else {
-            let adService = RewardedAdServiceImpl()
-            rewardedAdService = adService
-            Task {
-                await MobileAds.shared.start()
-                await adService.preload()
-            }
+            rewardedAdService = RewardedAdServiceImpl()
         }
+        self.rewardedAdService = rewardedAdService
 
         let context = AppDataStore.shared.container.mainContext
         let playerStateRepo = PlayerStateRepository(context: context)
@@ -133,5 +135,17 @@ struct NightcorePlayerApp: App {
             .task {
                 await playerService.start()
             }
+            .task {
+                await initializeAdsIfNeeded()
+            }
+    }
+
+    /// ATT許可要求 → 完了待ち → SDK初期化 → 広告preload の順で行う。
+    /// IDFAゼロ化を避けるため、要求前にSDKを初期化しない
+    private func initializeAdsIfNeeded() async {
+        guard !isDemo, let rewardedAdService else { return }
+        await trackingService.requestIfNeeded()
+        await MobileAds.shared.start()
+        await rewardedAdService.preload()
     }
 }
