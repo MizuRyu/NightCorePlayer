@@ -496,7 +496,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "今日の無料再生時間を使い切りました"
+            "value": "本日の無料再生時間を使い切りました"
           }
         }
       }
@@ -506,7 +506,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "等速再生は引き続き無料です"
+            "value": "等倍再生は引き続き無料で再生頂けます。"
           }
         }
       }
@@ -516,7 +516,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "動画を見て+30分"
+            "value": "動画を視聴し再生時間を30分追加"
           }
         }
       }
@@ -526,7 +526,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pro（買い切り）で無制限"
+            "value": "Proプランで無制限再生"
           }
         }
       }
@@ -546,7 +546,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "広告を5回見ました。Proなら永久に不要です"
+            "value": "広告を5回視聴しました。本日の上限に達しました。Proなら永久再生可能◎"
           }
         }
       }
@@ -556,7 +556,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "今日の残り再生時間"
+            "value": "本日の残り再生時間"
           }
         }
       }
@@ -586,7 +586,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "+30分を追加しました"
+            "value": "再生時間を30分追加しました。"
           }
         }
       }
