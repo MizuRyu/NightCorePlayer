@@ -26,7 +26,7 @@ protocol AllowanceEnforcer: Sendable {
 
 @MainActor
 final class AllowanceEnforcerImpl: AllowanceEnforcer {
-    private let logger = Logger(subsystem: "MizuRyu.Night-Core-Player", category: "Allowance")
+    private let logger = Logger(subsystem: Constants.Logging.subsystem, category: "Allowance")
     /// 前回tickからの経過が異常に長い場合のconsume上限（バックグラウンド放置で残高が一気に飛ぶのを防ぐ）
     private static let maxTickIntervalSeconds: TimeInterval = 60
 

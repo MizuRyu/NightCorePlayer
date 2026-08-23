@@ -40,6 +40,10 @@ public enum Constants {
         public static let defaultLimit: Int = 25
     }
 
+    public enum Logging {
+        public static let subsystem: String = "MizuRyu.Night-Core-Player"
+    }
+
     public enum Allowance {
         public static let trialDays: Int = 7
         public static let dailyFreeSeconds: TimeInterval = 3600

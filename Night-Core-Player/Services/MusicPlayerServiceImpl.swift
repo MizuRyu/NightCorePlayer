@@ -7,7 +7,7 @@ import os
 
 @MainActor
 public final class MusicPlayerServiceImpl: MusicPlayerService {
-    private let logger = Logger(subsystem: "MizuRyu.Night-Core-Player", category: "MusicPlayer")
+    private let logger = Logger(subsystem: Constants.Logging.subsystem, category: "MusicPlayer")
     @Published public private(set) var snapshot: MusicPlayerSnapshot = .empty
     @Published public private(set) var isShuffled: Bool = false
     @Published public private(set) var repeatMode: Constants.RepeatMode = .none
