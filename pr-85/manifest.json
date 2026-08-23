@@ -7,6 +7,13 @@
       "roles": [],
       "gif": "playback-speed.gif",
       "mp4": "playback-speed.mp4"
+    },
+    {
+      "feature": "app-screens",
+      "title": "全画面カタログ",
+      "roles": [],
+      "gif": "app-screens.gif",
+      "mp4": "app-screens.mp4"
     }
   ],
   "screenshots": [
@@ -47,6 +54,30 @@
       "screen": "miniplayer",
       "file": "06-miniplayer.png",
       "caption": "ミニプレイヤー"
+    },
+    {
+      "feature": "app-screens",
+      "screen": "player",
+      "file": "catalog-01-player.png",
+      "caption": "プレイヤー（起動直後）"
+    },
+    {
+      "feature": "app-screens",
+      "screen": "search",
+      "file": "catalog-02-search.png",
+      "caption": "検索"
+    },
+    {
+      "feature": "app-screens",
+      "screen": "playlist",
+      "file": "catalog-03-playlist.png",
+      "caption": "プレイリスト"
+    },
+    {
+      "feature": "app-screens",
+      "screen": "settings",
+      "file": "catalog-04-settings.png",
+      "caption": "設定"
     }
   ]
 }
