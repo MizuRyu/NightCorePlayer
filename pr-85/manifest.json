@@ -1,0 +1,52 @@
+{
+  "prNumber": 85,
+  "entries": [
+    {
+      "feature": "playback-speed",
+      "title": "検索から再生、倍速変更まで",
+      "roles": [],
+      "gif": "playback-speed.gif",
+      "mp4": "playback-speed.mp4"
+    }
+  ],
+  "screenshots": [
+    {
+      "feature": "playback-speed",
+      "screen": "launch",
+      "file": "01-launch.png",
+      "caption": "起動直後のプレイヤー"
+    },
+    {
+      "feature": "playback-speed",
+      "screen": "search",
+      "file": "02-search.png",
+      "caption": "検索タブ"
+    },
+    {
+      "feature": "playback-speed",
+      "screen": "search",
+      "state": "results",
+      "file": "03-search-results.png",
+      "caption": "検索結果（デモシード曲）"
+    },
+    {
+      "feature": "playback-speed",
+      "screen": "player",
+      "file": "04-player.png",
+      "caption": "再生画面"
+    },
+    {
+      "feature": "playback-speed",
+      "screen": "player",
+      "state": "speed",
+      "file": "05-player-speed.png",
+      "caption": "倍速変更後（1.35x）"
+    },
+    {
+      "feature": "playback-speed",
+      "screen": "miniplayer",
+      "file": "06-miniplayer.png",
+      "caption": "ミニプレイヤー"
+    }
+  ]
+}
