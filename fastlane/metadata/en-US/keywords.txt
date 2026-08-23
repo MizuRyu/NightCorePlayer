@@ -1,0 +1,1 @@
+nightcore,daycore,pitch,tempo,shifter,changer,song,faster,slower,bpm,audio,gaming,study,chipmunk
