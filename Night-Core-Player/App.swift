@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import GoogleMobileAds
 
 @main
 struct NightcorePlayerApp: App {
@@ -28,13 +29,28 @@ struct NightcorePlayerApp: App {
         let navigator = PlayerNavigator()
         _nav = State(initialValue: navigator)
 
+        let isDemo = ProcessInfo.processInfo.arguments.contains("-DEMO")
+
         // シミュレータは FairPlay 非対応のため、-DEMO 時のみ MusicKit カタログ系をスタブへ差し替える
         // （ensureAuth を no-op にすることで MusicAuthorization.request() も迂回する）
         let musicKitService: any MusicKitService
-        if ProcessInfo.processInfo.arguments.contains("-DEMO") {
+        if isDemo {
             musicKitService = DemoMusicKitService()
         } else {
             musicKitService = MusicKitServiceImpl()
+        }
+
+        // デモ録画に広告が出ると困るため、-DEMO 時は初期化しない
+        let rewardedAdService: RewardedAdService?
+        if isDemo {
+            rewardedAdService = nil
+        } else {
+            let adService = RewardedAdServiceImpl()
+            rewardedAdService = adService
+            Task {
+                await MobileAds.shared.start()
+                await adService.preload()
+            }
         }
 
         let context = AppDataStore.shared.container.mainContext
@@ -81,7 +97,8 @@ struct NightcorePlayerApp: App {
             allowanceEnforcer: allowanceEnforcer,
             allowanceService: allowanceService,
             proStoreService: proStoreService,
-            playerNavigator: navigator
+            playerNavigator: navigator,
+            rewardedAdService: rewardedAdService
         ))
     }
 

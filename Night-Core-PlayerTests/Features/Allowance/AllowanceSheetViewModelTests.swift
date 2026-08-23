@@ -34,7 +34,8 @@ struct AllowanceSheetViewModelTests {
     private static func setUp(
         entitlement: PlaybackEntitlement = .exhausted,
         shouldShowProPrompt: Bool = false,
-        purchaseResult: Result<ProPurchaseOutcome, Error> = .success(.purchased)
+        purchaseResult: Result<ProPurchaseOutcome, Error> = .success(.purchased),
+        adService: RewardedAdServiceMock? = nil
     ) -> (
         vm: AllowanceSheetViewModel,
         enforcer: AllowanceEnforcerStub,
@@ -53,7 +54,8 @@ struct AllowanceSheetViewModelTests {
             allowanceEnforcer: enforcer,
             allowanceService: allowanceMock,
             proStoreService: storeMock,
-            playerNavigator: nav
+            playerNavigator: nav,
+            rewardedAdService: adService
         )
         return (vm, enforcer, allowanceMock, storeMock, nav)
     }
@@ -216,6 +218,74 @@ struct AllowanceSheetViewModelTests {
         // Then
         #expect(vm.errorMessage != nil)
         #expect(vm.isPresented, "エラー時はシートを閉じない")
+    }
+
+    // MARK: - Reward Ad
+
+    @Test("広告視聴に成功したらgrantRewardが呼ばれること")
+    func watchAdForReward_adSucceeds_callsGrantReward() async throws {
+        // Given
+        let adMock = RewardedAdServiceMock()
+        adMock.presentResult = .success(true)
+        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(adService: adMock)
+        enforcer.send(.stoppedAtSongEnd)
+
+        // When
+        vm.watchAdForReward()
+        await Self.waitUntil { allowanceMock.grantRewardCallCount == 1 }
+
+        // Then
+        #expect(adMock.presentCallCount == 1)
+        #expect(allowanceMock.grantRewardCallCount == 1)
+    }
+
+    @Test("広告のロード失敗・在庫切れでも、無条件付与にフォールバックしgrantRewardが呼ばれること")
+    func watchAdForReward_adUnavailable_stillGrantsReward() async throws {
+        // Given
+        let adMock = RewardedAdServiceMock()
+        adMock.presentResult = .failure(RewardedAdError.notReady)
+        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(adService: adMock)
+        enforcer.send(.stoppedAtSongEnd)
+
+        // When
+        vm.watchAdForReward()
+        await Self.waitUntil { allowanceMock.grantRewardCallCount == 1 }
+
+        // Then: ユーザーの落ち度ではないため広告なしで付与される
+        #expect(allowanceMock.grantRewardCallCount == 1)
+        #expect(vm.errorMessage == nil)
+    }
+
+    @Test("広告表示中に連打してもpresentCallCountは増えないこと")
+    func watchAdForReward_doubleTapWhileWatching_doesNotCallPresentTwice() async throws {
+        // Given
+        let adMock = RewardedAdServiceMock()
+        adMock.presentResult = .success(true)
+        adMock.presentDelayMilliseconds = 100
+        let (vm, enforcer, _, _, _) = Self.setUp(adService: adMock)
+        enforcer.send(.stoppedAtSongEnd)
+
+        // When
+        vm.watchAdForReward()
+        vm.watchAdForReward()
+        await Self.waitUntil(timeoutMilliseconds: 2_000) { !vm.isWatchingAd }
+
+        // Then
+        #expect(adMock.presentCallCount == 1)
+    }
+
+    @Test("adServiceが未注入(nil)なら従来通り広告なしで直接grantRewardが呼ばれること")
+    func watchAdForReward_noAdService_grantsRewardDirectly() {
+        // Given
+        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(adService: nil)
+        enforcer.send(.stoppedAtSongEnd)
+
+        // When
+        vm.watchAdForReward()
+
+        // Then
+        #expect(allowanceMock.grantRewardCallCount == 1)
+        #expect(!vm.isPresented)
     }
 
     // MARK: - Purchase

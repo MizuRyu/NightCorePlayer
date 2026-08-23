@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1A5134877AEF6FB940CE1BAA /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E84CD932BDCBA06A22132B14 /* Foundation.framework */; };
+		291CFAAD80F7F6A835B7D9AE /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 6617C606136C3CE99B081163 /* GoogleMobileAds */; };
 		E1A1957EC4B920C2CEC656A3 /* DemoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BE74BD8A1D03DB172F3F71C /* DemoUITests.swift */; };
 		F391D4232DCF2E5500517D0B /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = F391D4222DCF2E5500517D0B /* Inject */; };
 /* End PBXBuildFile section */
@@ -87,6 +88,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F391D4232DCF2E5500517D0B /* Inject in Frameworks */,
+				291CFAAD80F7F6A835B7D9AE /* GoogleMobileAds in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -199,6 +201,7 @@
 			name = "Night-Core-Player";
 			packageProductDependencies = (
 				F391D4222DCF2E5500517D0B /* Inject */,
+				6617C606136C3CE99B081163 /* GoogleMobileAds */,
 			);
 			productName = "Night-Core-Player";
 			productReference = F3FD9E852DCDAD7300645A6A /* Night-Core-Player.app */;
@@ -235,6 +238,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				F391D4212DCF2E5500517D0B /* XCRemoteSwiftPackageReference "Inject" */,
+				33D80190376A948ED89E98EE /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F3FD9E862DCDAD7300645A6A /* Products */;
@@ -610,6 +614,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		33D80190376A948ED89E98EE /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.0.0;
+			};
+		};
 		F391D4212DCF2E5500517D0B /* XCRemoteSwiftPackageReference "Inject" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/krzysztofzablocki/Inject.git";
@@ -621,6 +633,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		6617C606136C3CE99B081163 /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 33D80190376A948ED89E98EE /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
+		};
 		F391D4222DCF2E5500517D0B /* Inject */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F391D4212DCF2E5500517D0B /* XCRemoteSwiftPackageReference "Inject" */;
