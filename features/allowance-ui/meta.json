@@ -1,0 +1,13 @@
+{
+  "feature": "allowance-ui",
+  "screens": [
+    {
+      "screen": "settings",
+      "state": "allowance",
+      "file": "settings--allowance.png",
+      "caption": "設定画面の残り再生時間表示（1時間）",
+      "prNumber": 86,
+      "promotedAt": "2026-08-23"
+    }
+  ]
+}

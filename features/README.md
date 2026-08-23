@@ -5,6 +5,12 @@
 機能ごとの最新デモ（E2E のメインストーリーの録画）と、画面ごとの最新スクリーンショット。PR が merge されるたびに自動更新される。
 運用は [docs/conventions/pr-assets.md](https://github.com/MizuRyu/NightCorePlayer/blob/main/docs/conventions/pr-assets.md) を参照。
 
+## allowance-ui
+
+![設定画面の残り再生時間表示（1時間）](https://github.com/MizuRyu/NightCorePlayer/blob/pr-assets/features/allowance-ui/screens/settings--allowance.png?raw=true)
+
+設定画面の残り再生時間表示（1時間） ・ 出典: [#86](https://github.com/MizuRyu/NightCorePlayer/pull/86)（2026-08-23）
+
 ## app-screens
 
 全画面カタログ
