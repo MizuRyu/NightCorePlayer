@@ -1,0 +1,13 @@
+{
+  "prNumber": 83,
+  "entries": [],
+  "screenshots": [
+    {
+      "feature": "pro-purchase",
+      "screen": "settings",
+      "state": "pro",
+      "file": "settings-pro.png",
+      "caption": "設定画面のProセクション（購入・復元）"
+    }
+  ]
+}
