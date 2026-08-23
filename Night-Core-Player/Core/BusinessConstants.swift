@@ -52,12 +52,11 @@ public enum Constants {
     }
 
     public enum Ads {
-        #if DEBUG
-        public static let rewardedUnitID: String = "ca-app-pub-3940256099942544/1712485313"
-        #else
-        // swiftlint:disable:next todo
-        // TODO: #62 AdMobで本番リワード広告ユニットを発行し、このIDに差し替える。未発行のためテストIDを暫定使用
-        public static let rewardedUnitID: String = "ca-app-pub-3940256099942544/1712485313"
+        // 本番リワードユニットID未発行のためテストIDを暫定使用。AdMobで本番ユニットIDを発行したら、
+        // このIDに差し替えるだけで本番切り替えが完了する形にしてある
+        #if !DEBUG
+        #warning("#62 本番リワードユニットID未設定")
         #endif
+        public static let rewardedUnitID: String = "ca-app-pub-3940256099942544/1712485313"
     }
 }

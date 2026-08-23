@@ -59,11 +59,12 @@ final class AllowanceSheetViewModel {
         Task {
             defer { isWatchingAd = false }
             do {
-                // 広告が出せない場合はnotReadyがthrowされ、下のcatchで無条件付与にフォールバックする
+                // 広告が出せない場合はエラーがthrowされ、下のcatchで無条件付与にフォールバックする
                 guard try await rewardedAdService.present() else { return }
                 grantRewardAndProceed()
             } catch {
-                // ロード失敗・在庫切れはユーザーの落ち度ではないため、広告なしで付与する
+                // ロード失敗・在庫切れ・表示失敗はユーザーの落ち度ではないため、広告なしで付与する。#68の計測用にログを残す
+                logger.error("Rewarded ad unavailable, granting reward without ad: \(error.localizedDescription)")
                 grantRewardAndProceed()
             }
         }

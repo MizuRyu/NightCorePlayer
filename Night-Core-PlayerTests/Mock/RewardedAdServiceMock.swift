@@ -3,7 +3,6 @@ import Foundation
 
 @MainActor
 final class RewardedAdServiceMock: RewardedAdService {
-    var isReady = true
     var presentResult: Result<Bool, Error> = .success(true)
     /// isWatchingAd中の多重タップテスト用にpresent()の完了を遅らせる
     var presentDelayMilliseconds: Int = 0
