@@ -1,0 +1,58 @@
+{
+  "feature": "playback-speed",
+  "title": "検索から再生、倍速変更まで",
+  "roles": [],
+  "gif": "demo.gif",
+  "mp4": "demo.mp4",
+  "prNumber": 85,
+  "screens": [
+    {
+      "screen": "launch",
+      "state": null,
+      "file": "launch.png",
+      "caption": "起動直後のプレイヤー",
+      "prNumber": 85,
+      "promotedAt": "2026-08-23"
+    },
+    {
+      "screen": "miniplayer",
+      "state": null,
+      "file": "miniplayer.png",
+      "caption": "ミニプレイヤー",
+      "prNumber": 85,
+      "promotedAt": "2026-08-23"
+    },
+    {
+      "screen": "player",
+      "state": null,
+      "file": "player.png",
+      "caption": "再生画面",
+      "prNumber": 85,
+      "promotedAt": "2026-08-23"
+    },
+    {
+      "screen": "player",
+      "state": "speed",
+      "file": "player--speed.png",
+      "caption": "倍速変更後（1.35x）",
+      "prNumber": 85,
+      "promotedAt": "2026-08-23"
+    },
+    {
+      "screen": "search",
+      "state": null,
+      "file": "search.png",
+      "caption": "検索タブ",
+      "prNumber": 85,
+      "promotedAt": "2026-08-23"
+    },
+    {
+      "screen": "search",
+      "state": "results",
+      "file": "search--results.png",
+      "caption": "検索結果（デモシード曲）",
+      "prNumber": 85,
+      "promotedAt": "2026-08-23"
+    }
+  ]
+}

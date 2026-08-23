@@ -1,0 +1,42 @@
+{
+  "feature": "app-screens",
+  "title": "全画面カタログ",
+  "roles": [],
+  "gif": "demo.gif",
+  "mp4": "demo.mp4",
+  "prNumber": 85,
+  "screens": [
+    {
+      "screen": "player",
+      "state": null,
+      "file": "player.png",
+      "caption": "プレイヤー（起動直後）",
+      "prNumber": 85,
+      "promotedAt": "2026-08-23"
+    },
+    {
+      "screen": "playlist",
+      "state": null,
+      "file": "playlist.png",
+      "caption": "プレイリスト",
+      "prNumber": 85,
+      "promotedAt": "2026-08-23"
+    },
+    {
+      "screen": "search",
+      "state": null,
+      "file": "search.png",
+      "caption": "検索",
+      "prNumber": 85,
+      "promotedAt": "2026-08-23"
+    },
+    {
+      "screen": "settings",
+      "state": null,
+      "file": "settings.png",
+      "caption": "設定",
+      "prNumber": 85,
+      "promotedAt": "2026-08-23"
+    }
+  ]
+}
