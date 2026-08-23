@@ -59,6 +59,7 @@ struct SearchView: View {
                         .textInputAutocapitalization(.never)
                         .disableAutocorrection(true)
                         .submitLabel(.search)
+                        .accessibilityIdentifier("search_field")
                     Spacer()
                     Image(systemName: "mic.fill")
                 }
@@ -96,6 +97,7 @@ struct SearchView: View {
                             } label: {
                                 SearchRowView(song: song)
                             }
+                            .accessibilityIdentifier("search_result_song")
                             .onAppear {
                                 Task { await vm.loadMoreSongsIfNeeded(currentSong: song) }
                             }
