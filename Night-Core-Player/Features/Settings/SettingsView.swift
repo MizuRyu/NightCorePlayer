@@ -56,6 +56,8 @@ struct SettingsView: View {
                         .padding(.top, 8)
                 }
 
+                allowanceSection
+
                 proSection
 
                 Section {
@@ -108,6 +110,30 @@ struct SettingsView: View {
             Text(settingsVM.infoMessage ?? "")
         }
         .enableInjection()
+    }
+
+    // MARK: - Allowance
+
+    private var allowanceSection: some View {
+        Section {
+            HStack {
+                Text("Today's Remaining Playback Time")
+                    .font(.body)
+                    .foregroundColor(.primary)
+                Spacer()
+                Text(settingsVM.remainingTimeText)
+                    .font(.body)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.vertical, 12)
+            .accessibilityIdentifier("allowance_remaining_row")
+            .listRowSeparator(.hidden)
+        } header: {
+            Text("Playback Time")
+                .font(.headline)
+                .foregroundColor(.primary)
+                .padding(.top, 8)
+        }
     }
 
     // MARK: - Pro

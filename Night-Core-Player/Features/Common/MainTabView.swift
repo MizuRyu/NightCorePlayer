@@ -7,6 +7,7 @@ struct MainTabView: View {
     @Environment(MusicPlayerViewModel.self) private var playerVM
     @Environment(SettingsViewModel.self) private var settingsVM
     @Environment(KeyboardResponder.self) private var keyboard
+    @Environment(AllowanceSheetViewModel.self) private var allowanceSheetVM
 
     private let miniPlayerHeight: CGFloat = Constants.UI.FrameSize.miniMusicPlayerHeight
 
@@ -91,6 +92,12 @@ struct MainTabView: View {
                     .opacity(nav.isScrolling ? 0.3 : 1.0)
                     .animation(.easeInOut(duration: 0.2), value: nav.isScrolling)
             }
+        }
+        .sheet(isPresented: Binding(
+            get: { allowanceSheetVM.isPresented },
+            set: { isPresented in if !isPresented { allowanceSheetVM.close() } }
+        )) {
+            AllowanceSheetView(viewModel: allowanceSheetVM)
         }
         .enableInjection()
     }
