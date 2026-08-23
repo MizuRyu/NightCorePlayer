@@ -9,7 +9,8 @@ struct AppDataStore {
         do {
             container = try ModelContainer(
                 for: PlayerStateEntity.self,
-                HistoryEntity.self
+                HistoryEntity.self,
+                AllowanceEntity.self
             )
         } catch {
             // スキーマ変更で旧 DB と互換性がない場合、ストアを削除して再作成
@@ -17,7 +18,8 @@ struct AppDataStore {
             do {
                 container = try ModelContainer(
                     for: PlayerStateEntity.self,
-                    HistoryEntity.self
+                    HistoryEntity.self,
+                    AllowanceEntity.self
                 )
             } catch {
                 fatalError("SwiftData ModelContainer の初期化に失敗しました: \(error)")

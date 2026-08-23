@@ -38,4 +38,11 @@ public enum Constants {
     public enum Recommendation {
         public static let defaultLimit: Int = 25
     }
+
+    public enum Allowance {
+        public static let trialDays: Int = 7
+        public static let dailyFreeSeconds: TimeInterval = 3600
+        public static let rewardSeconds: TimeInterval = 1800
+        public static let proPromptRewardCount: Int = 5
+    }
 }
