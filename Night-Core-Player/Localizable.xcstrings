@@ -490,6 +490,116 @@
           }
         }
       }
+    },
+    "Today's Free Playback Time Is Used Up": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日の無料再生時間を使い切りました"
+          }
+        }
+      }
+    },
+    "Normal-speed playback is still free": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等速再生は引き続き無料です"
+          }
+        }
+      }
+    },
+    "Watch a Video for +30 Minutes": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動画を見て+30分"
+          }
+        }
+      }
+    },
+    "Go Unlimited with Pro (One-Time Purchase)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro（買い切り）で無制限"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "閉じる"
+          }
+        }
+      }
+    },
+    "You've watched 5 ads. Go Pro and you'll never need to again.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "広告を5回見ました。Proなら永久に不要です"
+          }
+        }
+      }
+    },
+    "Today's Remaining Playback Time": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日の残り再生時間"
+          }
+        }
+      }
+    },
+    "Trial in Progress": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "トライアル中"
+          }
+        }
+      }
+    },
+    "Unlimited": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無制限"
+          }
+        }
+      }
+    },
+    "+30 Minutes Added": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+30分を追加しました"
+          }
+        }
+      }
+    },
+    "Playback Time": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再生時間"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

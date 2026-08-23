@@ -9,12 +9,13 @@ import SwiftUI
 
 @main
 struct NightcorePlayerApp: App {
-    @State private var nav = PlayerNavigator()
+    @State private var nav: PlayerNavigator
     @State private var playerVM: MusicPlayerViewModel
     @State private var settingsVM: SettingsViewModel
     @State private var searchVM: SearchViewModel
     @State private var playlistVM: PlaylistViewModel
     @State private var keyboard = KeyboardResponder()
+    @State private var allowanceSheetVM: AllowanceSheetViewModel
     private let playerService: MusicPlayerService
 
     init() {
@@ -23,6 +24,9 @@ struct NightcorePlayerApp: App {
             Bundle(path: "/Applications/InjectionIII.app/Contents/Resources/iOSInjection.bundle")?.load()
             #endif
         #endif
+
+        let navigator = PlayerNavigator()
+        _nav = State(initialValue: navigator)
 
         // シミュレータは FairPlay 非対応のため、-DEMO 時のみ MusicKit カタログ系をスタブへ差し替える
         // （ensureAuth を no-op にすることで MusicAuthorization.request() も迂回する）
@@ -68,10 +72,17 @@ struct NightcorePlayerApp: App {
         _settingsVM = State(initialValue: SettingsViewModel(
             rateManager: rateManager,
             playerService: service,
-            proStore: proStoreService
+            proStore: proStoreService,
+            allowanceService: allowanceService
         ))
         _searchVM = State(initialValue: SearchViewModel(musicKitService: musicKitService))
         _playlistVM = State(initialValue: PlaylistViewModel(musicKitService: musicKitService))
+        _allowanceSheetVM = State(initialValue: AllowanceSheetViewModel(
+            allowanceEnforcer: allowanceEnforcer,
+            allowanceService: allowanceService,
+            proStoreService: proStoreService,
+            playerNavigator: navigator
+        ))
     }
 
     var body: some Scene {
@@ -101,6 +112,7 @@ struct NightcorePlayerApp: App {
             .environment(searchVM)
             .environment(playlistVM)
             .environment(keyboard)
+            .environment(allowanceSheetVM)
             .task {
                 await playerService.start()
             }

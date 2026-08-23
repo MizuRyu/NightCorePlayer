@@ -52,7 +52,6 @@ struct MusicPlayerView: View {
     @Environment(PlayerNavigator.self) private var nav
     @Environment(MusicPlayerViewModel.self) private var vm
     @Environment(\.musicKitService) private var musicKitService
-    @State private var isQueuePresented = false
 
     init() {
         let clearImage = UIImage()
@@ -60,6 +59,7 @@ struct MusicPlayerView: View {
     }
 
     var body: some View {
+        @Bindable var nav = nav
         ZStack {
             VStack(spacing: 16) {
                 Text("Playing Now")
@@ -213,19 +213,19 @@ struct MusicPlayerView: View {
                 .frame(maxWidth: .infinity, minHeight: 30)
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    isQueuePresented = true
+                    nav.isQueuePresented = true
                 }
                 .gesture(
                     DragGesture(minimumDistance: 40)
                         .onEnded { value in
                             if value.translation.height < -40,
                                abs(value.translation.height) > abs(value.translation.width) {
-                                isQueuePresented = true
+                                nav.isQueuePresented = true
                             }
                         }
                 )
             }
-            .sheet(isPresented: $isQueuePresented) {
+            .sheet(isPresented: $nav.isQueuePresented) {
                 PlayingQueueView()
             }
             .onChange(of: nav.songs) { _, songs in

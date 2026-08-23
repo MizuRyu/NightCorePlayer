@@ -1,4 +1,5 @@
 import Testing
+import Foundation
 
 @testable import Night_Core_Player
 
@@ -35,7 +36,10 @@ struct SettingsViewModelTests {
         }
     }
 
-    private static func setUp(proStore: ProStoreService? = nil) -> (
+    private static func setUp(
+        proStore: ProStoreService? = nil,
+        allowanceService: AllowanceService? = nil
+    ) -> (
         vm: SettingsViewModel,
         rateMock: PlaybackRateManagerMock,
         svcMock: MusicPlayerServiceMock
@@ -45,7 +49,8 @@ struct SettingsViewModelTests {
         let vm = SettingsViewModel(
             rateManager: rateMock,
             playerService: svcMock,
-            proStore: proStore
+            proStore: proStore,
+            allowanceService: allowanceService
         )
         return (vm, rateMock, svcMock)
     }
@@ -194,5 +199,77 @@ struct SettingsViewModelTests {
         #expect(vm.proPriceText == nil, "価格は読み込まれない")
         #expect(vm.errorMessage == nil)
         #expect(vm.infoMessage == nil)
+    }
+
+    // MARK: - Allowance
+
+    @Test("remainingTimeText: Pro権限があれば無制限と表示されること")
+    func remainingTimeText_proEntitled_showsUnlimited() {
+        // Given
+        let storeMock = ProStoreServiceMock()
+        storeMock.entitledResult = true
+        let allowanceMock = AllowanceServiceMock()
+        allowanceMock.entitlementResult = .free(remaining: 0)
+        let (vm, _, _) = SettingsViewModelTests.setUp(proStore: storeMock, allowanceService: allowanceMock)
+
+        // Then
+        #expect(vm.remainingTimeText == String(localized: "Unlimited"))
+    }
+
+    @Test("remainingTimeText: トライアル中はTrial in Progressと表示されること")
+    func remainingTimeText_trial_showsTrialInProgress() {
+        // Given
+        let allowanceMock = AllowanceServiceMock()
+        allowanceMock.entitlementResult = .trial(endsAt: Date().addingTimeInterval(86400))
+        let (vm, _, _) = SettingsViewModelTests.setUp(allowanceService: allowanceMock)
+
+        // Then
+        #expect(vm.remainingTimeText == String(localized: "Trial in Progress"))
+    }
+
+    @Test("remainingTimeText: 残高3600秒は「60:00」ではなく時間単位で表示されること")
+    func remainingTimeText_free3600Seconds_doesNotShowSixtyMinutes() {
+        // Given
+        let allowanceMock = AllowanceServiceMock()
+        allowanceMock.entitlementResult = .free(remaining: 3600)
+        let (vm, _, _) = SettingsViewModelTests.setUp(allowanceService: allowanceMock)
+        let expected = Duration.seconds(3600).formatted(.units(allowed: [.hours, .minutes], width: .narrow))
+
+        // Then
+        #expect(vm.remainingTimeText == expected)
+        #expect(!vm.remainingTimeText.contains("60:"), "60分表記のバグが再発していないこと")
+    }
+
+    @Test("remainingTimeText: 残高5400秒は時間+分で表示されること")
+    func remainingTimeText_free5400Seconds_showsHoursAndMinutes() {
+        // Given
+        let allowanceMock = AllowanceServiceMock()
+        allowanceMock.entitlementResult = .free(remaining: 5400)
+        let (vm, _, _) = SettingsViewModelTests.setUp(allowanceService: allowanceMock)
+        let expected = Duration.seconds(5400).formatted(.units(allowed: [.hours, .minutes], width: .narrow))
+
+        // Then
+        #expect(vm.remainingTimeText == expected)
+    }
+
+    @Test("remainingTimeText: 枯渇時は0表示になること")
+    func remainingTimeText_exhausted_showsZero() {
+        // Given
+        let allowanceMock = AllowanceServiceMock()
+        allowanceMock.entitlementResult = .exhausted
+        let (vm, _, _) = SettingsViewModelTests.setUp(allowanceService: allowanceMock)
+        let expected = Duration.seconds(0).formatted(.units(allowed: [.hours, .minutes], width: .narrow))
+
+        // Then
+        #expect(vm.remainingTimeText == expected)
+    }
+
+    @Test("remainingTimeText: allowanceServiceがnilなら空文字になること")
+    func remainingTimeText_noAllowanceService_isEmpty() {
+        // Given
+        let (vm, _, _) = SettingsViewModelTests.setUp()
+
+        // Then
+        #expect(vm.remainingTimeText.isEmpty)
     }
 }
