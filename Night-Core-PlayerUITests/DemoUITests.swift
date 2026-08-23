@@ -58,6 +58,32 @@ final class DemoUITests: XCTestCase {
         attachScreenshot(app, name: "06-miniplayer")
     }
 
+    /// 全画面のスクショ巡回（カタログ初期整備用）。タブ順: 0=Player 1=Search 2=Playlist 3=Settings
+    @MainActor
+    func testScreensCatalog() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-DEMO"]
+        app.launch()
+
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 10))
+
+        attachScreenshot(app, name: "01-player")
+
+        tabBar.buttons.element(boundBy: 1).tap()
+        XCTAssertTrue(app.textFields["search_field"].waitForExistence(timeout: 10))
+        attachScreenshot(app, name: "02-search")
+
+        tabBar.buttons.element(boundBy: 2).tap()
+        sleep(1)
+        attachScreenshot(app, name: "03-playlist")
+
+        tabBar.buttons.element(boundBy: 3).tap()
+        sleep(1)
+        attachScreenshot(app, name: "04-settings")
+    }
+
     @MainActor
     private func attachScreenshot(_ app: XCUIApplication, name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
