@@ -13,6 +13,8 @@ final class PlaybackRateManagerMock: PlaybackRateManager {
     }
 }
 
+private struct PurchaseTestError: Error {}
+
 // MARK: - Tests
 
 @Suite("SettingsViewModel Tests", .serialized)
@@ -33,7 +35,7 @@ struct SettingsViewModelTests {
         }
     }
 
-    private static func setUp() -> (
+    private static func setUp(proStore: ProStoreService? = nil) -> (
         vm: SettingsViewModel,
         rateMock: PlaybackRateManagerMock,
         svcMock: MusicPlayerServiceMock
@@ -42,7 +44,8 @@ struct SettingsViewModelTests {
         let svcMock = MusicPlayerServiceMock()
         let vm = SettingsViewModel(
             rateManager: rateMock,
-            playerService: svcMock
+            playerService: svcMock,
+            proStore: proStore
         )
         return (vm, rateMock, svcMock)
     }
@@ -116,7 +119,80 @@ struct SettingsViewModelTests {
 
         // Then
         #expect(vm.defaultRate == minRate, "ViewModelのdefaultRateがminにクランプ")
-        #expect(rateMock.setDefaultRateArgs.first == minRate, "rateManagerにmin値が渡される")
-        #expect(svcMock.rateArgs.first == minRate, "playerServiceにmin値が渡される")
+        #expect(rateMock.setDefaultRateArgs.first == minRate, "rateManagerにクランプ後の値が渡される")
+        #expect(svcMock.rateArgs.first == minRate, "playerServiceにクランプ後の値が渡される")
+    }
+
+    // MARK: - Pro Store
+
+    @Test("purchasePro: purchase()がthrowしたらerrorMessageが設定されること")
+    func purchasePro_purchaseThrows_setsErrorMessage() async throws {
+        // Given
+        let storeMock = ProStoreServiceMock()
+        storeMock.purchaseResult = .failure(PurchaseTestError())
+        let (vm, _, _) = SettingsViewModelTests.setUp(proStore: storeMock)
+
+        // When
+        vm.purchasePro()
+        await SettingsViewModelTests.waitUntil { vm.errorMessage != nil }
+
+        // Then
+        #expect(vm.errorMessage != nil, "エラーメッセージが設定される")
+        #expect(vm.infoMessage == nil, "情報メッセージは設定されない")
+    }
+
+    @Test("purchasePro: 購入成功後にisProEntitledがtrueになること")
+    func purchasePro_purchaseSucceeds_entitlesPro() async throws {
+        // Given
+        let storeMock = ProStoreServiceMock()
+        storeMock.purchaseResult = .success(.purchased)
+        storeMock.entitledResult = true
+        let (vm, _, _) = SettingsViewModelTests.setUp(proStore: storeMock)
+
+        // When
+        vm.purchasePro()
+        await SettingsViewModelTests.waitUntil { vm.isProEntitled }
+
+        // Then
+        #expect(vm.isProEntitled, "購入成功後にPro権限が有効になる")
+        #expect(vm.errorMessage == nil)
+    }
+
+    @Test("purchasePro: isPurchasing中の再呼び出しはpurchase()を実行しないこと")
+    func purchasePro_whilePurchasing_skipsSecondCall() async throws {
+        // Given: purchase()を遅延させ、処理中の窓を作る
+        let storeMock = ProStoreServiceMock()
+        storeMock.purchaseResult = .success(.purchased)
+        storeMock.entitledResult = true
+        storeMock.purchaseDelayMilliseconds = 500
+        let (vm, _, _) = SettingsViewModelTests.setUp(proStore: storeMock)
+
+        // When: 1回目を実行し、処理中に2回目を呼ぶ
+        vm.purchasePro()
+        await SettingsViewModelTests.waitUntil { vm.isPurchasing }
+        let countDuringFirst = storeMock.purchaseCallCount
+        vm.purchasePro()
+
+        // Then: 2回目は無視され、purchase()は1回だけ実行される
+        #expect(storeMock.purchaseCallCount == countDuringFirst, "処理中の再呼び出しでpurchase()が増えない")
+        await SettingsViewModelTests.waitUntil { !vm.isPurchasing }
+        #expect(storeMock.purchaseCallCount == 1, "purchase()は1回だけ実行される")
+    }
+
+    @Test("proStoreなし: loadProState()/purchasePro()が無害に終了すること")
+    func withoutProStore_callsAreHarmless() async throws {
+        // Given
+        let (vm, _, _) = SettingsViewModelTests.setUp()
+
+        // When
+        await vm.loadProState()
+        vm.purchasePro()
+
+        // Then: エラー・情報・状態変化は起きない
+        await SettingsViewModelTests.waitUntil { !vm.isPurchasing }
+        #expect(!vm.isProEntitled, "Pro権限は無効のまま")
+        #expect(vm.proPriceText == nil, "価格は読み込まれない")
+        #expect(vm.errorMessage == nil)
+        #expect(vm.infoMessage == nil)
     }
 }

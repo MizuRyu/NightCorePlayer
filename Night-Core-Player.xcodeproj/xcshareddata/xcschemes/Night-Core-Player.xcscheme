@@ -63,6 +63,11 @@
             ReferencedContainer = "container:Night-Core-Player.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <Options>
+         <StoreKitConfigurationFileReference
+            identifier = "Night-Core-Player/NightCorePlayer.storekit">
+         </StoreKitConfigurationFileReference>
+      </Options>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

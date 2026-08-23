@@ -30,6 +30,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				NightCorePlayer.storekit,
 			);
 			target = F3FD9E842DCDAD7300645A6A /* Night-Core-Player */;
 		};

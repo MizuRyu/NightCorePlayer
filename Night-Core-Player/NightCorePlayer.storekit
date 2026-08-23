@@ -1,0 +1,43 @@
+{
+  "identifier" : "F36100000000000000000061",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "500",
+      "familyShareable" : false,
+      "internalID" : "6100000001",
+      "localizations" : [
+        {
+          "description" : "Unlock unlimited playback time.",
+          "displayName" : "Pro",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "再生時間の制限を解除します。",
+          "displayName" : "Pro",
+          "locale" : "ja_JP"
+        }
+      ],
+      "productID" : "MizuRyu.Night-Core-Player.pro",
+      "referenceName" : "Pro",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "ja_JP",
+    "_storefront" : "JPN",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
