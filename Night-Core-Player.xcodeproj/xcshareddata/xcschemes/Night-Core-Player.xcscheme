@@ -41,6 +41,16 @@
                ReferencedContainer = "container:Night-Core-Player.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "C64BF47F7AAB1B2C09CEC5D0"
+               BuildableName = "Night-Core-PlayerUITests.xctest"
+               BlueprintName = "Night-Core-PlayerUITests"
+               ReferencedContainer = "container:Night-Core-Player.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

@@ -1,0 +1,154 @@
+# PR が merge されたとき、pr-assets ブランチの pr-<番号>/manifest.json を読んで
+# features/<機能>/ を「その機能の最新デモ」に更新し、索引 features/README.md を再生成する
+# （docs/conventions/pr-assets.md「機能カタログ」）。
+#
+# 動画を添付する PR は少数なので、manifest が無ければ何もせず成功する（通常経路）。
+# pr-<番号>/ は読むだけで動かさない（過去 PR 本文のリンクが張られているため）。
+name: demo-catalog
+
+on:
+  pull_request:
+    types: [closed]
+  # 過去 PR の取り込み直し（backfill）・障害時の再実行用。
+  workflow_dispatch:
+    inputs:
+      pr-number:
+        description: "カタログへ反映する PR 番号"
+        required: true
+        type: string
+
+# Why not: concurrency で直列化しない。GitHub の concurrency group は「実行中1件＋待機1件」しか
+# 保持せず、3件以上が同時に merge されると待機中の run がキャンセルされ、その PR の昇格が永久に
+# 失われる。全 run を走らせ、push 競合は下のリトライ（fetch → reset → 再生成）で吸収する。
+
+# pr-assets ブランチへの push にだけ書き込みが要る。
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    name: promote demo to catalog
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+
+    steps:
+      # 索引生成スクリプト（main 側）。pr-assets の中身はここには入らない。
+      # persist-credentials: false — このジョブはリポジトリへの書き込みトークンを持つ唯一の
+      # ジョブなので、スクリプトを走らせる作業ツリーには認証情報を残さない。
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      # Why not: pnpm install しない。書き込みトークンを持つジョブで依存の lifecycle script を
+      # 走らせないため。build-demo-catalog.ts は node 標準 API だけで書かれており、
+      # Node 24 の型ストリップで .ts を直接実行できる（実測済み）。
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          # setup-node v5 は package-manager-cache が既定で有効で、package.json の
+          # packageManager（pnpm）を見てキャッシュを設定しようとする。このジョブは
+          # 上記のとおり pnpm を入れないため、切っておかないと pnpm を探して落ちる。
+          package-manager-cache: false
+
+      # workflow_dispatch の input は任意の文字列を渡せるため、シェルへ ${{ }} で
+      # 展開せず env 経由で受けて数値であることを検証する（コマンド注入の遮断）。
+      - name: Resolve PR number
+        id: pr
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_PR_NUMBER: ${{ inputs.pr-number }}
+          MERGED_PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            number="$DISPATCH_PR_NUMBER"
+          else
+            number="$MERGED_PR_NUMBER"
+          fi
+          case "$number" in
+            '' | *[!0-9]*)
+              echo "PR 番号が数値ではない: $number" >&2
+              exit 1
+              ;;
+          esac
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      # pr-assets はまだ作られていない可能性がある（初回運用時）。その場合は何もせず成功する。
+      # API 呼び出し自体の失敗ではステップごと落とす（通信・権限の異常を「ブランチが無い」に
+      # 丸めると、昇格が黙って飛ぶ）。
+      - name: Check pr-assets branch exists
+        id: assets-branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branches=$(gh api "repos/${GITHUB_REPOSITORY}/branches" --paginate --jq '.[].name')
+          if printf '%s\n' "$branches" | grep -qx 'pr-assets'; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pr-assets ブランチが無いため何もしない"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # orphan ブランチなので ref 指定で別ディレクトリへ取る。fetch-depth は 1:
+      # 動画の履歴を全部引くと重く、コミットして push するだけなら最新1つで足りる。
+      # push するのはこの作業ツリーだけなので、認証情報はここにだけ残す（fork PR では
+      # token が read-only になり push は失敗する。private リポジトリで fork 運用は無い前提）。
+      - name: Checkout pr-assets branch
+        if: steps.assets-branch.outputs.exists == 'true'
+        uses: actions/checkout@v5
+        with:
+          ref: pr-assets
+          path: pr-assets
+          fetch-depth: 1
+          persist-credentials: true
+
+      # 生成 → commit → push を1ステップに閉じる。push が競合で弾かれたら origin を取り込み
+      # 直して同じ手順をやり直す（生成は冪等なので繰り返せる）。
+      - name: Update catalog and push
+        if: steps.assets-branch.outputs.exists == 'true'
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          ASSETS_DIR: ${{ github.workspace }}/pr-assets
+        run: |
+          set -euo pipefail
+          git -C "$ASSETS_DIR" config user.name "github-actions[bot]"
+          git -C "$ASSETS_DIR" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          push_log="$(mktemp)"
+          for attempt in 1 2 3; do
+            node scripts/build-demo-catalog.ts --assets-dir "$ASSETS_DIR" --pr "$PR_NUMBER"
+
+            if [ ! -d "$ASSETS_DIR/features" ]; then
+              echo "features/ が無い（この PR にデモは無い）ため push しない"
+              exit 0
+            fi
+
+            # features/ 以外は絶対にコミットしない。人が書くルート README と
+            # pr-<番号>/（過去 PR の証跡）を、生成側の不具合から守る最後の防壁。
+            git -C "$ASSETS_DIR" add -A -- features/
+            if git -C "$ASSETS_DIR" diff --cached --quiet; then
+              echo "カタログに差分が無いため push しない"
+              exit 0
+            fi
+
+            git -C "$ASSETS_DIR" commit -m "chore(demo-catalog): PR #${PR_NUMBER} のデモを features/ へ反映"
+            if git -C "$ASSETS_DIR" push origin HEAD:pr-assets 2>&1 | tee "$push_log"; then
+              exit 0
+            fi
+
+            # 競合（先に誰かが push した）以外は繰り返しても直らないので、そのまま失敗させる。
+            if ! grep -qE 'non-fast-forward|fetch first|\[rejected\]' "$push_log"; then
+              echo "競合以外の理由で push に失敗した。リトライしない" >&2
+              exit 1
+            fi
+            # 最終試行では reset しない（失敗時のコミットを残して調査できるようにする）。
+            if [ "$attempt" -eq 3 ]; then
+              echo "push を 3 回試みたが競合が解消しなかった" >&2
+              exit 1
+            fi
+
+            echo "push が競合で弾かれた（${attempt} 回目）。origin/pr-assets を取り込んでやり直す" >&2
+            git -C "$ASSETS_DIR" fetch --depth=1 origin pr-assets
+            git -C "$ASSETS_DIR" reset --hard FETCH_HEAD
+          done

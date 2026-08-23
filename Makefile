@@ -21,11 +21,12 @@ lint: ## SwiftLint で全体を検査（警告は失敗にしない。--strict �
 swiftformat-lint: ## SwiftFormat の整形漏れを検査（修正はしない）
 	swiftformat --lint .
 
-test: ## ユニットテスト実行
+test: ## ユニットテスト実行（デモ用UIテストは除外。実行は scripts/record-demo.sh）
 	xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination '$(DESTINATION)' \
+		-skip-testing:Night-Core-PlayerUITests \
 		-parallel-testing-enabled NO \
 		-quiet
 
