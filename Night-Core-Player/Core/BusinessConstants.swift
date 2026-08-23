@@ -17,6 +17,7 @@ public enum Constants {
     }
 
     public enum MusicPlayer {
+        public static let normalPlaybackRate: Double = 1.0
         public static let minPlaybackRate: Double = 0.5
         public static let maxPlaybackRate: Double = 3.0
         public static let step: Double = 0.5
