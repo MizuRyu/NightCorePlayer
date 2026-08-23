@@ -8,11 +8,11 @@ final class AllowanceRepository {
         self.context = context
     }
 
-    func loadOrCreate(now: Date, dayKey: String) throws -> AllowanceSnapshot {
+    func loadOrCreate(now: Date) throws -> AllowanceSnapshot {
         if let e = try fetch() {
             return AllowanceSnapshot(
                 firstLaunchAt: e.firstLaunchAt,
-                lastResetDayKey: e.lastResetDayKey,
+                nextResetAt: e.nextResetAt,
                 remainingSeconds: e.remainingSeconds,
                 lastSeenAt: e.lastSeenAt,
                 rewardCountTotal: e.rewardCountTotal,
@@ -21,14 +21,14 @@ final class AllowanceRepository {
         }
         let entity = AllowanceEntity(
             firstLaunchAt: now,
-            lastResetDayKey: dayKey,
+            nextResetAt: now.addingTimeInterval(86400),
             lastSeenAt: now
         )
         context.insert(entity)
         try context.save()
         return AllowanceSnapshot(
             firstLaunchAt: entity.firstLaunchAt,
-            lastResetDayKey: entity.lastResetDayKey,
+            nextResetAt: entity.nextResetAt,
             remainingSeconds: entity.remainingSeconds,
             lastSeenAt: entity.lastSeenAt,
             rewardCountTotal: entity.rewardCountTotal,
@@ -40,7 +40,7 @@ final class AllowanceRepository {
         guard let e = try fetch() else {
             let entity = AllowanceEntity(
                 firstLaunchAt: snapshot.firstLaunchAt,
-                lastResetDayKey: snapshot.lastResetDayKey,
+                nextResetAt: snapshot.nextResetAt,
                 remainingSeconds: snapshot.remainingSeconds,
                 lastSeenAt: snapshot.lastSeenAt,
                 rewardCountTotal: snapshot.rewardCountTotal,
@@ -51,7 +51,7 @@ final class AllowanceRepository {
             return
         }
         e.firstLaunchAt = snapshot.firstLaunchAt
-        e.lastResetDayKey = snapshot.lastResetDayKey
+        e.nextResetAt = snapshot.nextResetAt
         e.remainingSeconds = snapshot.remainingSeconds
         e.lastSeenAt = snapshot.lastSeenAt
         e.rewardCountTotal = snapshot.rewardCountTotal

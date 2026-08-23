@@ -8,7 +8,7 @@ enum PlaybackEntitlement: Equatable, Sendable {
 
 struct AllowanceSnapshot: Equatable, Sendable {
     var firstLaunchAt: Date
-    var lastResetDayKey: String
+    var nextResetAt: Date
     var remainingSeconds: TimeInterval
     var lastSeenAt: Date
     var rewardCountTotal: Int

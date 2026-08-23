@@ -11,14 +11,13 @@ struct AllowanceServiceTests {
     // MARK: - Helpers
 
     private static let day0 = ISO8601DateFormatter().date(from: "2026-08-01T12:00:00+09:00")!
+    private static let daySeconds: TimeInterval = 86400
 
     private static func makeService() throws -> (service: AllowanceServiceImpl, repo: AllowanceRepository) {
         let context = AppDataStore.shared.container.mainContext
         let repo = AllowanceRepository(context: context)
         try repo.reset()
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
-        let service = AllowanceServiceImpl(repo: repo, calendar: calendar)
+        let service = AllowanceServiceImpl(repo: repo)
         return (service, repo)
     }
 
@@ -53,6 +52,35 @@ struct AllowanceServiceTests {
         let (service, _) = try Self.makeService()
         _ = try service.entitlement(now: Self.day0)
         let state = try service.entitlement(now: Self.afterTrial())
+        #expect(state == .free(remaining: Constants.Allowance.dailyFreeSeconds))
+    }
+
+    @Test
+    func trialEnd_exactBoundary_isNotTrial() throws {
+        let (service, _) = try Self.makeService()
+        _ = try service.entitlement(now: Self.day0)
+        let end = Self.day0.addingTimeInterval(TimeInterval(Constants.Allowance.trialDays) * Self.daySeconds)
+
+        guard case .trial = try service.entitlement(now: end.addingTimeInterval(-1)) else {
+            Issue.record("期限1秒前はトライアルであるべき")
+            return
+        }
+
+        let stateAtEnd = try service.entitlement(now: end)
+        if case .trial(let endsAt) = stateAtEnd {
+            Issue.record("境界ちょうどはトライアルではないべき: endsAt=\(endsAt)")
+        }
+    }
+
+    @Test
+    func futureFirstLaunch_trialInvalid() throws {
+        let (service, _) = try Self.makeService()
+        // 初回起動を実時刻より1年未来に偽装して作成
+        let futureLaunch = Self.day0.addingTimeInterval(365 * Self.daySeconds)
+        _ = try service.entitlement(now: futureLaunch)
+
+        // 実時刻が初回起動より過去なのでトライアルではなく free 側に落ちる
+        let state = try service.entitlement(now: Self.day0)
         #expect(state == .free(remaining: Constants.Allowance.dailyFreeSeconds))
     }
 
@@ -104,6 +132,24 @@ struct AllowanceServiceTests {
     }
 
     @Test
+    func reset_boundaryExact_resetsOnlyAtNextResetAt() throws {
+        let (service, _) = try Self.makeService()
+        _ = try service.entitlement(now: Self.day0)
+        let start = Self.afterTrial()
+        try service.consume(Constants.Allowance.dailyFreeSeconds, now: start)
+        #expect(try service.entitlement(now: start) == .exhausted)
+
+        // リセット境界の1秒前ではリセットされない
+        let justBeforeReset = start.addingTimeInterval(Self.daySeconds - 1)
+        #expect(try service.entitlement(now: justBeforeReset) == .exhausted)
+
+        // guarded == nextResetAt のちょうど時点でリセットされる
+        let boundary = start.addingTimeInterval(Self.daySeconds)
+        let state = try service.entitlement(now: boundary)
+        #expect(state == .free(remaining: Constants.Allowance.dailyFreeSeconds))
+    }
+
+    @Test
     func newDay_rewardBalanceDoesNotCarryOver() throws {
         let (service, _) = try Self.makeService()
         _ = try service.entitlement(now: Self.day0)
@@ -139,6 +185,33 @@ struct AllowanceServiceTests {
         let remaining = try service.grantReward(now: now)
         #expect(remaining == Constants.Allowance.rewardSeconds)
         #expect(try service.entitlement(now: now) == .free(remaining: Constants.Allowance.rewardSeconds))
+    }
+
+    // MARK: - Persistence
+
+    @Test
+    func persistence_survivesServiceRecreation() throws {
+        let (service, _) = try Self.makeService()
+        _ = try service.entitlement(now: Self.day0)
+        let now = Self.afterTrial()
+
+        try service.consume(600, now: now)
+        for _ in 0..<Constants.Allowance.proPromptRewardCount {
+            _ = try service.grantReward(now: now)
+        }
+        try service.markProPromptShown(now: now)
+
+        // Service/Repository を作り直しても状態が維持される
+        let recreatedRepo = AllowanceRepository(context: AppDataStore.shared.container.mainContext)
+        let recreated = AllowanceServiceImpl(repo: recreatedRepo)
+
+        let expectedRemaining =
+            Constants.Allowance.dailyFreeSeconds - 600
+            + Constants.Allowance.rewardSeconds * TimeInterval(Constants.Allowance.proPromptRewardCount)
+        #expect(try recreated.entitlement(now: now) == .free(remaining: expectedRemaining))
+
+        // rewardCountTotal >= 閾値かつ proPromptShown 済なので false であるべき
+        #expect(try recreated.shouldShowProPrompt(now: now) == false)
     }
 
     // MARK: - Pro prompt

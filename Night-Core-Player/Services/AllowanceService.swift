@@ -15,19 +15,21 @@ protocol AllowanceService: Sendable {
 
 @MainActor
 final class AllowanceServiceImpl: AllowanceService {
-    private let repo: AllowanceRepository
-    private let calendar: Calendar
+    private static let daySeconds: TimeInterval = 86400
 
-    init(repo: AllowanceRepository, calendar: Calendar = .current) {
+    /// 実時刻が初回起動より1時間以上過去なら時計改竄とみなす許容幅
+    private static let trialClockToleranceSeconds: TimeInterval = 3600
+
+    private let repo: AllowanceRepository
+
+    init(repo: AllowanceRepository) {
         self.repo = repo
-        self.calendar = calendar
     }
 
     func entitlement(now: Date) throws -> PlaybackEntitlement {
         let snapshot = try normalizedSnapshot(now: now)
-        let trialEnd = trialEndDate(firstLaunchAt: snapshot.firstLaunchAt)
-        if guardedNow(now, snapshot: snapshot) < trialEnd {
-            return .trial(endsAt: trialEnd)
+        if isTrialActive(snapshot: snapshot, now: now) {
+            return .trial(endsAt: trialEndDate(firstLaunchAt: snapshot.firstLaunchAt))
         }
         return snapshot.remainingSeconds > 0
             ? .free(remaining: snapshot.remainingSeconds)
@@ -36,8 +38,7 @@ final class AllowanceServiceImpl: AllowanceService {
 
     func consume(_ seconds: TimeInterval, now: Date) throws {
         var snapshot = try normalizedSnapshot(now: now)
-        let trialEnd = trialEndDate(firstLaunchAt: snapshot.firstLaunchAt)
-        guard guardedNow(now, snapshot: snapshot) >= trialEnd else { return }
+        guard !isTrialActive(snapshot: snapshot, now: now) else { return }
         snapshot.remainingSeconds = max(0, snapshot.remainingSeconds - max(0, seconds))
         try repo.save(snapshot)
     }
@@ -70,28 +71,23 @@ final class AllowanceServiceImpl: AllowanceService {
     }
 
     private func normalizedSnapshot(now: Date) throws -> AllowanceSnapshot {
-        var snapshot = try repo.loadOrCreate(now: now, dayKey: dayKey(for: now))
+        var snapshot = try repo.loadOrCreate(now: now)
         let guarded = guardedNow(now, snapshot: snapshot)
-        let key = dayKey(for: guarded)
-        if key != snapshot.lastResetDayKey {
-            snapshot.lastResetDayKey = key
-            snapshot.remainingSeconds = Constants.Allowance.dailyFreeSeconds
-        }
         snapshot.lastSeenAt = guarded
-        try repo.save(snapshot)
+        if guarded >= snapshot.nextResetAt {
+            snapshot.remainingSeconds = Constants.Allowance.dailyFreeSeconds
+            snapshot.nextResetAt = guarded.addingTimeInterval(Self.daySeconds)
+            try repo.save(snapshot)
+        }
         return snapshot
     }
 
-    private func trialEndDate(firstLaunchAt: Date) -> Date {
-        calendar.date(
-            byAdding: .day,
-            value: Constants.Allowance.trialDays,
-            to: firstLaunchAt
-        ) ?? firstLaunchAt
+    private func isTrialActive(snapshot: AllowanceSnapshot, now: Date) -> Bool {
+        guard now >= snapshot.firstLaunchAt - Self.trialClockToleranceSeconds else { return false }
+        return guardedNow(now, snapshot: snapshot) < trialEndDate(firstLaunchAt: snapshot.firstLaunchAt)
     }
 
-    private func dayKey(for date: Date) -> String {
-        let c = calendar.dateComponents([.year, .month, .day], from: date)
-        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+    private func trialEndDate(firstLaunchAt: Date) -> Date {
+        firstLaunchAt.addingTimeInterval(TimeInterval(Constants.Allowance.trialDays) * Self.daySeconds)
     }
 }
