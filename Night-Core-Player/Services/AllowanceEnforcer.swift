@@ -32,6 +32,9 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
 
     private let allowanceService: AllowanceService
 
+    /// Pro購入者は残高消費・枯渇停止の対象外。App.swiftでProStoreServiceに接続される
+    private let isProEntitled: () -> Bool
+
     private let eventSubject = PassthroughSubject<AllowanceEvent, Never>()
     var events: AnyPublisher<AllowanceEvent, Never> {
         eventSubject.eraseToAnyPublisher()
@@ -45,13 +48,26 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
     /// 曲境界での停止予約。「枯滅+再生中+倍速」を観測したときだけアームされる
     private var pendingStopAtSongEnd = false
 
-    init(allowanceService: AllowanceService) {
+    init(
+        allowanceService: AllowanceService,
+        isProEntitled: @escaping () -> Bool = { false }
+    ) {
         self.allowanceService = allowanceService
+        self.isProEntitled = isProEntitled
     }
 
     var isExhausted: Bool { isBalanceExhausted }
 
     func tick(isPlaying: Bool, rate: Double, now: Date) {
+        // Proは消費もアームもしない。既存の停止予約があれば解除して即return
+        guard !isProEntitled() else {
+            // lastTickAtを進めないとPro期間ぶんが溜まり、Pro解除後の初回tickで一括消費される
+            lastTickAt = now
+            isBalanceExhausted = false
+            pendingStopAtSongEnd = false
+            return
+        }
+
         let baseline = lastTickAt ?? now
         lastTickAt = now
 
@@ -94,7 +110,8 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
     }
 
     func shouldStopAtSongBoundary() -> Bool {
-        pendingStopAtSongEnd
+        // tickを経由せず曲境界判定が走っても、Proユーザーを止めない
+        !isProEntitled() && pendingStopAtSongEnd
     }
 
     func markStoppedAtSongEnd() {

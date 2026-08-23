@@ -56,6 +56,8 @@ struct SettingsView: View {
                         .padding(.top, 8)
                 }
 
+                proSection
+
                 Section {
                     ForEach(OtherItem.allCases, id: \.self) { item in
                         VStack(spacing: 0) {
@@ -84,9 +86,109 @@ struct SettingsView: View {
                         .navigationBarTitleDisplayMode(.inline)
                 }
             }
+            .task {
+                await settingsVM.loadProState()
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .alert("Error", isPresented: Binding<Bool>(
+            get: { settingsVM.errorMessage != nil },
+            set: { if !$0 { settingsVM.errorMessage = nil } }
+        )) {
+            Button("OK") { settingsVM.errorMessage = nil }
+        } message: {
+            Text(settingsVM.errorMessage ?? "")
+        }
+        .alert("Pro", isPresented: Binding<Bool>(
+            get: { settingsVM.infoMessage != nil },
+            set: { if !$0 { settingsVM.infoMessage = nil } }
+        )) {
+            Button("OK") { settingsVM.infoMessage = nil }
+        } message: {
+            Text(settingsVM.infoMessage ?? "")
+        }
         .enableInjection()
+    }
+
+    // MARK: - Pro
+
+    @ViewBuilder
+    private var proSection: some View {
+        Section {
+            if settingsVM.isProEntitled {
+                HStack {
+                    Text("Pro Active")
+                        .font(.body)
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundColor(.green)
+                }
+                .padding(.vertical, 12)
+                .listRowSeparator(.hidden)
+            } else {
+                purchaseRow
+                restoreRow
+            }
+        } header: {
+            Text("Pro")
+                .font(.headline)
+                .foregroundColor(.primary)
+                .padding(.top, 8)
+        }
+    }
+
+    private var purchaseRow: some View {
+        VStack(spacing: 0) {
+            Button {
+                settingsVM.purchasePro()
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Unlock Pro")
+                            .font(.body)
+                            .foregroundColor(.primary)
+                        Text("Unlimited playback time")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    if settingsVM.isPurchasing {
+                        ProgressView()
+                    } else if let price = settingsVM.proPriceText {
+                        Text(price)
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                    }
+                }
+                .padding(.vertical, 12)
+            }
+            .disabled(settingsVM.isPurchasing)
+            Divider()
+                .padding(.leading, 16)
+        }
+        .listRowSeparator(.hidden)
+    }
+
+    private var restoreRow: some View {
+        VStack(spacing: 0) {
+            Button {
+                settingsVM.restorePro()
+            } label: {
+                HStack {
+                    Text("Restore Purchases")
+                        .font(.body)
+                        .foregroundColor(.primary)
+                    Spacer()
+                }
+                .padding(.vertical, 12)
+            }
+            .disabled(settingsVM.isPurchasing)
+            Divider()
+                .padding(.leading, 16)
+        }
+        .listRowSeparator(.hidden)
     }
 
     @ViewBuilder

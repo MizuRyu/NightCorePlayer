@@ -23,11 +23,15 @@ struct AllowanceEnforcerTests {
     }
 
     private static func makeEnforcer(
-        entitlement: PlaybackEntitlement = .free(remaining: Constants.Allowance.dailyFreeSeconds)
+        entitlement: PlaybackEntitlement = .free(remaining: Constants.Allowance.dailyFreeSeconds),
+        isProEntitled: @escaping () -> Bool = { false }
     ) -> (enforcer: AllowanceEnforcerImpl, mock: AllowanceServiceMock, recorder: EventRecorder) {
         let mock = AllowanceServiceMock()
         mock.entitlementResult = entitlement
-        let enforcer = AllowanceEnforcerImpl(allowanceService: mock)
+        let enforcer = AllowanceEnforcerImpl(
+            allowanceService: mock,
+            isProEntitled: isProEntitled
+        )
         let recorder = EventRecorder(events: enforcer.events)
         return (enforcer, mock, recorder)
     }
@@ -88,6 +92,47 @@ struct AllowanceEnforcerTests {
         enforcer.tick(isPlaying: true, rate: 2.0, now: Self.base)
         #expect(!enforcer.isExhausted)
         #expect(recorder.received.isEmpty)
+    }
+
+    @Test("Pro有効時はtickで消費されずアームもされない")
+    func tickWithProDoesNotConsumeOrArm() {
+        // Given: 残高枯渇だがPro有効
+        let isPro = true
+        let (enforcer, mock, recorder) = Self.makeEnforcer(
+            entitlement: .exhausted,
+            isProEntitled: { isPro }
+        )
+        let t0 = Self.base
+        // When: 倍速+再生中で複数回tick
+        enforcer.tick(isPlaying: true, rate: 2.0, now: t0)
+        enforcer.tick(isPlaying: true, rate: 2.0, now: t0.addingTimeInterval(10))
+        // Then: 消費も停止予約のアームも行わない
+        #expect(mock.consumeArgs.isEmpty)
+        #expect(!enforcer.shouldStopAtSongBoundary())
+        #expect(recorder.received.isEmpty)
+    }
+
+    @Test("Pro有効化で既存の停止予約がクリアされる")
+    func proActivationClearsPendingStop() {
+        // Given: 枯渇+倍速の非Pro状態。2回目のtickで経過秒が消費され、アーム済みになる
+        var isPro = false
+        let (enforcer, mock, recorder) = Self.makeEnforcer(
+            entitlement: .exhausted,
+            isProEntitled: { isPro }
+        )
+        let t0 = Self.base
+        enforcer.tick(isPlaying: true, rate: 2.0, now: t0)
+        enforcer.tick(isPlaying: true, rate: 2.0, now: t0.addingTimeInterval(10))
+        #expect(enforcer.shouldStopAtSongBoundary())
+        #expect(mock.consumeArgs.first?.seconds == 10)
+        let consumeCountBeforePro = mock.consumeArgs.count
+        // When: Proを購入して有効化
+        isPro = true
+        enforcer.tick(isPlaying: true, rate: 2.0, now: t0.addingTimeInterval(20))
+        // Then: 停止予約が解除され、Pro化後のtickでは消費も再アームもされない
+        #expect(!enforcer.shouldStopAtSongBoundary())
+        #expect(mock.consumeArgs.count == consumeCountBeforePro)
+        #expect(recorder.received == [.exhaustedPendingSongEnd])
     }
 
     // MARK: - Exhaustion / Events

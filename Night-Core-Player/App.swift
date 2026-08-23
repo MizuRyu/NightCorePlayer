@@ -41,7 +41,11 @@ struct NightcorePlayerApp: App {
         let allowanceService = AllowanceServiceImpl(
             repo: AllowanceRepository(context: context)
         )
-        let allowanceEnforcer = AllowanceEnforcerImpl(allowanceService: allowanceService)
+        let proStoreService = ProStoreServiceImpl()
+        let allowanceEnforcer = AllowanceEnforcerImpl(
+            allowanceService: allowanceService,
+            isProEntitled: { proStoreService.isProEntitled }
+        )
 
         let service = MusicPlayerServiceImpl(
             rateManager: rateManager,
@@ -56,7 +60,8 @@ struct NightcorePlayerApp: App {
         _playerVM = State(initialValue: MusicPlayerViewModel(service: service))
         _settingsVM = State(initialValue: SettingsViewModel(
             rateManager: rateManager,
-            playerService: service
+            playerService: service,
+            proStore: proStoreService
         ))
         _searchVM = State(initialValue: SearchViewModel(musicKitService: musicKitService))
         _playlistVM = State(initialValue: PlaylistViewModel(musicKitService: musicKitService))
