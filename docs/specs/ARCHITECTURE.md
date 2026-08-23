@@ -1,6 +1,6 @@
 # NightCorePlayer アーキテクチャガイド
 
-> 最終更新: 2026-03-23
+> 最終更新: 2026-08-23
 
 ---
 
@@ -64,7 +64,12 @@ Night-Core-Player/
 │   ├── PlaybackRateManager.swift          # Protocol + Impl 同居
 │   │                                      #
 │   │                                      # --- Persistence（横断: 状態の保存/復元）---
-│   └── PlayerPersistenceService.swift     # Protocol + Impl 同居
+│   ├── PlayerPersistenceService.swift     # Protocol + Impl 同居
+│   │                                      #
+│   │                                      # --- Monetization（残高 + Pro 購入）---
+│   ├── AllowanceService.swift             # 残高の状態遷移（Protocol + Impl 同居）
+│   ├── AllowanceEnforcer.swift            # 再生tickでの消費 + 曲境界停止（Protocol + Impl 同居）
+│   └── ProStoreService.swift              # StoreKit 2 Pro 購入（Protocol + Impl 同居）
 │
 ├── Data/                                  # 永続化専用
 │   ├── AppDataStore.swift                 # ModelContainer 管理
@@ -95,11 +100,14 @@ Night-Core-Player/
 │   ├── Search/
 │   │   ├── SearchView.swift
 │   │   └── SearchViewModel.swift
-│   └── Settings/
-│       ├── SettingsView.swift
-│       ├── SettingsPlaybackSpeedView.swift
-│       ├── SettingsViewModel.swift
-│       └── TermsView.swift
+│   ├── Settings/
+│   │   ├── SettingsView.swift
+│   │   ├── SettingsPlaybackSpeedView.swift
+│   │   ├── SettingsViewModel.swift
+│   │   └── TermsView.swift
+│   └── Allowance/
+│       ├── AllowanceSheetView.swift
+│       └── AllowanceSheetViewModel.swift
 │
 ├── Extensions/
 │   └── Song+CatalogIdentifier.swift
@@ -135,6 +143,7 @@ Night-Core-Player/
 | **Catalog** | Apple Music 検索 + アートワーク取得 | `MusicKitService`, `ArtworkCacheService` |
 | **Preference** | ユーザー設定（デフォルト速度） | `PlaybackRateManager` |
 | **Persistence** | 状態の保存/復元（横断的関心事） | `PlayerPersistenceService` |
+| **Monetization** | 残高（トライアル/無料枠/リワード）の状態遷移 + 再生への適用 + Pro 購入 | `AllowanceService`, `AllowanceEnforcer`, `ProStoreService` |
 
 新しい Service を追加する場合は、どのコンテキストに属するかをファイル先頭のコメントに明記すること。既存のどのコンテキストにも属さない場合は、新しいコンテキストを定義するか、設計を見直すシグナルとして扱う。
 
@@ -157,6 +166,41 @@ Night-Core-Player/
 | **Playback** | 曲を聴く。再生制御 + キュー管理 + セッション速度。再生ログ | `MusicPlayerService`, `PlayHistoryManager` |
 | **Preference** | 好みを決める。デフォルト速度の管理 | `PlaybackRateManager` |
 | **Persistence**（横断） | 前回の状態を覚えておく | `PlayerPersistenceService`, Repositories |
+| **Monetization** | Nightcore 再生の残高を管理し、枯渇時に再生を止める。Pro 購入 | `AllowanceService`, `AllowanceEnforcer`, `ProStoreService` |
+
+### Monetization の内部分担
+
+`AllowanceService` と `AllowanceEnforcer` は「状態」と「適用」で責務を分けている。
+
+| Service | 役割 | 永続化 |
+|---------|------|--------|
+| `AllowanceService` | `AllowanceSnapshot`（残高・トライアル終了日・リワード回数等）の読み書きと、日次リセット・トライアル判定などの状態遷移 | する（`AllowanceRepository` 経由で SwiftData） |
+| `AllowanceEnforcer` | `MusicPlayerServiceImpl` の再生 tick から呼ばれ、倍速再生時のみ経過時間を `AllowanceService.consume` に渡す。残高が尽きたら即停止せず、現在の曲が終わるまで再生を続けたうえで停止する（曲境界停止） | しない（メモリ上のフラグのみ） |
+| `ProStoreService` | StoreKit 2 で Pro（非消耗型 `MizuRyu.Night-Core-Player.pro`）を購入・復元し、`isProEntitled` を公開する。Pro ユーザーは `AllowanceEnforcer` の消費・停止の対象外 | StoreKit のトランザクション履歴に委譲 |
+
+**設計上の制約:** 残高ゲートは Nightcore 変換（`playbackRate != 1.0`）にのみ掛ける。Apple Music の素の等速再生は制限しない（MusicKit 利用規約上、等速再生を課金対象にできないため）。時計を過去に戻す操作への対策として `guardedNow = max(now, lastSeenAt)` を使い、残高の巻き戻りを防いでいる。背景は [ADR 003](../adr/003-allowance-design.md) を参照。
+
+### イベントフロー（枯渇 → シート表示）
+
+```
+MusicPlayerServiceImpl.tick()
+        │ isPlaying, rate, now
+        ▼
+AllowanceEnforcer.tick()
+        │ consume() → AllowanceService（残高更新）
+        │ 残高0 かつ 倍速再生中 → pendingStopAtSongEnd = true
+        ▼
+events: AnyPublisher<AllowanceEvent, Never>
+        │ .exhaustedPendingSongEnd
+        ▼
+AllowanceSheetViewModel（購読）
+        │
+        ▼
+曲境界到達（MusicPlayerServiceImpl側でshouldStopAtSongBoundary()を確認）
+        │ 再生を停止 + markStoppedAtSongEnd()
+        ▼
+AllowanceSheetView（+30分 / Pro購入 / 閉じる）
+```
 
 ### 「速度」は2つの意味を持つ
 
@@ -271,13 +315,22 @@ View:        errorMessage の有無で .alert 表示（try/catch は書かない
 │                                │              MusicQueueManager
 │                                ├──→ ArtworkCacheService ──→ Apple Music CDN
 │                                ├──→ PlayHistoryManager ──→ HistoryRepository
-│                                └──→ PlayerPersistenceService ──→ PlayerStateRepository
-│                                                                       ↕
-│                                                                   SwiftData
+│                                ├──→ PlayerPersistenceService ──→ PlayerStateRepository
+│                                │                                    ↕
+│                                │                                SwiftData
+│                                └──→ AllowanceEnforcer ──→ AllowanceService ──→ AllowanceRepository
+│                                              │                                    ↕
+│                                              │                                SwiftData
+│                                              │ events
+│                                              ▼
+├─ AllowanceSheetView ←── AllowanceSheetViewModel ──→ AllowanceService
+│                                              └──→ ProStoreService ──→ StoreKit 2
 │
 └─ SettingsView ←── SettingsViewModel ←── PlaybackRateManager
-                                              │
-                                              └──→ PlayerStateRepository
+                              │               │
+                              │               └──→ PlayerStateRepository
+                              ├──→ ProStoreService ──→ StoreKit 2
+                              └──→ AllowanceService ──→ AllowanceRepository
 ```
 
 ---
