@@ -1,6 +1,9 @@
 import Foundation
 import MusicKit
+import OSLog
 import SwiftUI
+
+private let musicKitLogger = Logger(subsystem: Constants.Logging.subsystem, category: "MusicKit")
 
 // MARK: - Protocol
 
@@ -12,12 +15,15 @@ protocol MusicKitService: Sendable {
     func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song]
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist]
     func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song]
-    func fetchPersonalRecommendations(limit: Int) async throws -> [Song]
+    func fetchPersonalRecommendations(history: [Song], limit: Int) async throws -> [Song]
 }
 
 extension MusicKitService {
     func searchSongs(keyword: String, limit: Int) async throws -> [Song] {
         try await searchSongs(keyword: keyword, limit: limit, offset: 0)
+    }
+    func fetchPersonalRecommendations(limit: Int) async throws -> [Song] {
+        try await fetchPersonalRecommendations(history: [], limit: limit)
     }
 }
 
@@ -48,6 +54,8 @@ protocol MusicKitClient: Sendable {
     func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song]
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist]
     func fetchSongs(in playlist: Playlist) async throws -> [Song]
+    func fetchRecentlyPlayedSongs(limit: Int) async throws -> [Song]
+    func fetchSimilarArtists(artist: Artist) async throws -> [Artist]
 }
 
 extension MusicKitClient {
@@ -112,9 +120,7 @@ struct DefaultMusicKitClient: MusicKitClient {
             }
         } catch {
             lastErrorDescription = error.localizedDescription
-            #if DEBUG
-            print("⚠️ playlist.with([.tracks]) failed: \(error.localizedDescription)")
-            #endif
+            musicKitLogger.warning("playlist.with([.tracks]) failed: \(error.localizedDescription)")
         }
 
         var req = MusicLibraryRequest<Playlist>()
@@ -137,9 +143,7 @@ struct DefaultMusicKitClient: MusicKitClient {
             }
         } catch {
             lastErrorDescription = error.localizedDescription
-            #if DEBUG
-            print("⚠️ libraryPlaylist.with([.tracks]) failed: \(error.localizedDescription)")
-            #endif
+            musicKitLogger.warning("libraryPlaylist.with([.tracks]) failed: \(error.localizedDescription)")
         }
 
         do {
@@ -157,9 +161,7 @@ struct DefaultMusicKitClient: MusicKitClient {
             throw error
         } catch {
             lastErrorDescription = error.localizedDescription
-            #if DEBUG
-            print("⚠️ libraryPlaylist.with([.entries]) failed: \(error.localizedDescription)")
-            #endif
+            musicKitLogger.warning("libraryPlaylist.with([.entries]) failed: \(error.localizedDescription)")
         }
 
         throw PlaylistSongsFetchError.tracksUnavailable(
@@ -168,6 +170,18 @@ struct DefaultMusicKitClient: MusicKitClient {
             kind: playlistKind,
             reason: lastErrorDescription
         )
+    }
+
+    func fetchRecentlyPlayedSongs(limit: Int) async throws -> [Song] {
+        var req = MusicRecentlyPlayedRequest<Song>()
+        req.limit = limit
+        let res = try await req.response()
+        return Array(res.items)
+    }
+
+    func fetchSimilarArtists(artist: Artist) async throws -> [Artist] {
+        let detailed = try await artist.with([.similarArtists])
+        return Array(detailed.similarArtists ?? [])
     }
 
     private func extractSongs(from tracks: MusicItemCollection<Track>?) -> [Song] {
@@ -190,9 +204,11 @@ struct DefaultMusicKitClient: MusicKitClient {
 
 final class MusicKitServiceImpl: MusicKitService {
     private let client: MusicKitClient
+    private let recommender: RecommendationBuilding
 
-    init(client: MusicKitClient = DefaultMusicKitClient()) {
+    init(client: MusicKitClient = DefaultMusicKitClient(), recommender: RecommendationBuilding? = nil) {
         self.client = client
+        self.recommender = recommender ?? RecommendationServiceImpl(client: client)
     }
     func ensureAuth() async throws {
         let status = await client.requestAuthorization()
@@ -234,16 +250,20 @@ final class MusicKitServiceImpl: MusicKitService {
     func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song] {
         try await ensureAuth()
         let songs = try await client.fetchSongs(in: playlist)
-        #if DEBUG
-        print("🎵 fetchPlaylistSongs: \(songs.count) songs loaded for '\(playlist.name)' [id=\(playlist.id.rawValue)]")
-        #endif
+        musicKitLogger.debug("fetchPlaylistSongs: \(songs.count) songs loaded for '\(playlist.name)' [id=\(playlist.id.rawValue)]")
         return songs
     }
 
-    func fetchPersonalRecommendations(limit: Int = Constants.Recommendation.defaultLimit) async throws -> [Song] {
+    func fetchPersonalRecommendations(
+        history: [Song],
+        limit: Int = Constants.Recommendation.defaultLimit
+    ) async throws -> [Song] {
         try await ensureAuth()
 
-        // ユーザーライブラリのプレイリストから推薦楽曲を取得
+        let recommended = await recommender.buildDailyQueue(history: history, limit: limit)
+        if !recommended.isEmpty { return recommended }
+
+        // フォールバック: 聴取実績が全く無い場合はライブラリのプレイリストからシャッフル
         let playlists = try await client.fetchLibraryPlaylists(limit: 5)
         var songs: [Song] = []
         for playlist in playlists {

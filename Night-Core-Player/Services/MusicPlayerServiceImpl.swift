@@ -383,6 +383,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
             let excludeIDs = existingIDs.union(historyIDs)
 
             let recommendations = try await musicKitService.fetchPersonalRecommendations(
+                history: historyManager.history,
                 limit: Constants.Recommendation.defaultLimit
             )
             let filtered = recommendations.filter { !excludeIDs.contains($0.id) }
