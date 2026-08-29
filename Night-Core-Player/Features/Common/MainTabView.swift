@@ -33,20 +33,20 @@ struct MainTabView: View {
                     .tag(PlayerNavigator.Tab.player)
                     .safeAreaPadding(.bottom, miniPlayerHeight)
 
+                // 以下3タブの下端余白は各画面のList側(contentMargins)が持つ。
+                // NavigationStack越しのsafeAreaPaddingは内部Listのスクロール余白に届かず、
+                // ミニプレイヤーが最下行に被って操作できなくなるため
                 SearchView()
                     .tabItem { Label("Search", systemImage: "magnifyingglass") }
                     .tag(PlayerNavigator.Tab.search)
-                    .safeAreaPadding(.bottom, miniPlayerHeight)
 
                 PlaylistView()
                     .tabItem { Label("Playlist", systemImage: "list.bullet") }
                     .tag(PlayerNavigator.Tab.playlist)
-                    .safeAreaPadding(.bottom, miniPlayerHeight)
 
                 SettingsView()
                     .tabItem { Label("Settings", systemImage: "gearshape") }
                     .tag(PlayerNavigator.Tab.settings)
-                    .safeAreaPadding(.bottom, miniPlayerHeight)
             }
             .onScrollDetected { scrolling in
                 nav.isScrolling = scrolling
@@ -88,7 +88,7 @@ struct MainTabView: View {
                             nav.selectedTab = .player
                         }
                     }
-                    .padding(.bottom, 55)
+                    .padding(.bottom, Constants.UI.FrameSize.miniMusicPlayerBottomOffset)
                     .opacity(nav.isScrolling ? 0.3 : 1.0)
                     .animation(.easeInOut(duration: 0.2), value: nav.isScrolling)
             }

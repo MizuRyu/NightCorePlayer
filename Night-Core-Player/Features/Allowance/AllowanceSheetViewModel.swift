@@ -83,6 +83,8 @@ final class AllowanceSheetViewModel {
                 switch try await proStoreService.purchase() {
                 case .purchased:
                     close()
+                case .unavailable:
+                    errorMessage = String(localized: "Pro is not available right now. Please try again later.")
                 case .cancelled, .pending:
                     break
                 }

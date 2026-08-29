@@ -35,6 +35,12 @@ extension Constants {
             public static let speedControlSliderWidth: CGFloat = 340.0
             public static let playlistIconWidth: CGFloat = 24.0
             public static let miniMusicPlayerHeight: CGFloat = 55.0
+            /// ミニプレイヤーをタブバーの上へ持ち上げる量
+            public static let miniMusicPlayerBottomOffset: CGFloat = 55.0
+            /// ミニプレイヤーが画面下端から覆う総量。各スクロール画面の下端余白に使う
+            public static var miniMusicPlayerContentInset: CGFloat {
+                miniMusicPlayerHeight + miniMusicPlayerBottomOffset
+            }
         }
 
         public enum Padding {
