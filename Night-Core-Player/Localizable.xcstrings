@@ -481,6 +481,26 @@
         }
       }
     },
+    "Allowance exhausted": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "残高を使い切った状態にしました"
+          }
+        }
+      }
+    },
+    "Allowance reset": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "残高の記録を消去しました"
+          }
+        }
+      }
+    },
     "Pro is not available right now. Please try again later.": {
       "localizations": {
         "ja": {
@@ -521,22 +541,62 @@
         }
       }
     },
-    "Watch a Video for +30 Minutes": {
+    "Watch a Video": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "動画を視聴し再生時間を30分追加"
+            "value": "動画を見る"
           }
         }
       }
     },
-    "Go Unlimited with Pro (One-Time Purchase)": {
+    "+30 min": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Proプランで無制限再生"
+            "value": "+30分"
+          }
+        }
+      }
+    },
+    "Adds playback time for today": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日の再生時間を追加します"
+          }
+        }
+      }
+    },
+    "Go Pro": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proにする"
+          }
+        }
+      }
+    },
+    "One-time": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "買い切り"
+          }
+        }
+      }
+    },
+    "Unlimited playback, no ads": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "時間制限なし・広告なしで使えます"
           }
         }
       }

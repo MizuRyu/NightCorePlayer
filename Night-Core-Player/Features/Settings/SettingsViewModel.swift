@@ -12,8 +12,18 @@ final class SettingsViewModel {
     var isProEntitled: Bool { proStore?.isProEntitled ?? false }
     private(set) var proPriceText: String?
 
+    /// AllowanceService は @Observable ではなく、残高の変化を SwiftUI が追跡できない。
+    /// この値の更新が remainingTimeText の再評価契機になる
+    private var allowanceRevision = 0
+
+    /// 残高が外部（リワード付与など）で変わった後に表示を追随させる
+    func refreshAllowance() {
+        allowanceRevision += 1
+    }
+
     /// 今日の残り再生時間の表示テキスト。Pro > トライアル > 無料残高/枯渇の優先順位で判定する
     var remainingTimeText: String {
+        _ = allowanceRevision
         guard let allowanceService else { return "" }
         if isProEntitled {
             return String(localized: "Unlimited")
@@ -100,6 +110,36 @@ final class SettingsViewModel {
             await loadProState()
         }
     }
+
+    #if DEBUG
+        /// 検証用: 残高を使い切った状態にする。再生を試みると枠超過シート（リワード広告の入口）に到達する
+        func debugExhaustAllowance() {
+            applyDebugAllowanceChange(String(localized: "Allowance exhausted")) {
+                try $0.debugExhaust(now: Date())
+            }
+        }
+
+        /// 検証用: 残高の記録を消し、トライアルからやり直す
+        func debugResetAllowance() {
+            applyDebugAllowanceChange(String(localized: "Allowance reset")) {
+                try $0.debugReset()
+            }
+        }
+
+        private func applyDebugAllowanceChange(
+            _ message: String,
+            _ change: (AllowanceService) throws -> Void
+        ) {
+            guard let allowanceService else { return }
+            do {
+                try change(allowanceService)
+                refreshAllowance()
+                infoMessage = message
+            } catch {
+                errorMessage = (error as? AppError)?.errorDescription ?? error.localizedDescription
+            }
+        }
+    #endif
 
     func restorePro() {
         Task {

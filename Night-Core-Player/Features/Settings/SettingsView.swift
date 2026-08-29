@@ -6,6 +6,7 @@ struct SettingsView: View {
     @ObserveInjection var inject
     @Environment(SettingsViewModel.self) private var settingsVM
     @Environment(\.requestReview) private var requestReview
+    @Environment(AllowanceSheetViewModel.self) private var allowanceSheetVM
 
     private enum SoundItem: String, CaseIterable, Hashable {
         case playbackSpeed
@@ -60,6 +61,10 @@ struct SettingsView: View {
 
                 proSection
 
+                #if DEBUG
+                    debugSection
+                #endif
+
                 Section {
                     ForEach(OtherItem.allCases, id: \.self) { item in
                         VStack(spacing: 0) {
@@ -90,7 +95,12 @@ struct SettingsView: View {
                 }
             }
             .task {
+                settingsVM.refreshAllowance()
                 await settingsVM.loadProState()
+            }
+            // リワード付与は枠超過シート側で起きるため、閉じた時点で残高表示を追随させる
+            .onChange(of: allowanceSheetVM.isPresented) { _, isPresented in
+                if !isPresented { settingsVM.refreshAllowance() }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -105,6 +115,43 @@ struct SettingsView: View {
         }
         .enableInjection()
     }
+
+    #if DEBUG
+        // MARK: - Debug
+
+        /// 残高の状態を手で作るための検証用セクション。トライアル中は枠超過シートに到達できず
+        /// リワード広告を実機確認できないため置いている
+        private var debugSection: some View {
+            Section {
+                debugRow("残高を使い切る（トライアル終了）") { settingsVM.debugExhaustAllowance() }
+                debugRow("残高の記録を消す") { settingsVM.debugResetAllowance() }
+                // 枠超過シートは曲が終わったときにだけ出るため、広告確認のために直接開く口を用意する
+                debugRow("枠超過シートを開く") { allowanceSheetVM.debugPresent() }
+            } header: {
+                Text("デバッグ（Debug ビルドのみ）")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                    .padding(.top, 8)
+            }
+        }
+
+        private func debugRow(_ title: LocalizedStringKey, action: @escaping () -> Void) -> some View {
+            VStack(spacing: 0) {
+                Button(action: action) {
+                    HStack {
+                        Text(title)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                        Spacer()
+                    }
+                    .padding(.vertical, 12)
+                }
+                Divider()
+                    .padding(.leading, 16)
+            }
+            .listRowSeparator(.hidden)
+        }
+    #endif
 
     // MARK: - Alert
 

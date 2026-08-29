@@ -9,6 +9,13 @@ protocol AllowanceService: Sendable {
     func grantReward(now: Date) throws -> TimeInterval
     func shouldShowProPrompt(now: Date) throws -> Bool
     func markProPromptShown(now: Date) throws
+
+    #if DEBUG
+        /// 検証用: トライアルを終了させ残高を使い切った状態にする。リワード広告と枯渇シートの実機確認に使う
+        func debugExhaust(now: Date) throws
+        /// 検証用: 残高の記録を消し、初回起動前の状態に戻す
+        func debugReset() throws
+    #endif
 }
 
 // MARK: - Impl
@@ -62,6 +69,25 @@ final class AllowanceServiceImpl: AllowanceService {
         snapshot.proPromptShown = true
         try repo.save(snapshot)
     }
+
+    #if DEBUG
+        func debugExhaust(now: Date) throws {
+            var snapshot = try normalizedSnapshot(now: now)
+            // トライアル判定を抜けるため初回起動をトライアル期間より前に倒す
+            snapshot.firstLaunchAt = now.addingTimeInterval(
+                -TimeInterval(Constants.Allowance.trialDays + 1) * Self.daySeconds
+            )
+            snapshot.remainingSeconds = 0
+            // normalizedSnapshot の日次リセットで残高が戻らないよう次回リセットを先送りする
+            snapshot.nextResetAt = now.addingTimeInterval(Self.daySeconds)
+            snapshot.lastSeenAt = now
+            try repo.save(snapshot)
+        }
+
+        func debugReset() throws {
+            try repo.reset()
+        }
+    #endif
 
     // MARK: - Private
 
