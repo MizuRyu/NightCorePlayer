@@ -85,6 +85,7 @@ struct PlaylistDetailView: View {
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
+                    .contentMargins(.bottom, Constants.UI.FrameSize.miniMusicPlayerContentInset, for: .scrollContent)
                     .background(Color(.systemBackground))
                     .navigationDestination(for: Song.self) { song in
                         Text(song.title)
