@@ -15,6 +15,25 @@ struct MainTabView: View {
         nav.selectedTab != .player && !keyboard.isVisible
     }
 
+    /// 枠超過の告知はタブ全体を覆うシートではなく中央のダイアログで出す
+    private var allowanceDialog: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture { allowanceSheetVM.close() }
+
+            AllowanceSheetView(viewModel: allowanceSheetVM)
+                .frame(maxWidth: Constants.UI.FrameSize.dialogMaxWidth)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(.systemBackground))
+                )
+                .shadow(radius: 20)
+                .padding(24)
+        }
+        .transition(.opacity)
+    }
+
     var body: some View {
         @Bindable var nav = nav
         let tabBinding = Binding<PlayerNavigator.Tab>(
@@ -93,12 +112,12 @@ struct MainTabView: View {
                     .animation(.easeInOut(duration: 0.2), value: nav.isScrolling)
             }
         }
-        .sheet(isPresented: Binding(
-            get: { allowanceSheetVM.isPresented },
-            set: { isPresented in if !isPresented { allowanceSheetVM.close() } }
-        )) {
-            AllowanceSheetView(viewModel: allowanceSheetVM)
+        .overlay {
+            if allowanceSheetVM.isPresented {
+                allowanceDialog
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: allowanceSheetVM.isPresented)
         .enableInjection()
     }
 }

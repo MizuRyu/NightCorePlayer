@@ -34,6 +34,8 @@ extension Constants {
             public static let buttonMinHeight: CGFloat = 42.0
             public static let speedControlSliderWidth: CGFloat = 340.0
             public static let playlistIconWidth: CGFloat = 24.0
+            /// 中央ダイアログの最大幅。ボタンが端まで伸びて間延びしないよう抑える
+            public static let dialogMaxWidth: CGFloat = 320.0
             public static let miniMusicPlayerHeight: CGFloat = 55.0
             /// ミニプレイヤーをタブバーの上へ持ち上げる量
             public static let miniMusicPlayerBottomOffset: CGFloat = 55.0
