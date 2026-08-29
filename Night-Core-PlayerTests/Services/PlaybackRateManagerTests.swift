@@ -11,13 +11,13 @@ struct PlaybackRateManagerTests {
     // MARK: - Helpers
 
     private static func makeRepo() -> PlayerStateRepository {
-        let context = AppDataStore.shared.container.mainContext
+        let context = TestDataStore.container.mainContext
         return PlayerStateRepository(context: context)
     }
 
     /// PlayerState をクリアして初期状態にする
     private static func cleanPlayerState() throws {
-        let context = AppDataStore.shared.container.mainContext
+        let context = TestDataStore.container.mainContext
         let existing = try context.fetch(FetchDescriptor<PlayerStateEntity>())
         existing.forEach(context.delete)
         try context.save()

@@ -100,7 +100,8 @@ struct NightcorePlayerApp: App {
             allowanceService: allowanceService,
             proStoreService: proStoreService,
             playerNavigator: navigator,
-            rewardedAdService: rewardedAdService
+            rewardedAdService: rewardedAdService,
+            musicPlayerService: service
         ))
     }
 

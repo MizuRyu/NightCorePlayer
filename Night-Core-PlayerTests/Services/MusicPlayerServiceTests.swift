@@ -34,7 +34,7 @@ private struct SUT {
     static func make(allowanceEnforcer: AllowanceEnforcer? = nil) -> SUT {
         let adapter   = PlayerControllableMock()
         let queueMock = QueueManagingMock()
-        let context = AppDataStore.shared.container.mainContext
+        let context = TestDataStore.container.mainContext
         let repo = PlayerStateRepository(context: context)
         let historyRepo = HistoryRepository(context: context)
         let rateManager = PlaybackRateManagerImpl(repo: repo)
@@ -222,7 +222,7 @@ struct MusicQueueManagerTests {
         queueMock.items = [A, B, C]
         queueMock.currentIndex = 0
 
-        let context = AppDataStore.shared.container.mainContext
+        let context = TestDataStore.container.mainContext
         let repo = PlayerStateRepository(context: context)
         let historyRepo = HistoryRepository(context: context)
         let service = MusicPlayerServiceImpl(

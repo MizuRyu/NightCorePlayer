@@ -89,6 +89,8 @@ protocol MusicPlayerService: Sendable {
     func previous() async
     func seek(to time: TimeInterval) async
     func setSessionRate(_ rate: Double) async
+    /// 残高枯渇の曲境界停止からの復帰。停止前の倍速へ戻して再生を再開する (#87)
+    func resumeAfterRewardGrant() async
 
     func setQueue(songs: [Song], startAt index: Int, autoPlay: Bool) async
     func moveItem(from src: Int, to dst: Int) async

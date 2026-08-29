@@ -16,6 +16,7 @@ final class AllowanceSheetViewModel {
     private let proStoreService: ProStoreService
     private let rewardedAdService: RewardedAdService?
     private let playerNavigator: PlayerNavigator
+    private let musicPlayerService: MusicPlayerService?
     private let now: () -> Date
     private let logger = Logger(subsystem: Constants.Logging.subsystem, category: "Allowance")
     private var cancellables: Set<AnyCancellable> = []
@@ -26,12 +27,14 @@ final class AllowanceSheetViewModel {
         proStoreService: ProStoreService,
         playerNavigator: PlayerNavigator,
         rewardedAdService: RewardedAdService? = nil,
+        musicPlayerService: MusicPlayerService? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.allowanceService = allowanceService
         self.proStoreService = proStoreService
         self.rewardedAdService = rewardedAdService
         self.playerNavigator = playerNavigator
+        self.musicPlayerService = musicPlayerService
         self.now = now
         // AllowanceEnforcerは@MainActor隔離のため、eventsの発行元は既にメインスレッド。receive(on:)によるhopは不要
         allowanceEnforcer.events
@@ -98,6 +101,11 @@ final class AllowanceSheetViewModel {
         } catch {
             errorMessage = (error as? AppError)?.errorDescription ?? error.localizedDescription
             return
+        }
+
+        // 境界停止で等速に戻された再生を、停止前の倍速で自動再開する (#87)
+        if let musicPlayerService {
+            Task { await musicPlayerService.resumeAfterRewardGrant() }
         }
 
         let shouldShowPrompt: Bool

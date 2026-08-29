@@ -40,6 +40,8 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     private let now: () -> Date
 
     var currentPlaybackRate: Double = Constants.MusicPlayer.defaultPlaybackRate
+    /// 残高枯渇の曲境界停止時に保持する停止前の倍速。リワード付与後の自動復帰に使う (#87)
+    private var rateBeforeAllowanceStop: Double?
     private let minPlaybackRate: Double = Constants.MusicPlayer.minPlaybackRate
     private let maxPlaybackRate: Double = Constants.MusicPlayer.maxPlaybackRate
 
@@ -229,6 +231,8 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     }
 
     public func setSessionRate(_ rate: Double) async {
+        // 手動で倍速を変えたら、境界停止からの自動復帰情報は陳腐化する
+        rateBeforeAllowanceStop = nil
         currentPlaybackRate = Swift.min(Swift.max(rate, minPlaybackRate), maxPlaybackRate)
         player.playbackRate = currentPlaybackRate
         updateSnapshot()
@@ -724,6 +728,17 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     }
 }
 
+extension MusicPlayerServiceImpl {
+    public func resumeAfterRewardGrant() async {
+        guard let savedRate = rateBeforeAllowanceStop else { return }
+        rateBeforeAllowanceStop = nil
+        // ユーザーが既に手動で再生を再開していたら、倍速だけ勝手に変えない
+        guard player.playbackState != .playing else { return }
+        currentPlaybackRate = savedRate
+        await play()
+    }
+}
+
 private extension MusicPlayerServiceImpl {
     /// 枯渇時は曲境界でのみ停止する。素の（等速）再生は制限しない
     func stopAtSongBoundaryIfNeeded(pausePlayer: Bool) -> Bool {
@@ -731,6 +746,7 @@ private extension MusicPlayerServiceImpl {
         if pausePlayer {
             player.pause()
         }
+        rateBeforeAllowanceStop = currentPlaybackRate
         currentPlaybackRate = Constants.MusicPlayer.normalPlaybackRate
         player.playbackRate = currentPlaybackRate
         enforcer.markStoppedAtSongEnd()

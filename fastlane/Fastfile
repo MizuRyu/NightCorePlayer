@@ -78,8 +78,13 @@ platform :ios do
         "ja" => ENV["RELEASE_NOTE"] || "バグ修正とパフォーマンス改善",
         "en-US" => ENV["RELEASE_NOTE_EN"] || "Bug fixes and performance improvements"
       },
+      # AdMob 広告配信 + ATT 実装ありのため IDFA 使用を申告する (#77、codex レビュー指摘)
       submission_information: {
-        add_id_info_uses_idfa: false
+        add_id_info_uses_idfa: true,
+        add_id_info_serves_ads: true,
+        add_id_info_tracks_install: true,
+        add_id_info_tracks_action: false,
+        add_id_info_limits_tracking: true
       }
     )
   end

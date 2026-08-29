@@ -14,7 +14,7 @@ struct AllowanceServiceTests {
     private static let daySeconds: TimeInterval = 86400
 
     private static func makeService() throws -> (service: AllowanceServiceImpl, repo: AllowanceRepository) {
-        let context = AppDataStore.shared.container.mainContext
+        let context = TestDataStore.container.mainContext
         let repo = AllowanceRepository(context: context)
         try repo.reset()
         let service = AllowanceServiceImpl(repo: repo)
@@ -202,7 +202,7 @@ struct AllowanceServiceTests {
         try service.markProPromptShown(now: now)
 
         // Service/Repository を作り直しても状態が維持される
-        let recreatedRepo = AllowanceRepository(context: AppDataStore.shared.container.mainContext)
+        let recreatedRepo = AllowanceRepository(context: TestDataStore.container.mainContext)
         let recreated = AllowanceServiceImpl(repo: recreatedRepo)
 
         let expectedRemaining =
