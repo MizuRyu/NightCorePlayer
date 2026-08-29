@@ -259,6 +259,11 @@ final class MusicPlayerServiceMock: MusicPlayerService {
         snapshotSubject.send(.empty.withRate(rate))
     }
 
+    public private(set) var resumeAfterRewardGrantCallCount = 0
+    public func resumeAfterRewardGrant() async {
+        resumeAfterRewardGrantCallCount += 1
+    }
+
     public func moveItem(from src: Int, to dst: Int) async {
         moveArgs.append((src, dst))
     }

@@ -14,7 +14,7 @@ struct PlayHistoryManagerTests {
         manager: PlayHistoryManagerImpl,
         historyRepo: HistoryRepository
     ) {
-        let context = AppDataStore.shared.container.mainContext
+        let context = TestDataStore.container.mainContext
         let historyRepo = HistoryRepository(context: context)
         let manager = PlayHistoryManagerImpl(historyRepo: historyRepo)
         return (manager, historyRepo)
@@ -22,7 +22,7 @@ struct PlayHistoryManagerTests {
 
     /// History をクリアする
     private static func cleanHistory() throws {
-        let context = AppDataStore.shared.container.mainContext
+        let context = TestDataStore.container.mainContext
         let histories = try context.fetch(FetchDescriptor<HistoryEntity>())
         histories.forEach(context.delete)
         try context.save()

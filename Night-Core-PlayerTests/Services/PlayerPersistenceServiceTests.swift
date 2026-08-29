@@ -15,7 +15,7 @@ struct PlayerPersistenceServiceTests {
         playerStateRepo: PlayerStateRepository,
         historyRepo: HistoryRepository
     ) {
-        let context = AppDataStore.shared.container.mainContext
+        let context = TestDataStore.container.mainContext
         let playerStateRepo = PlayerStateRepository(context: context)
         let historyRepo = HistoryRepository(context: context)
         let service = PlayerPersistenceServiceImpl(
@@ -27,7 +27,7 @@ struct PlayerPersistenceServiceTests {
 
     /// PlayerState と History をクリアする
     private static func cleanAll() throws {
-        let context = AppDataStore.shared.container.mainContext
+        let context = TestDataStore.container.mainContext
 
         let playerStates = try context.fetch(FetchDescriptor<PlayerStateEntity>())
         playerStates.forEach(context.delete)
