@@ -39,9 +39,13 @@ Nightcore 変換（`playbackRate != 1.0`）にフリーミアム課金を導入�
 
 ### 4. 残高枯渇時は即停止せず、曲境界で止める
 
-`AllowanceEnforcer` は「残高0 かつ 倍速再生中」を検知した時点では再生を止めず、`pendingStopAtSongEnd` フラグを立てて `.exhaustedPendingSongEnd` イベントを発行するだけにする。実際の停止は、曲が自然に終わるタイミングで `MusicPlayerServiceImpl` 側が `shouldStopAtSongBoundary()` を確認して行う。
+`AllowanceEnforcer` は「残高0 かつ 倍速再生中」を検知した時点では再生を止めず、猶予を与えた曲のID（`graceSongID`）を記録して `.exhaustedPendingSongEnd` イベントを発行するだけにする。実際の停止は、曲が自然に終わるタイミングで `MusicPlayerServiceImpl` 側が `shouldStopAtSongBoundary()` を確認して行う。
 
 BGM として流している利用シーンを想定すると、曲の途中で無音になるより、その曲を最後まで聴かせてから止める方が体験を損なわない。
+
+猶予は「残高が尽きた時点で鳴っていた曲」1曲ぶんに限る。残高が回復するまで再取得できず、猶予を使い切ったあとに倍速へ変更した場合は曲末を待たず等速へ戻す（`shouldRevertToNormalRateNow()`）。等速は無料のため再生自体は止めない。
+
+猶予をフラグだけで持つと、等速へ戻した時点で解除され、倍速へ戻すことで曲ごとに猶予を取り直せてしまう。曲IDと「猶予を使ったか」の両方を持つのはこの回避を塞ぐためであり、実害を「残高が尽きた曲の残り時間」に限定するという本設計の前提そのものを守る条件になっている。
 
 ## Scope
 

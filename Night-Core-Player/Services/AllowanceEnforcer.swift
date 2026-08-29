@@ -17,9 +17,12 @@ enum AllowanceEvent: Sendable {
 protocol AllowanceEnforcer: Sendable {
     var events: AnyPublisher<AllowanceEvent, Never> { get }
     var isExhausted: Bool { get }
-    func tick(isPlaying: Bool, rate: Double, now: Date)
+    func tick(isPlaying: Bool, rate: Double, songID: String?, now: Date)
     func shouldStopAtSongBoundary() -> Bool
+    /// 猶予対象外の曲で倍速再生が始まった場合に true。曲末を待たず等速へ戻す
+    func shouldRevertToNormalRateNow() -> Bool
     func markStoppedAtSongEnd()
+    func markRevertedToNormalRate()
 }
 
 // MARK: - Impl
@@ -45,8 +48,15 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
     /// entitlement == .exhausted の写し。残高そのものの状態を表し、停止予約とは独立している
     private var isBalanceExhausted = false
 
-    /// 曲境界での停止予約。「枯滅+再生中+倍速」を観測したときだけアームされる
-    private var pendingStopAtSongEnd = false
+    /// 曲末までの猶予を与えた曲のID。ADR-003の猶予は「残高が尽きた時点で鳴っていた曲」だけが対象で、
+    /// 別の曲に移った時点で猶予は終わる。Bool だけで持つと倍速/等速の切替で猶予を取り直せてしまう
+    private var graceSongID: String?
+
+    /// 枯渇後に猶予を1曲ぶん使ったか。残高が回復するまで再取得させない
+    private var hasUsedGrace = false
+
+    /// 猶予対象外の曲で倍速を検知した。曲末を待たず等速へ戻す
+    private var needsRevertToNormalRate = false
 
     init(
         allowanceService: AllowanceService,
@@ -58,13 +68,13 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
 
     var isExhausted: Bool { isBalanceExhausted }
 
-    func tick(isPlaying: Bool, rate: Double, now: Date) {
+    func tick(isPlaying: Bool, rate: Double, songID: String?, now: Date) {
         // Proは消費もアームもしない。既存の停止予約があれば解除して即return
         guard !isProEntitled() else {
             // lastTickAtを進めないとPro期間ぶんが溜まり、Pro解除後の初回tickで一括消費される
             lastTickAt = now
             isBalanceExhausted = false
-            pendingStopAtSongEnd = false
+            clearGrace()
             return
         }
 
@@ -89,34 +99,57 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
                 isBalanceExhausted = true
             } else {
                 isBalanceExhausted = false
-                // クリア条件: 残高回復時は曲境界での停止予約も解除する
-                pendingStopAtSongEnd = false
+                // クリア条件: 残高が戻れば猶予の使用履歴ごと解除し、次の枯渇でまた1曲ぶん与える
+                clearGrace()
+                hasUsedGrace = false
             }
         }
 
-        // クリア条件: 等速再生を観測したら停止予約を解除する。
-        // 素のApple Music再生（等速）は残高に関係なく一切止めないため
-        if isPlaying, rate == Constants.MusicPlayer.normalPlaybackRate {
-            pendingStopAtSongEnd = false
+        // 等速再生は残高に関係なく一切止めない。ただし猶予の紐付けは保持する
+        // （倍速→等速→倍速で猶予を取り直せてしまうため）
+        guard isPlaying, rate != Constants.MusicPlayer.normalPlaybackRate else { return }
+        guard isBalanceExhausted else { return }
+
+        // 猶予が有効な間は何もしない。別の曲へ移った場合の停止は曲境界停止が担当する
+        guard graceSongID == nil else { return }
+
+        if hasUsedGrace {
+            // 枯渇後の猶予は1曲まで。以降は倍速へ入れさせない
+            needsRevertToNormalRate = true
             return
         }
 
-        // アーム条件: 「枯滅+再生中+倍速」のときだけ。false→true遷移時に一度だけイベントを出す。
-        // 枯滅しているだけでは絶対にアームしない
-        if isBalanceExhausted, isPlaying, !pendingStopAtSongEnd {
-            pendingStopAtSongEnd = true
-            eventSubject.send(.exhaustedPendingSongEnd)
-        }
+        // アーム条件: 「枯渇+再生中+倍速」を初めて観測した曲だけに曲末までの猶予を与える
+        graceSongID = songID
+        hasUsedGrace = true
+        eventSubject.send(.exhaustedPendingSongEnd)
     }
 
     func shouldStopAtSongBoundary() -> Bool {
         // tickを経由せず曲境界判定が走っても、Proユーザーを止めない
-        !isProEntitled() && pendingStopAtSongEnd
+        !isProEntitled() && graceSongID != nil
+    }
+
+    func shouldRevertToNormalRateNow() -> Bool {
+        !isProEntitled() && needsRevertToNormalRate
     }
 
     func markStoppedAtSongEnd() {
-        guard pendingStopAtSongEnd else { return }
-        pendingStopAtSongEnd = false
+        guard graceSongID != nil else { return }
+        graceSongID = nil
         eventSubject.send(.stoppedAtSongEnd)
+    }
+
+    func markRevertedToNormalRate() {
+        guard needsRevertToNormalRate else { return }
+        needsRevertToNormalRate = false
+        eventSubject.send(.stoppedAtSongEnd)
+    }
+
+    // MARK: - Private
+
+    private func clearGrace() {
+        graceSongID = nil
+        needsRevertToNormalRate = false
     }
 }
