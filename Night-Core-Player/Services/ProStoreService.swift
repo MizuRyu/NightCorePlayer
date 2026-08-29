@@ -31,7 +31,7 @@ protocol ProStoreService: Sendable {
 final class ProStoreServiceImpl: ProStoreService {
     private let logger = Logger(subsystem: Constants.Logging.subsystem, category: "ProStore")
 
-    static let productID = "MizuRyu.Night-Core-Player.pro"
+    static let productID = "MizuRyu.NightCorePlayer.pro"
 
     private(set) var isProEntitled = false
 

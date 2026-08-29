@@ -20,7 +20,7 @@
           "locale" : "ja_JP"
         }
       ],
-      "productID" : "MizuRyu.Night-Core-Player.pro",
+      "productID" : "MizuRyu.NightCorePlayer.pro",
       "referenceName" : "Pro",
       "type" : "NonConsumable"
     }
