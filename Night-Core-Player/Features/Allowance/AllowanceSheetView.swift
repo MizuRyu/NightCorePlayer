@@ -33,11 +33,16 @@ struct AllowanceSheetView: View {
                 Button {
                     viewModel.watchAdForReward()
                 } label: {
-                    Text("Watch a Video for +30 Minutes")
-                        .frame(maxWidth: .infinity)
+                    if viewModel.isWatchingAd {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        Text("Watch a Video for +30 Minutes")
+                            .frame(maxWidth: .infinity)
+                    }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(viewModel.showProPromptPitch)
+                .disabled(viewModel.showProPromptPitch || viewModel.isWatchingAd)
                 .accessibilityIdentifier("allowance_reward_button")
 
                 Button {

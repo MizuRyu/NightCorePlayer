@@ -8,11 +8,13 @@ import os
 final class AllowanceSheetViewModel {
     private(set) var isPresented = false
     private(set) var isPurchasing = false
+    private(set) var isWatchingAd = false
     private(set) var showProPromptPitch = false
     var errorMessage: String?
 
     private let allowanceService: AllowanceService
     private let proStoreService: ProStoreService
+    private let rewardedAdService: RewardedAdService?
     private let playerNavigator: PlayerNavigator
     private let now: () -> Date
     private let logger = Logger(subsystem: Constants.Logging.subsystem, category: "Allowance")
@@ -23,10 +25,12 @@ final class AllowanceSheetViewModel {
         allowanceService: AllowanceService,
         proStoreService: ProStoreService,
         playerNavigator: PlayerNavigator,
+        rewardedAdService: RewardedAdService? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.allowanceService = allowanceService
         self.proStoreService = proStoreService
+        self.rewardedAdService = rewardedAdService
         self.playerNavigator = playerNavigator
         self.now = now
         // AllowanceEnforcerは@MainActor隔離のため、eventsの発行元は既にメインスレッド。receive(on:)によるhopは不要
@@ -42,9 +46,52 @@ final class AllowanceSheetViewModel {
         isPresented = false
     }
 
-    // swiftlint:disable:next todo
-    // TODO: #62 リワード広告視聴に差し替える
     func watchAdForReward() {
+        guard !isWatchingAd else { return }
+        errorMessage = nil
+
+        guard let rewardedAdService else {
+            grantRewardAndProceed()
+            return
+        }
+
+        isWatchingAd = true
+        Task {
+            defer { isWatchingAd = false }
+            do {
+                // 広告が出せない場合はエラーがthrowされ、下のcatchで無条件付与にフォールバックする
+                guard try await rewardedAdService.present() else { return }
+                grantRewardAndProceed()
+            } catch {
+                // ロード失敗・在庫切れ・表示失敗はユーザーの落ち度ではないため、広告なしで付与する。#68の計測用にログを残す
+                logger.error("Rewarded ad unavailable, granting reward without ad: \(error.localizedDescription)")
+                grantRewardAndProceed()
+            }
+        }
+    }
+
+    func purchasePro() {
+        errorMessage = nil
+        Task {
+            guard !isPurchasing else { return }
+            isPurchasing = true
+            defer { isPurchasing = false }
+            do {
+                switch try await proStoreService.purchase() {
+                case .purchased:
+                    close()
+                case .cancelled, .pending:
+                    break
+                }
+            } catch {
+                errorMessage = (error as? AppError)?.errorDescription ?? error.localizedDescription
+            }
+        }
+    }
+
+    // MARK: - Private
+
+    private func grantRewardAndProceed() {
         errorMessage = nil
         do {
             _ = try allowanceService.grantReward(now: now())
@@ -76,27 +123,6 @@ final class AllowanceSheetViewModel {
             close()
         }
     }
-
-    func purchasePro() {
-        errorMessage = nil
-        Task {
-            guard !isPurchasing else { return }
-            isPurchasing = true
-            defer { isPurchasing = false }
-            do {
-                switch try await proStoreService.purchase() {
-                case .purchased:
-                    close()
-                case .cancelled, .pending:
-                    break
-                }
-            } catch {
-                errorMessage = (error as? AppError)?.errorDescription ?? error.localizedDescription
-            }
-        }
-    }
-
-    // MARK: - Private
 
     private func present() {
         errorMessage = nil

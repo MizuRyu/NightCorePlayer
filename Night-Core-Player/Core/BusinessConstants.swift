@@ -50,4 +50,13 @@ public enum Constants {
         public static let rewardSeconds: TimeInterval = 1800
         public static let proPromptRewardCount: Int = 5
     }
+
+    public enum Ads {
+        // 本番リワードユニットID未発行のためテストIDを暫定使用。AdMobで本番ユニットIDを発行したら、
+        // このIDに差し替えるだけで本番切り替えが完了する形にしてある
+        #if !DEBUG
+        #warning("#62 本番リワードユニットID未設定")
+        #endif
+        public static let rewardedUnitID: String = "ca-app-pub-3940256099942544/1712485313"
+    }
 }
