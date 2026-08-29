@@ -123,6 +123,53 @@ struct RecommendationServiceTests {
         #expect(!result.isEmpty)
         #expect(result.contains { $0.id.rawValue.hasPrefix("R") })
     }
+
+    @Test("探索候補に既知曲が混ざっていても除外される")
+    func discoveryExcludesKnownSongs() async throws {
+        // similar 側の topSongs に履歴曲 H0 を混入させる
+        let contaminated = [makeSong(id: "H0", artist: "FavArtist")]
+            + (0..<10).map { makeSong(id: "D\($0)", artist: "SimilarArtist") }
+        let fx = Fixture(similarTopSongs: contaminated)
+        let result = await fx.service.buildDailyQueue(history: Fixture.history(), limit: 20)
+
+        let discoveries = result.filter { $0.id.rawValue.hasPrefix("D") }
+        #expect(discoveries.count == 6)
+        // H0 は C 枠 (履歴) としては入りうるが、重複はしない
+        #expect(result.filter { $0.id.rawValue == "H0" }.count <= 1)
+    }
+
+    @Test("C が不足するときは D を広げて総数を守る")
+    func discoveryFillsFamiliarShortfall() async throws {
+        let fx = Fixture(similarTopSongs: (0..<20).map { makeSong(id: "D\($0)", artist: "SimilarArtist") })
+        fx.client.artistTopSongsByID["AR-FAV"] = []
+        // 履歴はユニーク3曲だけ
+        let result = await fx.service.buildDailyQueue(history: Fixture.history(count: 3), limit: 20)
+
+        #expect(result.count == 20)
+        #expect(result.filter { $0.id.rawValue.hasPrefix("D") }.count == 17)
+    }
+
+    @Test("異なる limit はキャッシュを共有しない")
+    func cacheIsPerLimit() async throws {
+        let fx = Fixture()
+        let small = await fx.service.buildDailyQueue(history: Fixture.history(), limit: 10)
+        let large = await fx.service.buildDailyQueue(history: Fixture.history(), limit: 20)
+
+        #expect(small.count == 10)
+        #expect(large.count == 20)
+    }
+
+    @Test("API 失敗を含む縮退結果はキャッシュせず、次回再試行する")
+    func degradedResultIsNotCached() async throws {
+        let fx = Fixture()
+        fx.client.recentlyPlayedError = NSError(domain: "test", code: 1)
+        _ = await fx.service.buildDailyQueue(history: Fixture.history(), limit: 20)
+        let callsAfterFirst = fx.client.fetchRecentlyPlayedCalls
+
+        _ = await fx.service.buildDailyQueue(history: Fixture.history(), limit: 20)
+        // キャッシュされていれば増えないはずの呼び出しが、再試行のため増える
+        #expect(fx.client.fetchRecentlyPlayedCalls == callsAfterFirst + 1)
+    }
 }
 
 // MARK: - MusicKitServiceImpl 統合 (フォールバック)
@@ -141,6 +188,45 @@ struct MusicKitServiceRecommendationFallbackTests {
 
         #expect(result.count == 5)
         #expect(result.allSatisfy { $0.id.rawValue.hasPrefix("L") })
+    }
+
+    @Test("未認証でもローカル履歴があれば C 枠だけで返る")
+    func deniedWithLocalHistory() async throws {
+        let client = MusicKitClientMock()
+        client.authStatus = .denied
+        let history = (0..<10).map { makeDummySong(id: "H\($0 % 4)") }
+        let service = MusicKitServiceImpl(client: client)
+
+        let result = try await service.fetchPersonalRecommendations(history: history, limit: 20)
+
+        #expect(!result.isEmpty)
+        #expect(result.allSatisfy { $0.id.rawValue.hasPrefix("H") })
+    }
+
+    @Test("未認証かつ履歴も空なら従来どおり throw する")
+    func deniedWithoutHistoryThrows() async throws {
+        let client = MusicKitClientMock()
+        client.authStatus = .denied
+        let service = MusicKitServiceImpl(client: client)
+
+        await #expect(throws: (any Error).self) {
+            try await service.fetchPersonalRecommendations(history: [], limit: 20)
+        }
+    }
+
+    @Test("ライブラリフォールバックは失敗したプレイリストをスキップして続行する")
+    func fallbackSkipsFailedPlaylist() async throws {
+        let client = MusicKitClientMock()
+        client.playlists = [makeDummyPlaylist(id: "PL-BAD"), makeDummyPlaylist(id: "PL-OK")]
+        client.fetchSongsHandler = { playlist in
+            if playlist.id.rawValue == "PL-BAD" { throw NSError(domain: "test", code: 1) }
+            return (0..<5).map { makeDummySong(id: "L\($0)") }
+        }
+        let service = MusicKitServiceImpl(client: client)
+
+        let result = try await service.fetchPersonalRecommendations(history: [], limit: 20)
+
+        #expect(result.count == 5)
     }
 
     @Test("聴取実績があればレコメンドが返り、ライブラリは触らない")

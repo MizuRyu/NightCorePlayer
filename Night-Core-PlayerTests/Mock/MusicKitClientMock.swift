@@ -53,8 +53,14 @@ final class MusicKitClientMock: MusicKitClient, @unchecked Sendable {
         fetchPlaylistCalls.append(limit)
         return Array(playlists.prefix(limit))
     }
+    /// プレイリストごとの結果 (未登録は playlistSongs にフォールバック)。エラー注入にも使う
+    var fetchSongsHandler: ((Playlist) throws -> [Song])?
+
     func fetchSongs(in playlist: Playlist) async throws -> [Song] {
         fetchSongsCalls.append(playlist)
+        if let handler = fetchSongsHandler {
+            return try handler(playlist)
+        }
         return playlistSongs    }
     func fetchRecentlyPlayedSongs(limit: Int) async throws -> [Song] {
         fetchRecentlyPlayedCalls += 1

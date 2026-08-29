@@ -258,17 +258,26 @@ final class MusicKitServiceImpl: MusicKitService {
         history: [Song],
         limit: Int = Constants.Recommendation.defaultLimit
     ) async throws -> [Song] {
-        try await ensureAuth()
+        do {
+            try await ensureAuth()
+        } catch {
+            // 未認証でもローカル履歴があれば C 枠 (履歴の高頻度曲) だけで組める
+            guard !history.isEmpty else { throw error }
+        }
 
         let recommended = await recommender.buildDailyQueue(history: history, limit: limit)
         if !recommended.isEmpty { return recommended }
 
-        // フォールバック: 聴取実績が全く無い場合はライブラリのプレイリストからシャッフル
+        // フォールバック: 聴取実績が全く無い場合はライブラリのプレイリストからシャッフル。
+        // 個別プレイリストの取得失敗はスキップして残りを試す
         let playlists = try await client.fetchLibraryPlaylists(limit: 5)
         var songs: [Song] = []
         for playlist in playlists {
-            let playlistSongs = try await client.fetchSongs(in: playlist)
-            songs.append(contentsOf: playlistSongs)
+            do {
+                songs.append(contentsOf: try await client.fetchSongs(in: playlist))
+            } catch {
+                musicKitLogger.warning("recommendation fallback: fetchSongs('\(playlist.name)') failed: \(error.localizedDescription)")
+            }
             if songs.count >= limit { break }
         }
         return Array(songs.shuffled().prefix(limit))

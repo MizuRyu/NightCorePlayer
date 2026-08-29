@@ -378,15 +378,15 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         defer { isFetchingRecommendations = false }
 
         do {
+            // 履歴曲は除外しない: レコメンドの C 枠 (よく聴く曲) は履歴由来が本体のため。
+            // キューに既にある曲だけ重複を避ける
             let existingIDs = Set(queue.items.map { $0.id })
-            let historyIDs = Set(historyManager.history.map { $0.id })
-            let excludeIDs = existingIDs.union(historyIDs)
 
             let recommendations = try await musicKitService.fetchPersonalRecommendations(
                 history: historyManager.history,
                 limit: Constants.Recommendation.defaultLimit
             )
-            let filtered = recommendations.filter { !excludeIDs.contains($0.id) }
+            let filtered = recommendations.filter { !existingIDs.contains($0.id) }
             guard !filtered.isEmpty else { return }
 
             // 現在のキューに推薦楽曲を追加して再生
