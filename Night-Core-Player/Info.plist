@@ -2,9 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- #62: AdMobテスト用アプリID。本番アプリID発行後に差し替えること -->
+	<!-- #62: 本番アプリID。テストは BusinessConstants.Ads のユニットID側で切り替える -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-4210364120390329~8520680894</string>
 	<!-- #62: Google AdMob公式(https://developers.google.com/admob/ios/quick-start)掲載のSKAdNetworkIdentifier一覧。全50件 -->
 	<key>SKAdNetworkItems</key>
 	<array>

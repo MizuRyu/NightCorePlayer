@@ -52,11 +52,11 @@ public enum Constants {
     }
 
     public enum Ads {
-        // 本番リワードユニットID未発行のためテストIDを暫定使用。AdMobで本番ユニットIDを発行したら、
-        // このIDに差し替えるだけで本番切り替えが完了する形にしてある
-        #if !DEBUG
-        #warning("#62 本番リワードユニットID未設定")
-        #endif
+        // Debug は Google 公式のテストユニットID、Release は本番ユニットID(rewarded_balance)
+        #if DEBUG
         public static let rewardedUnitID: String = "ca-app-pub-3940256099942544/1712485313"
+        #else
+        public static let rewardedUnitID: String = "ca-app-pub-4210364120390329/6068775358"
+        #endif
     }
 }
