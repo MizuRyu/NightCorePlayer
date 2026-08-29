@@ -176,7 +176,7 @@ Night-Core-Player/
 |---------|------|--------|
 | `AllowanceService` | `AllowanceSnapshot`（残高・トライアル終了日・リワード回数等）の読み書きと、日次リセット・トライアル判定などの状態遷移 | する（`AllowanceRepository` 経由で SwiftData） |
 | `AllowanceEnforcer` | `MusicPlayerServiceImpl` の再生 tick から呼ばれ、倍速再生時のみ経過時間を `AllowanceService.consume` に渡す。残高が尽きたら即停止せず、現在の曲が終わるまで再生を続けたうえで停止する（曲境界停止） | しない（メモリ上のフラグのみ） |
-| `ProStoreService` | StoreKit 2 で Pro（非消耗型 `MizuRyu.Night-Core-Player.pro`）を購入・復元し、`isProEntitled` を公開する。Pro ユーザーは `AllowanceEnforcer` の消費・停止の対象外 | StoreKit のトランザクション履歴に委譲 |
+| `ProStoreService` | StoreKit 2 で Pro（非消耗型 `MizuRyu.NightCorePlayer.pro`）を購入・復元し、`isProEntitled` を公開する。Pro ユーザーは `AllowanceEnforcer` の消費・停止の対象外 | StoreKit のトランザクション履歴に委譲 |
 
 **設計上の制約:** 残高ゲートは Nightcore 変換（`playbackRate != 1.0`）にのみ掛ける。Apple Music の素の等速再生は制限しない（MusicKit 利用規約上、等速再生を課金対象にできないため）。時計を過去に戻す操作への対策として `guardedNow = max(now, lastSeenAt)` を使い、残高の巻き戻りを防いでいる。背景は [ADR 003](../adr/003-allowance-design.md) を参照。
 

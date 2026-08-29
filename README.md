@@ -37,7 +37,7 @@ Apple Music の等速再生は無料・無制限。Nightcore 変換（`playbackR
 - トライアル終了後: 1日 3600 秒（日次リセット、繰越なし）
 - リワード広告視聴で +1800 秒
 - 累計 5 回のリワード後に Pro 訴求を 1 回表示
-- Pro（`MizuRyu.Night-Core-Player.pro`、StoreKit 2 非消耗型）購入で無制限化
+- Pro（`MizuRyu.NightCorePlayer.pro`、StoreKit 2 非消耗型）購入で無制限化
 
 残高が尽きても即停止はせず、曲の切れ目まで再生してから停止する（BGM 用途でのブツ切りを避けるため）。詳細は [docs/adr/003-allowance-design.md](docs/adr/003-allowance-design.md) を参照。
 
