@@ -17,10 +17,11 @@ struct AllowanceSheetView: View {
             options
 
             Button("Close") {
-                viewModel.close()
+                viewModel.dismissByUser()
             }
             .font(.subheadline)
             .foregroundColor(.secondary)
+            .disabled(viewModel.isBusy)
             .accessibilityIdentifier("allowance_close_button")
         }
         .padding(24)

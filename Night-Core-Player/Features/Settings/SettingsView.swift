@@ -128,18 +128,19 @@ struct SettingsView: View {
                 // 枠超過シートは曲が終わったときにだけ出るため、広告確認のために直接開く口を用意する
                 debugRow("枠超過シートを開く") { allowanceSheetVM.debugPresent() }
             } header: {
-                Text("デバッグ（Debug ビルドのみ）")
+                Text(verbatim: "デバッグ（Debug ビルドのみ）")
                     .font(.headline)
                     .foregroundColor(.primary)
                     .padding(.top, 8)
             }
         }
 
-        private func debugRow(_ title: LocalizedStringKey, action: @escaping () -> Void) -> some View {
+        /// 開発者だけが見る行のため、ローカライズせず日本語のまま出す
+        private func debugRow(_ title: String, action: @escaping () -> Void) -> some View {
             VStack(spacing: 0) {
                 Button(action: action) {
                     HStack {
-                        Text(title)
+                        Text(verbatim: title)
                             .font(.body)
                             .foregroundColor(.primary)
                         Spacer()

@@ -163,6 +163,37 @@ struct SettingsViewModelTests {
         #expect(vm.errorMessage == nil)
     }
 
+    @Test("purchasePro: 商品を取得できない場合はエラーを表示すること")
+    func purchasePro_productUnavailable_showsError() async throws {
+        // Given: StoreKitから商品を取得できない状態
+        let storeMock = ProStoreServiceMock()
+        storeMock.purchaseResult = .success(.unavailable)
+        let (vm, _, _) = SettingsViewModelTests.setUp(proStore: storeMock)
+
+        // When
+        vm.purchasePro()
+        await SettingsViewModelTests.waitUntil { vm.errorMessage != nil }
+
+        // Then: 無反応にせず、取得できなかったことを伝える
+        #expect(vm.errorMessage != nil, "ユーザーのキャンセルと区別してエラーを出す")
+        #expect(!vm.isProEntitled)
+    }
+
+    @Test("purchasePro: ユーザーキャンセルではエラーを表示しないこと")
+    func purchasePro_cancelled_doesNotShowError() async throws {
+        // Given
+        let storeMock = ProStoreServiceMock()
+        storeMock.purchaseResult = .success(.cancelled)
+        let (vm, _, _) = SettingsViewModelTests.setUp(proStore: storeMock)
+
+        // When
+        vm.purchasePro()
+        await SettingsViewModelTests.waitUntil { !vm.isPurchasing }
+
+        // Then
+        #expect(vm.errorMessage == nil, "ユーザー自身の操作にはエラーを出さない")
+    }
+
     @Test("purchasePro: isPurchasing中の再呼び出しはpurchase()を実行しないこと")
     func purchasePro_whilePurchasing_skipsSecondCall() async throws {
         // Given: purchase()を遅延させ、処理中の窓を作る

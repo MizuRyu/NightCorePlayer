@@ -3,6 +3,7 @@ track2.mp4
 buildServer.json
 xcuserdata/
 __azurite_db_queue__.json
+.DS_Store
 
 # Secrets
 .secrets/
@@ -18,7 +19,7 @@ fastlane/README.md
 
 # Build artifacts
 build/
-.derivedData/
+.derivedData*/
 *.ipa
 *.dSYM.zip
 

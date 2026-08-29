@@ -88,6 +88,7 @@ struct ArtistDetailView: View {
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
+                    .contentMargins(.bottom, Constants.UI.FrameSize.miniMusicPlayerContentInset, for: .scrollContent)
                     .background(Color(.systemBackground))
                 }
                 .padding(.horizontal)

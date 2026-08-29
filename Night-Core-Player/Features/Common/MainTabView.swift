@@ -20,18 +20,24 @@ struct MainTabView: View {
         ZStack {
             Color.black.opacity(0.4)
                 .ignoresSafeArea()
-                .onTapGesture { allowanceSheetVM.close() }
+                .onTapGesture { allowanceSheetVM.dismissByUser() }
 
-            AllowanceSheetView(viewModel: allowanceSheetVM)
-                .frame(maxWidth: Constants.UI.FrameSize.dialogMaxWidth)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color(.systemBackground))
-                )
-                .shadow(radius: 20)
-                .padding(24)
+            // Dynamic Type 最大や小画面ではカードが画面高を超えるため、はみ出したぶんだけスクロールさせる
+            ScrollView(.vertical) {
+                AllowanceSheetView(viewModel: allowanceSheetVM)
+                    .frame(maxWidth: Constants.UI.FrameSize.dialogMaxWidth)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.systemBackground))
+                    )
+                    .shadow(radius: 20)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .padding(24)
         }
         .transition(.opacity)
+        // 背後のタブや一覧へフォーカスが抜けないようにする
+        .accessibilityAddTraits(.isModal)
     }
 
     var body: some View {
