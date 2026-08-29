@@ -12,9 +12,11 @@ private final class AllowanceEnforcerStub: AllowanceEnforcer {
     var events: AnyPublisher<AllowanceEvent, Never> { eventSubject.eraseToAnyPublisher() }
     var isExhausted = false
 
-    func tick(isPlaying: Bool, rate: Double, now: Date) {}
+    func tick(isPlaying: Bool, rate: Double, songID: String?, now: Date) {}
     func shouldStopAtSongBoundary() -> Bool { false }
+    func shouldRevertToNormalRateNow() -> Bool { false }
     func markStoppedAtSongEnd() {}
+    func markRevertedToNormalRate() {}
 
     func send(_ event: AllowanceEvent) {
         eventSubject.send(event)
@@ -369,6 +371,37 @@ struct AllowanceSheetViewModelTests {
         await Self.waitUntil { storeMock.purchaseCallCount == 1 }
 
         // Then
+        #expect(vm.isPresented)
+    }
+
+    @Test("Pro購入: 商品を取得できない場合はエラーを表示しシートを閉じないこと")
+    func purchasePro_unavailable_showsError() async throws {
+        // Given: StoreKitから商品を取得できない状態
+        let (vm, enforcer, _, _, _) = Self.setUp(purchaseResult: .success(.unavailable))
+        enforcer.send(.stoppedAtSongEnd)
+
+        // When
+        vm.purchasePro()
+        await Self.waitUntil { vm.errorMessage != nil }
+
+        // Then: 無反応にせず理由を伝え、シートは開いたまま
+        #expect(vm.errorMessage != nil)
+        #expect(vm.isPresented)
+    }
+
+    @Test("Pro購入: 処理中はユーザー操作で閉じられないこと")
+    func dismissByUser_whilePurchasing_keepsSheetOpen() async throws {
+        // Given: 購入処理を遅延させ、処理中の窓を作る
+        let (vm, enforcer, _, storeMock, _) = Self.setUp(purchaseResult: .success(.purchased))
+        storeMock.purchaseDelayMilliseconds = 500
+        enforcer.send(.stoppedAtSongEnd)
+
+        // When: 処理中に閉じようとする
+        vm.purchasePro()
+        await Self.waitUntil { vm.isPurchasing }
+        vm.dismissByUser()
+
+        // Then: 裏で処理だけ進み結果が見えなくなるのを防ぐため閉じない
         #expect(vm.isPresented)
     }
 

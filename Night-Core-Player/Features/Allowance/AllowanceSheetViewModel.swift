@@ -45,12 +45,22 @@ final class AllowanceSheetViewModel {
             .store(in: &cancellables)
     }
 
+    /// 広告視聴中・購入中
+    var isBusy: Bool { isWatchingAd || isPurchasing }
+
+    /// 閉じるボタン・背景タップからの明示的な操作。処理中は結果もエラーも見えなくなるため塞ぐ
+    /// （購入成功後の自動クローズは処理中に呼ばれるため close() を使う）
+    func dismissByUser() {
+        guard !isBusy else { return }
+        close()
+    }
+
     func close() {
         isPresented = false
     }
 
     func watchAdForReward() {
-        guard !isWatchingAd else { return }
+        guard !isBusy else { return }
         errorMessage = nil
 
         guard let rewardedAdService else {
@@ -76,7 +86,7 @@ final class AllowanceSheetViewModel {
     func purchasePro() {
         errorMessage = nil
         Task {
-            guard !isPurchasing else { return }
+            guard !isBusy else { return }
             isPurchasing = true
             defer { isPurchasing = false }
             do {
