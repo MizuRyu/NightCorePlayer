@@ -42,4 +42,13 @@ final class AllowanceServiceMock: AllowanceService {
         }
         proPromptShown = true
     }
+
+    func debugExhaust(now: Date) throws {
+        entitlementResult = .exhausted
+    }
+
+    func debugReset() throws {
+        entitlementResult = .free(remaining: Constants.Allowance.dailyFreeSeconds)
+        proPromptShown = false
+    }
 }

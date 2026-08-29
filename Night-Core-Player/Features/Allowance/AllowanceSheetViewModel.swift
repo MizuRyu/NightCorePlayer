@@ -134,6 +134,13 @@ final class AllowanceSheetViewModel {
         }
     }
 
+    #if DEBUG
+        /// 検証用: 曲末の停止を待たずに枠超過シートを開く。リワード広告の実機確認に使う
+        func debugPresent() {
+            present()
+        }
+    #endif
+
     private func present() {
         errorMessage = nil
         showProPromptPitch = false

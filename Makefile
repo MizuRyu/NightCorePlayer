@@ -2,7 +2,9 @@ PROJECT := Night-Core-Player.xcodeproj
 SCHEME := Night-Core-Player
 
 # ローカル環境に合わせて上書き可: make test DESTINATION='platform=iOS Simulator,name=iPhone 16 Pro'
-DESTINATION ?= platform=iOS Simulator,name=iPhone SE (3rd generation)
+# OS=latest は必須: 同名デバイスが複数ランタイムに存在するため、省略すると宛先が一意に定まらず Error 70 になる
+# 端末名は最新ランタイムに存在するものを指定する（iPhone SE は iOS 18 系までのため latest では見つからない）
+DESTINATION ?= platform=iOS Simulator,name=iPhone 17,OS=latest
 
 .PHONY: check build lint swiftformat-lint test format
 
