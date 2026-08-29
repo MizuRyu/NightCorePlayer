@@ -1,10 +1,18 @@
 name: CI
 
+# iOS ビルドは重いので PR では回さず、main マージ時のみ実行する(#58)。
+# マージ前の検証はローカルの `make check` / `make test` と lefthook が担う。
+#
+# 実行先はリポジトリ変数 CI_RUNNER で切り替える(leanbiz 方式):
+#   未設定                  → macos-15(GitHub ホスト。Xcode は runner 同梱の既定)
+#   ["self-hosted","macOS"] → 手元の Mac(xcodes 管理の Xcode をそのまま使う)
+#
+#   gh variable set CI_RUNNER --body '["self-hosted","macOS"]'   # 手元へ寄せる
+#   gh variable delete CI_RUNNER                                  # GitHub ホストへ戻す
 on:
   push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+    branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,10 +24,8 @@ permissions:
 jobs:
   test:
     name: Build & Test
-    runs-on: macos-15
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"macos-15"') }}
     timeout-minutes: 30
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
 
     steps:
       - name: Checkout
