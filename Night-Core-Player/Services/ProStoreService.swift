@@ -10,6 +10,8 @@ enum ProPurchaseOutcome {
     case purchased
     case cancelled
     case pending
+    /// 商品をStoreKitから取得できず購入を開始できなかった。ユーザー操作によるcancelledと区別する
+    case unavailable
 }
 
 // MARK: - Protocol
@@ -68,7 +70,7 @@ final class ProStoreServiceImpl: ProStoreService {
             product = loaded
         } else {
             logger.error("Pro product not found: \(Self.productID)")
-            return .cancelled
+            return .unavailable
         }
         let result = try await product.purchase()
         switch result {

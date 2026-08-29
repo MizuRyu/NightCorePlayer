@@ -89,6 +89,8 @@ final class SettingsViewModel {
                 switch try await proStore.purchase() {
                 case .pending:
                     infoMessage = String(localized: "Purchase pending approval")
+                case .unavailable:
+                    errorMessage = String(localized: "Pro is not available right now. Please try again later.")
                 case .purchased, .cancelled:
                     break
                 }

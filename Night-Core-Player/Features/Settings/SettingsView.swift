@@ -78,6 +78,7 @@ struct SettingsView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            .contentMargins(.bottom, Constants.UI.FrameSize.miniMusicPlayerContentInset, for: .scrollContent)
             .background(Color(.systemBackground))
             .navigationTitle("Settings")
             .navigationDestination(for: SoundItem.self) { item in
@@ -93,23 +94,31 @@ struct SettingsView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .alert("Error", isPresented: Binding<Bool>(
-            get: { settingsVM.errorMessage != nil },
-            set: { if !$0 { settingsVM.errorMessage = nil } }
+        // 同一ViewへのalertはSwiftUIが片方しか表示しないため、エラーと通知を1つに統合する
+        .alert(alertTitle, isPresented: Binding<Bool>(
+            get: { alertMessage != nil },
+            set: { if !$0 { dismissAlert() } }
         )) {
-            Button("OK") { settingsVM.errorMessage = nil }
+            Button("OK") { dismissAlert() }
         } message: {
-            Text(settingsVM.errorMessage ?? "")
-        }
-        .alert("Pro", isPresented: Binding<Bool>(
-            get: { settingsVM.infoMessage != nil },
-            set: { if !$0 { settingsVM.infoMessage = nil } }
-        )) {
-            Button("OK") { settingsVM.infoMessage = nil }
-        } message: {
-            Text(settingsVM.infoMessage ?? "")
+            Text(alertMessage ?? "")
         }
         .enableInjection()
+    }
+
+    // MARK: - Alert
+
+    private var alertMessage: String? {
+        settingsVM.errorMessage ?? settingsVM.infoMessage
+    }
+
+    private var alertTitle: LocalizedStringKey {
+        settingsVM.errorMessage != nil ? "Error" : "Pro"
+    }
+
+    private func dismissAlert() {
+        settingsVM.errorMessage = nil
+        settingsVM.infoMessage = nil
     }
 
     // MARK: - Allowance

@@ -112,6 +112,7 @@ struct SearchView: View {
                         }
                     }
                     .listStyle(PlainListStyle())
+                    .contentMargins(.bottom, Constants.UI.FrameSize.miniMusicPlayerContentInset, for: .scrollContent)
                 } else if vm.query.isEmpty && !vm.searchHistory.isEmpty {
                     searchHistoryView
                 }
@@ -187,6 +188,7 @@ struct SearchView: View {
                 }
             }
             .listStyle(.plain)
+            .contentMargins(.bottom, Constants.UI.FrameSize.miniMusicPlayerContentInset, for: .scrollContent)
         }
     }
 

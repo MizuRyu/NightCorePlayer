@@ -481,6 +481,16 @@
         }
       }
     },
+    "Pro is not available right now. Please try again later.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proを取得できませんでした。しばらくしてからもう一度お試しください。"
+          }
+        }
+      }
+    },
     "OK": {
       "localizations": {
         "ja": {
