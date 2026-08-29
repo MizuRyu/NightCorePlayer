@@ -79,7 +79,7 @@ final class MusicKitServiceMock: MusicKitService, @unchecked Sendable {
         }
     }
 
-    func fetchPersonalRecommendations(limit: Int) async throws -> [Song] {
+    func fetchPersonalRecommendations(history: [Song], limit: Int) async throws -> [Song] {
         fetchPersonalRecommendationsCallCount += 1
         if let e = fetchRecommendationsError { throw e }
         return Array(stubRecommendationSongs.prefix(limit))

@@ -12,6 +12,12 @@ final class MusicKitClientMock: MusicKitClient, @unchecked Sendable {
     var artistSongs: [Song] = []
     var playlists: [Playlist] = []
     var playlistSongs: [Song] = []
+    var recentlyPlayedSongs: [Song] = []
+    var recentlyPlayedError: Error?
+    var similarArtists: [Artist] = []
+    var similarArtistsError: Error?
+    /// アーティストIDごとの topSongs (未登録は artistTopSongs にフォールバック)
+    var artistTopSongsByID: [String: [Song]] = [:]
 
     private(set) var authorizationRequests = 0
     private(set) var searchCalls: [(term: String, limit: Int)] = []
@@ -20,6 +26,8 @@ final class MusicKitClientMock: MusicKitClient, @unchecked Sendable {
     private(set) var fetchArtistSongsCalls: [(limit: Int, offset: Int)] = []
     private(set) var fetchPlaylistCalls: [Int] = []
     private(set) var fetchSongsCalls: [Playlist] = []
+    private(set) var fetchRecentlyPlayedCalls = 0
+    private(set) var fetchSimilarArtistsCalls = 0
 
     func requestAuthorization() async -> MusicAuthorization.Status {
         authorizationRequests += 1
@@ -35,7 +43,7 @@ final class MusicKitClientMock: MusicKitClient, @unchecked Sendable {
     }
     func fetchArtistTopSongs(artist: Artist) async throws -> [Song] {
         fetchArtistTopSongsCalls += 1
-        return artistTopSongs
+        return artistTopSongsByID[artist.id.rawValue] ?? artistTopSongs
     }
     func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song] {
         fetchArtistSongsCalls.append((limit: limit, offset: offset))
@@ -45,7 +53,23 @@ final class MusicKitClientMock: MusicKitClient, @unchecked Sendable {
         fetchPlaylistCalls.append(limit)
         return Array(playlists.prefix(limit))
     }
+    /// プレイリストごとの結果 (未登録は playlistSongs にフォールバック)。エラー注入にも使う
+    var fetchSongsHandler: ((Playlist) throws -> [Song])?
+
     func fetchSongs(in playlist: Playlist) async throws -> [Song] {
         fetchSongsCalls.append(playlist)
+        if let handler = fetchSongsHandler {
+            return try handler(playlist)
+        }
         return playlistSongs    }
+    func fetchRecentlyPlayedSongs(limit: Int) async throws -> [Song] {
+        fetchRecentlyPlayedCalls += 1
+        if let e = recentlyPlayedError { throw e }
+        return Array(recentlyPlayedSongs.prefix(limit))
+    }
+    func fetchSimilarArtists(artist: Artist) async throws -> [Artist] {
+        fetchSimilarArtistsCalls += 1
+        if let e = similarArtistsError { throw e }
+        return similarArtists
+    }
 }

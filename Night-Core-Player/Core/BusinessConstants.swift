@@ -37,7 +37,13 @@ public enum Constants {
     }
 
     public enum Recommendation {
-        public static let defaultLimit: Int = 25
+        // 設計 (docs/specs/RECOMMENDATION.md) の「毎日20曲」に一致させる
+        public static let defaultLimit: Int = 20
+        // 配合と探索幅 (docs/specs/RECOMMENDATION.md)
+        public static let discoveryRatio: Double = 0.3
+        public static let topArtistCount: Int = 5
+        public static let similarArtistsPerArtist: Int = 3
+        public static let recentlyPlayedFetchLimit: Int = 30
     }
 
     public enum Logging {
