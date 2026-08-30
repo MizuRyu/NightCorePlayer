@@ -1,0 +1,46 @@
+# pre-push で走らせるローカルルール。ネットワーク取得なしで完結させるため registry は参照しない。
+# 網羅は目的ではなく、このアプリで実際に起こりうる混入だけを止める。
+rules:
+  - id: hardcoded-credential
+    languages: [swift]
+    severity: ERROR
+    message: >-
+      認証情報がソースに直書きされている。バイナリから抽出できるため、
+      Keychain か実行時取得に移すこと。
+    patterns:
+      - pattern-regex: >-
+          (?i)(secret|password|passwd|apikey|api_key|access_token|private_key|client_secret)\s*(:\s*String)?\s*=\s*"[^"]{8,}"
+      # 空文字・プレースホルダ・テスト値は対象外
+      - pattern-not-regex: >-
+          (?i)=\s*"(|YOUR_[A-Z_]+|TODO|dummy|example|placeholder|xxx+)"
+
+  - id: insecure-http-url
+    languages: [swift]
+    severity: ERROR
+    message: >-
+      平文HTTPのURLを使っている。ATS の例外設定が必要になり審査でも指摘される。
+      https に変えること。
+    patterns:
+      - pattern-regex: '"http://(?!localhost|127\.0\.0\.1)[^"]+"'
+
+  - id: sensitive-data-in-userdefaults
+    languages: [swift]
+    severity: WARNING
+    message: >-
+      UserDefaults は平文で保存され、バックアップにも含まれる。
+      認証情報や購入状態の正典を置かないこと（Pro 権限は StoreKit のトランザクションが正典）。
+    patterns:
+      - pattern-regex: >-
+          (?i)UserDefaults[^\n]*\.set\([^)]*(token|secret|password|receipt|entitle)
+
+  - id: weak-hash-algorithm
+    languages: [swift]
+    severity: WARNING
+    message: >-
+      MD5 / SHA1 は衝突耐性がない。整合性検証や識別子生成に使うなら SHA256 以上にすること。
+    patterns:
+      - pattern-either:
+          - pattern: Insecure.MD5.$F(...)
+          - pattern: Insecure.SHA1.$F(...)
+          - pattern-regex: \bCC_MD5\s*\(
+          - pattern-regex: \bCC_SHA1\s*\(

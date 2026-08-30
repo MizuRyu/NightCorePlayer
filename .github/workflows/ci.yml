@@ -22,6 +22,25 @@ permissions:
   contents: read
 
 jobs:
+  # workflow 自体の検査。数秒で終わるため重い test とは別 job にして並列に走らせる。
+  # コード・秘密・依存の検査は pre-push が担うので、ここでは workflow だけを見る。
+  workflows:
+    name: Workflow Lint
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"macos-15"') }}
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: actionlint
+        run: actionlint -color
+
+      - name: zizmor
+        run: zizmor --persona=regular .github/workflows
+
   test:
     name: Build & Test
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"macos-15"') }}
@@ -30,6 +49,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
       - name: Show environment
         run: |

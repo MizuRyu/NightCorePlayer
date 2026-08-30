@@ -36,7 +36,7 @@ jobs:
       # 索引生成スクリプト（main 側）。pr-assets の中身はここには入らない。
       # persist-credentials: false — このジョブはリポジトリへの書き込みトークンを持つ唯一の
       # ジョブなので、スクリプトを走らせる作業ツリーには認証情報を残さない。
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           persist-credentials: false
 
@@ -44,7 +44,7 @@ jobs:
       # 走らせないため。build-demo-catalog.ts は node 標準 API だけで書かれており、
       # Node 24 の型ストリップで .ts を直接実行できる（実測済み）。
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: "24"
           # setup-node v5 は package-manager-cache が既定で有効で、package.json の
@@ -96,7 +96,7 @@ jobs:
       # token が read-only になり push は失敗する。private リポジトリで fork 運用は無い前提）。
       - name: Checkout pr-assets branch
         if: steps.assets-branch.outputs.exists == 'true'
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           ref: pr-assets
           path: pr-assets
