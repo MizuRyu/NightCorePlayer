@@ -10,6 +10,8 @@ final class AllowanceSheetViewModel {
     private(set) var isPurchasing = false
     private(set) var isWatchingAd = false
     private(set) var showProPromptPitch = false
+    /// 残高がないまま倍速へ変更して等速へ戻されたときは、見出しで理由を伝える
+    private(set) var didRevertToNormalRate = false
     var errorMessage: String?
 
     private let allowanceService: AllowanceService
@@ -39,10 +41,23 @@ final class AllowanceSheetViewModel {
         // AllowanceEnforcerは@MainActor隔離のため、eventsの発行元は既にメインスレッド。receive(on:)によるhopは不要
         allowanceEnforcer.events
             .sink { [weak self] event in
-                guard case .stoppedAtSongEnd = event else { return }
-                self?.present()
+                switch event {
+                case .stoppedAtSongEnd:
+                    self?.present(revertedToNormalRate: false)
+                case .revertedToNormalRate:
+                    // 無言で等速に戻ると理由が伝わらないため、その場で知らせる
+                    self?.present(revertedToNormalRate: true)
+                case .exhaustedPendingSongEnd:
+                    break
+                }
             }
             .store(in: &cancellables)
+    }
+
+    /// 設定画面から能動的に再生時間を増やしたいときの導線。
+    /// 枠超過を待たずに広告視聴と Pro 購入へ到達できるようにする
+    func presentForAddingTime() {
+        present(revertedToNormalRate: false)
     }
 
     /// 広告視聴中・購入中
@@ -147,13 +162,14 @@ final class AllowanceSheetViewModel {
     #if DEBUG
         /// 検証用: 曲末の停止を待たずに枠超過シートを開く。リワード広告の実機確認に使う
         func debugPresent() {
-            present()
+            present(revertedToNormalRate: false)
         }
     #endif
 
-    private func present() {
+    private func present(revertedToNormalRate: Bool) {
         errorMessage = nil
         showProPromptPitch = false
+        didRevertToNormalRate = revertedToNormalRate
         isPresented = true
         // キューシートとの提示競合を避けるため排他にする
         playerNavigator.isQueuePresented = false

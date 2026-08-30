@@ -258,29 +258,40 @@ struct SettingsViewModelTests {
         #expect(vm.remainingTimeText == String(localized: "Trial in Progress"))
     }
 
-    @Test("remainingTimeText: 残高3600秒は「60:00」ではなく時間単位で表示されること")
+    @Test("remainingTimeText: 残高3600秒は「60:00」ではなく時分秒で表示されること")
     func remainingTimeText_free3600Seconds_doesNotShowSixtyMinutes() {
         // Given
         let allowanceMock = AllowanceServiceMock()
         allowanceMock.entitlementResult = .free(remaining: 3600)
         let (vm, _, _) = SettingsViewModelTests.setUp(allowanceService: allowanceMock)
-        let expected = Duration.seconds(3600).formatted(.units(allowed: [.hours, .minutes], width: .narrow))
+        let expected = Duration.seconds(3600).formatted(.time(pattern: .hourMinuteSecond))
 
         // Then
         #expect(vm.remainingTimeText == expected)
-        #expect(!vm.remainingTimeText.contains("60:"), "60分表記のバグが再発していないこと")
+        #expect(!vm.remainingTimeText.hasPrefix("60:"), "60分表記のバグが再発していないこと")
     }
 
-    @Test("remainingTimeText: 残高5400秒は時間+分で表示されること")
+    @Test("remainingTimeText: 残高5400秒は時分秒で表示されること")
     func remainingTimeText_free5400Seconds_showsHoursAndMinutes() {
         // Given
         let allowanceMock = AllowanceServiceMock()
         allowanceMock.entitlementResult = .free(remaining: 5400)
         let (vm, _, _) = SettingsViewModelTests.setUp(allowanceService: allowanceMock)
-        let expected = Duration.seconds(5400).formatted(.units(allowed: [.hours, .minutes], width: .narrow))
+        let expected = Duration.seconds(5400).formatted(.time(pattern: .hourMinuteSecond))
 
         // Then
         #expect(vm.remainingTimeText == expected)
+    }
+
+    @Test("remainingTimeText: 1時間未満は分秒で表示されること")
+    func remainingTimeText_free1800Seconds_showsMinuteSecond() {
+        // Given: リワード1回ぶんの残高
+        let allowanceMock = AllowanceServiceMock()
+        allowanceMock.entitlementResult = .free(remaining: 1800)
+        let (vm, _, _) = SettingsViewModelTests.setUp(allowanceService: allowanceMock)
+
+        // Then: 秒まで出す。分単位に丸めると倍速再生中に減っていることが見えない
+        #expect(vm.remainingTimeText == Duration.seconds(1800).formatted(.time(pattern: .minuteSecond)))
     }
 
     @Test("remainingTimeText: 枯渇時は0表示になること")
@@ -289,7 +300,7 @@ struct SettingsViewModelTests {
         let allowanceMock = AllowanceServiceMock()
         allowanceMock.entitlementResult = .exhausted
         let (vm, _, _) = SettingsViewModelTests.setUp(allowanceService: allowanceMock)
-        let expected = Duration.seconds(0).formatted(.units(allowed: [.hours, .minutes], width: .narrow))
+        let expected = Duration.seconds(0).formatted(.time(pattern: .minuteSecond))
 
         // Then
         #expect(vm.remainingTimeText == expected)

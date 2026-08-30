@@ -189,18 +189,21 @@ MusicPlayerServiceImpl.tick()
 AllowanceEnforcer.tick()
         │ consume() → AllowanceService（残高更新）
         │ 残高0 かつ 倍速再生中
-        │   ├ 猶予が未使用 → graceSongID = songID（その曲だけ曲末まで許可）
-        │   └ 猶予を使用済み → needsRevertToNormalRate = true
+        │   ├ 倍速で鳴っている最中に尽きた → graceSongID = songID（その曲だけ曲末まで許可）
+        │   └ 残高0から倍速へ入れた／猶予使用済み → needsRevertToNormalRate = true
         ▼
         ├─ .exhaustedPendingSongEnd（猶予の開始。現状は購読者なし）
         │
         ├─ 曲境界到達 → shouldStopAtSongBoundary() → 再生停止 + markStoppedAtSongEnd()
-        └─ 猶予切れで倍速 → shouldRevertToNormalRateNow() → 等速へ戻す + markRevertedToNormalRate()
-                                    │ .stoppedAtSongEnd
-                                    ▼
-                          AllowanceSheetViewModel（購読）
-                                    ▼
-                          AllowanceSheetView（+30分 / Pro購入 / 閉じる）
+        │       │ .stoppedAtSongEnd
+        └─ 倍速を拒否 → shouldRevertToNormalRateNow() → 等速へ戻す + markRevertedToNormalRate()
+                │ .revertedToNormalRate（無言で速度が変わると不具合に見えるため理由を出す）
+                ▼
+      AllowanceSheetViewModel（購読）
+                ▼
+      AllowanceSheetView（+30分 / Pro購入 / 閉じる）
+                ▲
+                └─ 設定「再生時間を追加」からも到達（枠超過を待たずに増やせる）
 ```
 
 ### 「速度」は2つの意味を持つ

@@ -9,6 +9,8 @@ import os
 enum AllowanceEvent: Sendable {
     case exhaustedPendingSongEnd
     case stoppedAtSongEnd
+    /// 残高がないまま倍速へ変更したため等速へ戻した。無言で速度が戻ると理由が伝わらない
+    case revertedToNormalRate
 }
 
 // MARK: - Protocol
@@ -58,6 +60,14 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
     /// 猶予対象外の曲で倍速を検知した。曲末を待たず等速へ戻す
     private var needsRevertToNormalRate = false
 
+    /// 直前の tick で「残高があり倍速で再生中」だったか。
+    /// 曲末までの猶予は、この状態から残高が尽きた場合にだけ与える
+    private var wasSpedUpBeforeExhaustion = false
+
+    /// 残高を一度でも観測したか。初回 tick は isBalanceExhausted が初期値のままで
+    /// 「残高があった」と誤認してしまうため、観測前は猶予を与えない
+    private var hasObservedBalance = false
+
     init(
         allowanceService: AllowanceService,
         isProEntitled: @escaping () -> Bool = { false }
@@ -80,6 +90,11 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
 
         let baseline = lastTickAt ?? now
         lastTickAt = now
+
+        // consume する前の状態を控える。「残高があるうちから倍速で鳴っていた」ことが
+        // 曲末までの猶予を与える条件になる
+        let isSpedUpNow = isPlaying && rate != Constants.MusicPlayer.normalPlaybackRate
+        let hadBalanceBeforeConsume = hasObservedBalance && !isBalanceExhausted
 
         // 等速再生・素の再生は消費しない。トライアル中かはAllowanceService内部で判定される
         if isPlaying, rate != Constants.MusicPlayer.normalPlaybackRate {
@@ -105,6 +120,10 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
             }
         }
 
+        // 残高があるうちから倍速で鳴っていたか。この tick で尽きた場合だけ曲末までの猶予を与える
+        wasSpedUpBeforeExhaustion = isSpedUpNow && hadBalanceBeforeConsume
+        hasObservedBalance = true
+
         // 等速再生は残高に関係なく一切止めない。ただし猶予の紐付けは保持する
         // （倍速→等速→倍速で猶予を取り直せてしまうため）
         guard isPlaying, rate != Constants.MusicPlayer.normalPlaybackRate else { return }
@@ -113,13 +132,14 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
         // 猶予が有効な間は何もしない。別の曲へ移った場合の停止は曲境界停止が担当する
         guard graceSongID == nil else { return }
 
-        if hasUsedGrace {
-            // 枯渇後の猶予は1曲まで。以降は倍速へ入れさせない
+        // 曲末までの猶予は「倍速で再生している最中に残高が尽きた」場合だけに与える。
+        // ADR-003 が避けたいのは鳴っている音楽が途中で切れることであり、
+        // 残高0の状態から倍速へ入れる操作まで許すと1曲まるごと無料で聴けてしまう。
+        guard wasSpedUpBeforeExhaustion, !hasUsedGrace else {
             needsRevertToNormalRate = true
             return
         }
 
-        // アーム条件: 「枯渇+再生中+倍速」を初めて観測した曲だけに曲末までの猶予を与える
         graceSongID = songID
         hasUsedGrace = true
         eventSubject.send(.exhaustedPendingSongEnd)
@@ -143,7 +163,7 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
     func markRevertedToNormalRate() {
         guard needsRevertToNormalRate else { return }
         needsRevertToNormalRate = false
-        eventSubject.send(.stoppedAtSongEnd)
+        eventSubject.send(.revertedToNormalRate)
     }
 
     // MARK: - Private

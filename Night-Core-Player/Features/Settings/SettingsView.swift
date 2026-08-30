@@ -1,11 +1,11 @@
 import SwiftUI
 import StoreKit
+import Combine
 import Inject
 
 struct SettingsView: View {
     @ObserveInjection var inject
     @Environment(SettingsViewModel.self) private var settingsVM
-    @Environment(\.requestReview) private var requestReview
     @Environment(AllowanceSheetViewModel.self) private var allowanceSheetVM
 
     private enum SoundItem: String, CaseIterable, Hashable {
@@ -98,6 +98,12 @@ struct SettingsView: View {
                 settingsVM.refreshAllowance()
                 await settingsVM.loadProState()
             }
+            // 倍速再生中に残高が減っていくのを見せる。画面を離れれば task ごと止まる
+            .task {
+                for await _ in Timer.publish(every: 1, on: .main, in: .common).autoconnect().values {
+                    settingsVM.refreshAllowance()
+                }
+            }
             // リワード付与は枠超過シート側で起きるため、閉じた時点で残高表示を追随させる
             .onChange(of: allowanceSheetVM.isPresented) { _, isPresented in
                 if !isPresented { settingsVM.refreshAllowance() }
@@ -173,18 +179,48 @@ struct SettingsView: View {
 
     private var allowanceSection: some View {
         Section {
-            HStack {
-                Text("Today's Remaining Playback Time")
-                    .font(.body)
-                    .foregroundColor(.primary)
-                Spacer()
-                Text(settingsVM.remainingTimeText)
-                    .font(.body)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Today's Remaining Playback Time")
+                        .font(.body)
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Text(settingsVM.remainingTimeText)
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                }
+                // 制限が倍速再生だけに掛かることと、次に何が起きるかは画面上で分からないため補う
+                Text(settingsVM.allowanceDetailText)
+                    .font(.caption)
                     .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, 12)
             .accessibilityIdentifier("allowance_remaining_row")
             .listRowSeparator(.hidden)
+
+            if !settingsVM.isProEntitled {
+                // 従来は枠超過ダイアログからしか時間を増やせず、能動的に増やす導線がなかった
+                VStack(spacing: 0) {
+                    Button {
+                        allowanceSheetVM.presentForAddingTime()
+                    } label: {
+                        HStack {
+                            Text("Add Playback Time")
+                                .font(.body)
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 12)
+                    }
+                    Divider()
+                        .padding(.leading, 16)
+                }
+                .listRowSeparator(.hidden)
+            }
         } header: {
             Text("Playback Time")
                 .font(.headline)
@@ -278,9 +314,9 @@ struct SettingsView: View {
     private func otherRow(_ item: OtherItem) -> some View {
         switch item {
         case .review:
-            Button {
-                requestReview()
-            } label: {
+            // requestReview() は表示するかを OS が決め、年間の上限もあるため押しても何も起きないことがある。
+            // ユーザーが自分で押した以上は必ずレビュー画面へ送る
+            Link(destination: reviewURL) {
                 rowLabel(item.title)
             }
         case .feedback:
@@ -309,6 +345,11 @@ struct SettingsView: View {
 
     private var contactFormURL: URL {
         URL(string: "https://forms.gle/p5CTaqH4omaJiEFx6")!
+    }
+
+    /// App Store のレビュー投稿画面を直接開く
+    private var reviewURL: URL {
+        URL(string: "https://apps.apple.com/app/id6761187661?action=write-review")!
     }
 
     private var termsURL: URL {
