@@ -32,16 +32,33 @@ struct AllowanceSheetView: View {
 
     private var header: some View {
         VStack(spacing: 6) {
-            Text(viewModel.showProPromptPitch ? "+30 Minutes Added" : "Today's Free Playback Time Is Used Up")
+            Text(headline)
                 .font(.title3)
                 .fontWeight(.semibold)
-            Text(viewModel.showProPromptPitch
-                ? "You've watched 5 ads. Go Pro and you'll never need to again."
-                : "Normal-speed playback is still free")
+            Text(subheadline)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
         .multilineTextAlignment(.center)
+    }
+
+    private var headline: LocalizedStringKey {
+        if viewModel.showProPromptPitch {
+            return "+30 Minutes Added"
+        }
+        // 速度を戻された直後は、何が起きたのかを見出しで説明する
+        return viewModel.didRevertToNormalRate
+            ? "Switched Back to Normal Speed"
+            : "Today's Free Playback Time Is Used Up"
+    }
+
+    private var subheadline: LocalizedStringKey {
+        if viewModel.showProPromptPitch {
+            return "You've watched 5 ads. Go Pro and you'll never need to again."
+        }
+        return viewModel.didRevertToNormalRate
+            ? "Today's free playback time is used up. Add more time to speed up again."
+            : "Normal-speed playback is still free"
     }
 
     // MARK: - Options

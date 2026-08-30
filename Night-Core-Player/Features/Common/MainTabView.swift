@@ -15,6 +15,16 @@ struct MainTabView: View {
         nav.selectedTab != .player && !keyboard.isVisible
     }
 
+    private var dialogCard: some View {
+        AllowanceSheetView(viewModel: allowanceSheetVM)
+            .frame(maxWidth: Constants.UI.FrameSize.dialogMaxWidth)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.systemBackground))
+            )
+            .shadow(radius: 20)
+    }
+
     /// 枠超過の告知はタブ全体を覆うシートではなく中央のダイアログで出す
     private var allowanceDialog: some View {
         ZStack {
@@ -22,17 +32,14 @@ struct MainTabView: View {
                 .ignoresSafeArea()
                 .onTapGesture { allowanceSheetVM.dismissByUser() }
 
-            // Dynamic Type 最大や小画面ではカードが画面高を超えるため、はみ出したぶんだけスクロールさせる
-            ScrollView(.vertical) {
-                AllowanceSheetView(viewModel: allowanceSheetVM)
-                    .frame(maxWidth: Constants.UI.FrameSize.dialogMaxWidth)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.systemBackground))
-                    )
-                    .shadow(radius: 20)
+            // Dynamic Type 最大や小画面ではカードが画面高を超えるため、はみ出したぶんだけスクロールさせる。
+            // ViewThatFits で「収まるなら中央、収まらないならスクロール」を切り替える
+            // （ScrollView だけだと収まる場合も上寄せになる）
+            ViewThatFits(in: .vertical) {
+                dialogCard
+                ScrollView(.vertical) { dialogCard }
+                    .scrollBounceBehavior(.basedOnSize)
             }
-            .scrollBounceBehavior(.basedOnSize)
             .padding(24)
         }
         .transition(.opacity)
