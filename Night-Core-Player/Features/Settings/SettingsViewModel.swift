@@ -21,6 +21,23 @@ final class SettingsViewModel {
         allowanceRevision += 1
     }
 
+    /// 残高欄の下に出す補足。制限が倍速再生だけに掛かることと、次に何が起きるかを伝える
+    var allowanceDetailText: String {
+        _ = allowanceRevision
+        guard let allowanceService else { return "" }
+        if isProEntitled {
+            return String(localized: "Speed control has no time limit with Pro.")
+        }
+        guard let entitlement = try? allowanceService.entitlement(now: Date()) else { return "" }
+        switch entitlement {
+        case .trial(let endsAt):
+            let date = endsAt.formatted(date: .abbreviated, time: .shortened)
+            return String(localized: "Unlimited speed control until \(date).")
+        case .free, .exhausted:
+            return String(localized: "Normal speed is always free. The limit applies only to speed control, and resets daily.")
+        }
+    }
+
     /// 今日の残り再生時間の表示テキスト。Pro > トライアル > 無料残高/枯渇の優先順位で判定する
     var remainingTimeText: String {
         _ = allowanceRevision
@@ -60,9 +77,11 @@ final class SettingsViewModel {
         self.defaultRate = rateManager.defaultRate
     }
 
-    /// 時間単位に丸める。timeString(mm:ss固定)は再生時間表示（他機能）専用のため、60分超で「60:00」にならないここでは使わない
+    /// 秒まで出す。分単位に丸めると倍速再生中に減っていることが見えず、残高という概念が伝わらない。
+    /// timeString(mm:ss固定)は再生時間表示（他機能）専用のため、60分超で「60:00」にならないここでは使わない
     private static func formattedRemaining(_ seconds: TimeInterval) -> String {
-        Duration.seconds(max(0, seconds)).formatted(.units(allowed: [.hours, .minutes], width: .narrow))
+        Duration.seconds(max(0, seconds))
+            .formatted(.time(pattern: seconds >= 3600 ? .hourMinuteSecond : .minuteSecond))
     }
 
     func updateDefaultRate(to rate: Double) {

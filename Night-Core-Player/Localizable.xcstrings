@@ -541,6 +541,66 @@
         }
       }
     },
+    "Add Playback Time": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再生時間を追加"
+          }
+        }
+      }
+    },
+    "Switched Back to Normal Speed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等倍速に戻しました"
+          }
+        }
+      }
+    },
+    "Today's free playback time is used up. Add more time to speed up again.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の無料再生時間を使い切ったためです。時間を追加すると、また倍速で再生できます。"
+          }
+        }
+      }
+    },
+    "Speed control has no time limit with Pro.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proのため、倍速再生の時間制限はありません。"
+          }
+        }
+      }
+    },
+    "Unlimited speed control until %@.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ まで倍速再生を無制限でお使いいただけます。"
+          }
+        }
+      }
+    },
+    "Normal speed is always free. The limit applies only to speed control, and resets daily.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等倍速は常に無料です。時間制限は倍速再生にのみ掛かり、毎日リセットされます。"
+          }
+        }
+      }
+    },
     "Watch a Video": {
       "localizations": {
         "ja": {
