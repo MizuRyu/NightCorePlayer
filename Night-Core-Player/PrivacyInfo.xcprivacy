@@ -2,81 +2,20 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- アプリ自身はトラッキング目的でデータを送る接続先を持たない。
+	     AdMob の収集とトラッキングは GoogleMobileAds.framework 自身の
+	     PrivacyInfo.xcprivacy が宣言する（SDK もトップレベルの NSPrivacyTracking は宣言していない）。
+	     true にすると NSPrivacyTrackingDomains が1件以上必要になり、
+	     Google は AdMob 用の正式なドメイン一覧を公開していないため申告できない（ITMS-91064）。 -->
 	<key>NSPrivacyTracking</key>
-	<true/>
+	<false/>
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
+	<!-- アプリ自身が収集するものだけを宣言する。
+	     CrashData / PerformanceData / DeviceID / AdvertisingData / ProductInteraction は
+	     いずれも AdMob SDK 側が宣言済みのため、ここでは重複させない。 -->
 	<key>NSPrivacyCollectedDataTypes</key>
-	<array>
-		<dict>
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypeCrashData</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-			</array>
-		</dict>
-		<dict>
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypePerformanceData</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-			</array>
-		</dict>
-		<!-- #63: AdMob導入に伴い追加。Linked/Tracking/Purposesは導入済みGoogleMobileAds SDK 12.14.0が
-		     自身のPrivacyInfo.xcprivacyで宣言している値に合わせている -->
-		<dict>
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypeDeviceID</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<true/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<true/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
-				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-				<string>NSPrivacyCollectedDataTypePurposeDeveloperAdvertising</string>
-			</array>
-		</dict>
-		<dict>
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypeAdvertisingData</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<true/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<true/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
-				<string>NSPrivacyCollectedDataTypePurposeDeveloperAdvertising</string>
-				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-			</array>
-		</dict>
-		<dict>
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<true/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-				<string>NSPrivacyCollectedDataTypePurposeDeveloperAdvertising</string>
-				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
-			</array>
-		</dict>
-	</array>
+	<array/>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>
