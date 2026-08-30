@@ -3,6 +3,16 @@ import Combine
 import Observation
 import os
 
+/// ダイアログを開いた理由。見出しの文言を状況に合わせるために持つ
+enum AllowancePresentationReason: Equatable, Sendable {
+    /// 再生中に残高が尽き、曲末で停止した
+    case exhausted
+    /// 残高がないまま倍速へ変更したため等速へ戻した
+    case revertedToNormalRate
+    /// 設定から能動的に時間を追加しにきた（枯渇していない場合もある）
+    case addTime
+}
+
 @Observable
 @MainActor
 final class AllowanceSheetViewModel {
@@ -10,8 +20,9 @@ final class AllowanceSheetViewModel {
     private(set) var isPurchasing = false
     private(set) var isWatchingAd = false
     private(set) var showProPromptPitch = false
-    /// 残高がないまま倍速へ変更して等速へ戻されたときは、見出しで理由を伝える
-    private(set) var didRevertToNormalRate = false
+    private(set) var presentationReason: AllowancePresentationReason = .exhausted
+    /// 今日あと何回リワードを受け取れるか。0 なら視聴ボタンを塞ぐ
+    private(set) var rewardsRemainingToday = Constants.Allowance.dailyRewardLimit
     var errorMessage: String?
 
     private let allowanceService: AllowanceService
@@ -43,10 +54,10 @@ final class AllowanceSheetViewModel {
             .sink { [weak self] event in
                 switch event {
                 case .stoppedAtSongEnd:
-                    self?.present(revertedToNormalRate: false)
+                    self?.present(reason: .exhausted)
                 case .revertedToNormalRate:
                     // 無言で等速に戻ると理由が伝わらないため、その場で知らせる
-                    self?.present(revertedToNormalRate: true)
+                    self?.present(reason: .revertedToNormalRate)
                 case .exhaustedPendingSongEnd:
                     break
                 }
@@ -57,7 +68,7 @@ final class AllowanceSheetViewModel {
     /// 設定画面から能動的に再生時間を増やしたいときの導線。
     /// 枠超過を待たずに広告視聴と Pro 購入へ到達できるようにする
     func presentForAddingTime() {
-        present(revertedToNormalRate: false)
+        present(reason: .addTime)
     }
 
     /// 広告視聴中・購入中
@@ -129,6 +140,7 @@ final class AllowanceSheetViewModel {
             errorMessage = (error as? AppError)?.errorDescription ?? error.localizedDescription
             return
         }
+        refreshRewardsRemaining()
 
         // 境界停止で等速に戻された再生を、停止前の倍速で自動再開する (#87)
         if let musicPlayerService {
@@ -162,16 +174,24 @@ final class AllowanceSheetViewModel {
     #if DEBUG
         /// 検証用: 曲末の停止を待たずに枠超過シートを開く。リワード広告の実機確認に使う
         func debugPresent() {
-            present(revertedToNormalRate: false)
+            present(reason: .exhausted)
         }
     #endif
 
-    private func present(revertedToNormalRate: Bool) {
+    private func present(reason: AllowancePresentationReason) {
         errorMessage = nil
         showProPromptPitch = false
-        didRevertToNormalRate = revertedToNormalRate
+        presentationReason = reason
+        refreshRewardsRemaining()
         isPresented = true
         // キューシートとの提示競合を避けるため排他にする
         playerNavigator.isQueuePresented = false
+        // 「動画を見る」を押した瞬間に広告が出せるよう、開いた時点でロードしておく
+        Task { await rewardedAdService?.preload() }
+    }
+
+    private func refreshRewardsRemaining() {
+        rewardsRemainingToday = (try? allowanceService.rewardsRemainingToday(now: now()))
+            ?? Constants.Allowance.dailyRewardLimit
     }
 }

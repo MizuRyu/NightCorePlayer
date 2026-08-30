@@ -46,19 +46,29 @@ struct AllowanceSheetView: View {
         if viewModel.showProPromptPitch {
             return "+30 Minutes Added"
         }
-        // 速度を戻された直後は、何が起きたのかを見出しで説明する
-        return viewModel.didRevertToNormalRate
-            ? "Switched Back to Normal Speed"
-            : "Today's Free Playback Time Is Used Up"
+        // 開いた経緯によって、何が起きたのか／何ができるのかを見出しで説明する
+        switch viewModel.presentationReason {
+        case .revertedToNormalRate:
+            return "Switched Back to Normal Speed"
+        case .addTime:
+            return "Add Playback Time"
+        case .exhausted:
+            return "Today's Free Playback Time Is Used Up"
+        }
     }
 
     private var subheadline: LocalizedStringKey {
         if viewModel.showProPromptPitch {
             return "You've watched 5 ads. Go Pro and you'll never need to again."
         }
-        return viewModel.didRevertToNormalRate
-            ? "Today's free playback time is used up. Add more time to speed up again."
-            : "Normal-speed playback is still free"
+        switch viewModel.presentationReason {
+        case .revertedToNormalRate:
+            return "Today's free playback time is used up. Add more time to speed up again."
+        case .addTime:
+            return "Watch a video or go Pro to extend today's speed-control time."
+        case .exhausted:
+            return "Normal-speed playback is still free"
+        }
     }
 
     // MARK: - Options
@@ -69,9 +79,12 @@ struct AllowanceSheetView: View {
                 icon: "play.rectangle.fill",
                 title: "Watch a Video",
                 badge: "+30 min",
-                detail: "Adds playback time for today",
+                detail: viewModel.rewardsRemainingToday > 0
+                    ? "Adds playback time for today (\(viewModel.rewardsRemainingToday) left today)"
+                    : "You've reached today's ad limit. It resets tomorrow.",
                 isBusy: viewModel.isWatchingAd,
-                isEnabled: !viewModel.showProPromptPitch && !viewModel.isWatchingAd,
+                isEnabled: !viewModel.showProPromptPitch && !viewModel.isWatchingAd
+                    && viewModel.rewardsRemainingToday > 0,
                 action: { viewModel.watchAdForReward() }
             )
             .accessibilityIdentifier("allowance_reward_button")

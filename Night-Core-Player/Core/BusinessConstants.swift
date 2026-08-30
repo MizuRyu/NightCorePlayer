@@ -55,6 +55,10 @@ public enum Constants {
         public static let dailyFreeSeconds: TimeInterval = 3600
         public static let rewardSeconds: TimeInterval = 1800
         public static let proPromptRewardCount: Int = 5
+        /// 1日に視聴できるリワード広告の回数。AdMob 側に固定の上限はなく、
+        /// 管理画面のフリークエンシーキャップも任意設定のため、上限はアプリ側で持つ。
+        /// 無料枠1時間 + 30分×5回 = 最大3.5時間/日
+        public static let dailyRewardLimit: Int = 5
     }
 
     public enum Ads {

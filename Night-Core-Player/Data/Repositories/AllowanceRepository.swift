@@ -16,6 +16,7 @@ final class AllowanceRepository {
                 remainingSeconds: e.remainingSeconds,
                 lastSeenAt: e.lastSeenAt,
                 rewardCountTotal: e.rewardCountTotal,
+                rewardCountToday: e.rewardCountToday,
                 proPromptShown: e.proPromptShown
             )
         }
@@ -32,6 +33,7 @@ final class AllowanceRepository {
             remainingSeconds: entity.remainingSeconds,
             lastSeenAt: entity.lastSeenAt,
             rewardCountTotal: entity.rewardCountTotal,
+            rewardCountToday: entity.rewardCountToday,
             proPromptShown: entity.proPromptShown
         )
     }
@@ -44,6 +46,7 @@ final class AllowanceRepository {
                 remainingSeconds: snapshot.remainingSeconds,
                 lastSeenAt: snapshot.lastSeenAt,
                 rewardCountTotal: snapshot.rewardCountTotal,
+                rewardCountToday: snapshot.rewardCountToday,
                 proPromptShown: snapshot.proPromptShown
             )
             context.insert(entity)
@@ -55,6 +58,7 @@ final class AllowanceRepository {
         e.remainingSeconds = snapshot.remainingSeconds
         e.lastSeenAt = snapshot.lastSeenAt
         e.rewardCountTotal = snapshot.rewardCountTotal
+        e.rewardCountToday = snapshot.rewardCountToday
         e.proPromptShown = snapshot.proPromptShown
         try context.save()
     }
