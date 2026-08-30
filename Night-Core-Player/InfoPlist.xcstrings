@@ -1,17 +1,40 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "NSUserTrackingUsageDescription": {
-      "extractionState": "manual",
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "広告の関連性を高めるために使用します。許可しない場合も広告は表示されます。"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSAppleMusicUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used to search the Apple Music catalog and play songs from your library."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Music の楽曲を検索し、ライブラリのプレイリストを再生するために使用します。"
+          }
+        }
+      }
+    },
+    "NSUserTrackingUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used to make ads more relevant to you. Ads are still shown if you don't allow tracking."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "広告の関連性を高めるために使用します。許可しない場合も広告は表示されます。"
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }
