@@ -8,6 +8,21 @@ pre-commit:
     gitleaks:
       run: gitleaks protect --staged -v
 
+# push を関門にする。commit 時は軽い検査だけを置き、重い検査はここへ寄せる。
+# 速度が要件のため semgrep はローカルルールのみ（registry を引かない）で変更ファイルに限定する。
+pre-push:
+  parallel: true
+  commands:
+    gitleaks-history:
+      # staged 差分ではなく全履歴。public 化した時点で過去のコミットも露出するため
+      run: gitleaks detect --source . --no-banner --redact
+    semgrep:
+      glob: "*.swift"
+      run: semgrep scan --config .semgrep/rules.yml --error --quiet --metrics=off {push_files}
+    trivy-deps:
+      # SPM の解決済み依存に既知脆弱性がないか
+      run: trivy fs --scanners vuln --exit-code 1 --quiet --skip-version-check Night-Core-Player.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
 commit-msg:
   commands:
     conventional-commit:
