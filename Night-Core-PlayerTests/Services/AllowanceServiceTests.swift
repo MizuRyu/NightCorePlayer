@@ -231,4 +231,39 @@ struct AllowanceServiceTests {
         try service.markProPromptShown(now: now)
         #expect(try service.shouldShowProPrompt(now: now) == false)
     }
+
+    // MARK: - 日次リワード上限
+
+    @Test
+    func grantReward_capsAtDailyLimit() throws {
+        let (service, _) = try Self.makeService()
+        _ = try service.entitlement(now: Self.day0)
+        let now = Self.afterTrial()
+
+        for i in 0..<Constants.Allowance.dailyRewardLimit {
+            #expect(try service.rewardsRemainingToday(now: now) == Constants.Allowance.dailyRewardLimit - i)
+            _ = try service.grantReward(now: now)
+        }
+        #expect(try service.rewardsRemainingToday(now: now) == 0)
+        // 上限到達後は付与しない。UI側でボタンを塞ぐが、サービス側でも止める
+        #expect(throws: AppError.self) {
+            _ = try service.grantReward(now: now)
+        }
+    }
+
+    @Test
+    func rewardLimit_resetsDaily() throws {
+        let (service, _) = try Self.makeService()
+        _ = try service.entitlement(now: Self.day0)
+        let day8 = Self.afterTrial()
+        for _ in 0..<Constants.Allowance.dailyRewardLimit {
+            _ = try service.grantReward(now: day8)
+        }
+        #expect(try service.rewardsRemainingToday(now: day8) == 0)
+        // When: 日次リセットを跨ぐ
+        let day9 = Self.afterTrial(9)
+        // Then: 視聴回数は上限まで戻る
+        #expect(try service.rewardsRemainingToday(now: day9) == Constants.Allowance.dailyRewardLimit)
+        _ = try service.grantReward(now: day9)
+    }
 }

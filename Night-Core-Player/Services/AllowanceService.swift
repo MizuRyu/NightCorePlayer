@@ -7,6 +7,8 @@ protocol AllowanceService: Sendable {
     func entitlement(now: Date) throws -> PlaybackEntitlement
     func consume(_ seconds: TimeInterval, now: Date) throws
     func grantReward(now: Date) throws -> TimeInterval
+    /// 今日あと何回リワードを受け取れるか。日次リセットで上限まで戻る
+    func rewardsRemainingToday(now: Date) throws -> Int
     func shouldShowProPrompt(now: Date) throws -> Bool
     func markProPromptShown(now: Date) throws
 
@@ -52,10 +54,20 @@ final class AllowanceServiceImpl: AllowanceService {
 
     func grantReward(now: Date) throws -> TimeInterval {
         var snapshot = try normalizedSnapshot(now: now)
+        // UI側でボタンを無効化しているが、時刻またぎ等での重複付与をここでも止める
+        guard snapshot.rewardCountToday < Constants.Allowance.dailyRewardLimit else {
+            throw AppError.player(String(localized: "You've reached today's ad limit. It resets tomorrow."))
+        }
         snapshot.remainingSeconds += Constants.Allowance.rewardSeconds
         snapshot.rewardCountTotal += 1
+        snapshot.rewardCountToday += 1
         try repo.save(snapshot)
         return snapshot.remainingSeconds
+    }
+
+    func rewardsRemainingToday(now: Date) throws -> Int {
+        let snapshot = try normalizedSnapshot(now: now)
+        return max(0, Constants.Allowance.dailyRewardLimit - snapshot.rewardCountToday)
     }
 
     func shouldShowProPrompt(now: Date) throws -> Bool {
@@ -102,6 +114,7 @@ final class AllowanceServiceImpl: AllowanceService {
         snapshot.lastSeenAt = guarded
         if guarded >= snapshot.nextResetAt {
             snapshot.remainingSeconds = Constants.Allowance.dailyFreeSeconds
+            snapshot.rewardCountToday = 0
             snapshot.nextResetAt = guarded.addingTimeInterval(Self.daySeconds)
             try repo.save(snapshot)
         }

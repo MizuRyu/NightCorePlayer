@@ -10,6 +10,8 @@ final class AllowanceEntity {
     var remainingSeconds: Double
     var lastSeenAt: Date
     var rewardCountTotal: Int
+    // 既存ユーザーのDBを軽量マイグレーションで読めるよう、宣言側にデフォルト値を持たせる
+    var rewardCountToday: Int = 0
     var proPromptShown: Bool
 
     init(
@@ -18,6 +20,7 @@ final class AllowanceEntity {
         remainingSeconds: Double = Constants.Allowance.dailyFreeSeconds,
         lastSeenAt: Date,
         rewardCountTotal: Int = 0,
+        rewardCountToday: Int = 0,
         proPromptShown: Bool = false
     ) {
         self.firstLaunchAt = firstLaunchAt
@@ -25,6 +28,7 @@ final class AllowanceEntity {
         self.remainingSeconds = remainingSeconds
         self.lastSeenAt = lastSeenAt
         self.rewardCountTotal = rewardCountTotal
+        self.rewardCountToday = rewardCountToday
         self.proPromptShown = proPromptShown
     }
 }

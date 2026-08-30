@@ -551,6 +551,36 @@
         }
       }
     },
+    "Watch a video or go Pro to extend today's speed-control time.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動画の視聴か Pro の購入で、今日の倍速再生の時間を増やせます。"
+          }
+        }
+      }
+    },
+    "Adds playback time for today (%lld left today)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日の再生時間を追加します（本日あと %lld 回）"
+          }
+        }
+      }
+    },
+    "You've reached today's ad limit. It resets tomorrow.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の視聴回数の上限に達しました。明日リセットされます。"
+          }
+        }
+      }
+    },
     "Switched Back to Normal Speed": {
       "localizations": {
         "ja": {

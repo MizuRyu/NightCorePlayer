@@ -31,6 +31,12 @@ final class AllowanceServiceMock: AllowanceService {
         return 0
     }
 
+    var rewardsRemainingTodayResult = Constants.Allowance.dailyRewardLimit
+
+    func rewardsRemainingToday(now: Date) throws -> Int {
+        rewardsRemainingTodayResult
+    }
+
     func shouldShowProPrompt(now: Date) throws -> Bool {
         shouldShowProPromptResult && !proPromptShown
     }
