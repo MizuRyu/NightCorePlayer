@@ -70,6 +70,8 @@ docs/adr/                   # Architecture Decision Record
 | [TESTING-STRATEGY.md](docs/specs/TESTING-STRATEGY.md) | テスト方針・Mock 規約 |
 | [PROJECT-RULES.md](docs/specs/PROJECT-RULES.md) | 運用ルール |
 | [PROJECT-STRUCTURE.md](docs/specs/PROJECT-STRUCTURE.md) | ディレクトリ構造 |
+| [RELEASE.md](docs/specs/RELEASE.md) | TestFlight 配布・審査提出の手順 |
+| [APP-REVIEW-NOTES.md](docs/specs/APP-REVIEW-NOTES.md) | 審査へ提出する説明文と根拠 |
 | [docs/adr/](docs/adr/) | 設計判断の記録（ADR） |
 | [docs/conventions/pr-assets.md](docs/conventions/pr-assets.md) | PR 成果物（スクショ・デモ動画）の置き場 |
 
