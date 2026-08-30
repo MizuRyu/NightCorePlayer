@@ -4,3 +4,4 @@ NightCore Player の利用規約とプライバシーポリシーを公開して
 
 - [利用規約](terms.md)
 - [プライバシーポリシー](privacy.md)
+- [サポート / Support](support.md)
