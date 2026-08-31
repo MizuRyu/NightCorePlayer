@@ -7,6 +7,7 @@
 
 import SwiftUI
 import GoogleMobileAds
+import MusicKit
 import NightCoreDomain
 
 @main
@@ -65,7 +66,10 @@ struct NightcorePlayerApp: App {
             playerStateRepo: playerStateRepo,
             historyRepo: historyRepo
         )
-        let historyManager = PlayHistoryManagerImpl(historyRepo: historyRepo)
+        let historyManager = PlayHistoryManagerImpl<Song>(
+            historyRepo: historyRepo,
+            songID: { $0.id.rawValue }
+        )
         let artworkService = ArtworkCacheServiceImpl()
 
         let allowanceService = AllowanceServiceImpl(

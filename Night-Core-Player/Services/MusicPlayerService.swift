@@ -30,31 +30,6 @@ public protocol PlayerControllable: Sendable {
     func stop()
 }
 
-// MARK: - QueueManaging
-
-public enum QueueUpdateAction: Sendable {
-    case playNewQueue
-    case updatePlayerQueueOnly
-    case playerShouldStop
-    case noAction
-}
-
-@MainActor
-public protocol QueueManaging: Sendable {
-    var items: [Song] { get }
-    var currentIndex: Int { get set }
-    var currentSong: Song? { get }
-    var isEmpty: Bool { get }
-
-    func setQueue(_ songs: [Song], startAt idx: Int) async -> QueueUpdateAction
-    func moveItem(from src: Int, to dst: Int) async -> QueueUpdateAction
-    func removeItem(at idx: Int) async -> (action: QueueUpdateAction, removed: Song?)
-    func insertNext(_ song: Song) async -> (action: QueueUpdateAction, newIndex: Int?)
-    func advanceToNextTrack() async -> Bool
-    func regressToPreviousTrack() async -> Bool
-    func songsForPlayerQueueDescriptor() async -> [Song]
-}
-
 // MARK: - MusicPlayerSnapshot
 
 public struct MusicPlayerSnapshot: Sendable, Equatable {

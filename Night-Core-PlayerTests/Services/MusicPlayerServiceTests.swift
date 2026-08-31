@@ -43,7 +43,9 @@ private struct SUT {
         let persistenceService = PlayerPersistenceServiceImpl(
             playerStateRepo: repo, historyRepo: historyRepo
         )
-        let historyManager = PlayHistoryManagerImpl(historyRepo: historyRepo)
+        let historyManager = PlayHistoryManagerImpl<Song>(
+            historyRepo: historyRepo, songID: { $0.id.rawValue }
+        )
         let artworkService = ArtworkCacheServiceImpl()
         let service   = MusicPlayerServiceImpl(
             rateManager: rateManager,
@@ -59,94 +61,12 @@ private struct SUT {
     }
 }
 
-// MARK: - MusicQueueManager Tests
-@Suite("MusicQueueManager Tests", .serialized)
+// MARK: - MusicPlayerServiceImpl Queue Tests
+// キュー操作アルゴリズム自体の検証は NightCoreDomain の MusicQueueManagerTests にある。
+// ここには Song 特殊化とプレイヤー副作用の結合部だけを残す
+@Suite("MusicPlayerServiceImpl Queue Tests", .serialized)
 @MainActor
-struct MusicQueueManagerTests {
-    @Test("setQueue: 空配列なら playerShouldStop & currentIndex=0")
-    func testSetQueueEmpty() async {
-        // Given: 空のMusicQueueManagerを作成
-        let mgr = MusicQueueManager()
-        // When: setQueueを空配列で呼び出す（startAt: 5）
-        let action = await mgr.setQueue([], startAt: 5)
-        // Then: playerShouldStopが返り、キューは空、currentIndexは0
-        #expect(action == .playerShouldStop)
-        #expect(mgr.items.isEmpty)
-        #expect(mgr.currentIndex == 0)
-    }
-
-    @Test("setQueue: startAt 下限を clamp すること")
-    func testSetQueueClampLower() async {
-        // Given: 2曲入りの配列を作成
-        let mgr = MusicQueueManager()
-        let songs = [makeDummySong(id: "A"), makeDummySong(id: "B")]
-        // When: startAtを-1でセット
-        let action = await mgr.setQueue(songs, startAt: -1)
-        // Then: playNewQueueになり、currentIndexは0
-        #expect(action == .playNewQueue)
-        #expect(mgr.currentIndex == 0)
-    }
-
-    @Test("setQueue: startAt 上限を clamp すること")
-    func testSetQueueClampUpper() async {
-        // Given: 2曲入りの配列を作成
-        let mgr = MusicQueueManager()
-        let songs = [makeDummySong(id: "A"), makeDummySong(id: "B")]
-        // When: startAtを999でセット
-        let action = await mgr.setQueue(songs, startAt: 999)
-        // Then: playNewQueueになり、currentIndexは末尾になる
-        #expect(action == .playNewQueue)
-        #expect(mgr.currentIndex == songs.count - 1)
-    }
-
-    @Test("moveItem: src==dst の場合は noAction")
-    func testMoveItemNoOp() async {
-        // Given: 3曲入りのキュー、currentIndex=1
-        let mgr = MusicQueueManager()
-        await mgr.setQueue(
-            [makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C")],
-            startAt: 1
-        )
-        // When: 同じ位置（1→1）でmoveItem
-        let action = await mgr.moveItem(from: 1, to: 1)
-        // Then: noActionが返り、順序もcurrentIndexも変わらない
-        #expect(action == .noAction)
-        #expect(mgr.items.map(\.id.rawValue) == ["A", "B", "C"])
-        #expect(mgr.currentIndex == 1)
-    }
-
-    @Test("moveItem: 楽曲を前方に移動できること")
-    func testMoveItemForward() async {
-        // Given: 3曲入りのキュー、currentIndex=1
-        let mgr = MusicQueueManager()
-        await mgr.setQueue(
-            [makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C")],
-            startAt: 1
-        )
-        // When: BをAの前に移動
-        let action = await mgr.moveItem(from: 1, to: 0)
-        // Then: updatePlayerQueueOnlyが返り、Bが先頭に
-        #expect(action == .updatePlayerQueueOnly)
-        #expect(mgr.items.map(\.id.rawValue) == ["B", "A", "C"])
-    }
-
-    @Test("moveItem: 楽曲を後方に移動できること")
-    func testMoveItemBackward() async {
-        // Given: 3曲入りのキュー、currentIndex=0
-        let mgr = MusicQueueManager()
-        await mgr.setQueue(
-            [makeDummySong(id: "A"),
-             makeDummySong(id: "B"),
-             makeDummySong(id: "C")],
-            startAt: 0
-        )
-        // When: AをCの後ろに移動
-        let action = await mgr.moveItem(from: 0, to: 2)
-        // Then: updatePlayerQueueOnlyが返り、Aが末尾に
-        #expect(action == .updatePlayerQueueOnly)
-        #expect(mgr.items.map(\.id.rawValue) == ["B", "C", "A"])
-    }
-
+struct MusicPlayerServiceQueueTests {
     @Test("moveItem: 非再生中の曲を移動すると即時再生操作は呼ばれず、フラグだけ立つ")
     func testMoveItemNonCurrent() async {
         // Given
@@ -184,35 +104,6 @@ struct MusicQueueManagerTests {
         #expect(sut.service.musicPlayerQueue.map(\.id.rawValue) == ["A", "C", "D", "B"], "内部キューは更新済み")
     }
 
-    @Test("removeItem: 1曲のみなら playerShouldStop")
-    func testRemoveItemSingle() async {
-        // Given: 1曲だけのキュー
-        let mgr = MusicQueueManager()
-        await mgr.setQueue([makeDummySong(id: "A")], startAt: 0)
-        // When: 唯一の曲を削除
-        let (action, removed) = await mgr.removeItem(at: 0)
-        // Then: playerShouldStopが返り、削除曲が正しい・キューは空
-        #expect(action == .playerShouldStop)
-        #expect(removed?.id.rawValue == "A")
-        #expect(mgr.items.isEmpty)
-    }
-
-    @Test("removeItem: 現在再生曲を削除すると playNewQueue")
-    func testRemoveItemCurrent() async {
-        // Given: 3曲のうちB(1)が再生中
-        let mgr = MusicQueueManager()
-        await mgr.setQueue(
-            [makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C")],
-            startAt: 1
-        )
-        // When: B(1)を削除
-        let (action, _) = await mgr.removeItem(at: 1)
-        // Then: playNewQueueが返り、キュー・indexが更新
-        #expect(action == .playNewQueue)
-        #expect(mgr.items.map(\.id.rawValue) == ["A", "C"])
-        #expect(mgr.currentIndex == 1)
-    }
-
     @Test("removeItem: 範囲外のインデックスなら noAction で何も呼ばれない")
     func testRemoveItemOutOfBounds() async {
         let A = makeDummySong(id: "A")
@@ -230,7 +121,9 @@ struct MusicQueueManagerTests {
         let service = MusicPlayerServiceImpl(
             rateManager: PlaybackRateManagerImpl(repo: repo),
             persistenceService: PlayerPersistenceServiceImpl(playerStateRepo: repo, historyRepo: historyRepo),
-            historyManager: PlayHistoryManagerImpl(historyRepo: historyRepo),
+            historyManager: PlayHistoryManagerImpl<Song>(
+                historyRepo: historyRepo, songID: { $0.id.rawValue }
+            ),
             artworkService: ArtworkCacheServiceImpl(),
             playerAdapter: adapter,
             queueManager: queueMock
@@ -246,18 +139,6 @@ struct MusicQueueManagerTests {
                 "範囲外なら setQueue(with:) が呼ばれない")
         #expect(adapter.stopCount == beforeStop,
                 "範囲外なら stop() も呼ばれない")
-    }
-
-    @Test("insertNext: 空キューに追加すると playNewQueue")
-    func testInsertNextEmpty() async {
-        // Given: 空のキュー
-        let mgr = MusicQueueManager()
-        // When: 1曲追加
-        let (action, _) = await mgr.insertNext(makeDummySong(id: "X"))
-        // Then: playNewQueueが返り、キューに1曲・index=0
-        #expect(action == .playNewQueue)
-        #expect(mgr.items.count == 1)
-        #expect(mgr.currentIndex == 0)
     }
 
     @Test("playNextAndPlay: キュー内の曲を移動して再生する")
@@ -306,89 +187,6 @@ struct MusicQueueManagerTests {
                 "1回 play() が呼ばれる")
     }
 
-    @Test("advanceToNextTrack: 次の曲がない場合は何もしないこと")
-    func testAdvanceOutOfRange() async {
-        // Given: 1曲だけのキュー
-        let mgr = MusicQueueManager()
-        await mgr.setQueue([makeDummySong(id: "A")], startAt: 0)
-        // When: advanceToNextTrackを呼ぶ
-        let advanced = await mgr.advanceToNextTrack()
-        // Then: 進まず、currentIndexも変化なし
-        #expect(!advanced)
-        #expect(mgr.currentIndex == 0)
-    }
-
-    @Test("advanceToNextTrack: 次の曲がある場合は進むこと")
-    func testAdvanceSuccess() async {
-        // Given: 2曲、index=0
-        let mgr = MusicQueueManager()
-        await mgr.setQueue(
-            [makeDummySong(id: "A"),
-             makeDummySong(id: "B")],
-            startAt: 0
-        )
-        // When: advanceToNextTrackを呼ぶ
-        let advanced = await mgr.advanceToNextTrack()
-        // Then: 進み、currentIndex=1
-        #expect(advanced)
-        #expect(mgr.currentIndex == 1)
-    }
-
-    @Test("regressToPreviousTrack: 前の曲がない場合は何もしないこと")
-    func testRegressOutOfRange() async {
-        // Given: 2曲、index=0
-        let mgr = MusicQueueManager()
-        await mgr.setQueue(
-            [makeDummySong(id: "A"),
-             makeDummySong(id: "B")],
-            startAt: 0
-        )
-        // When: regressToPreviousTrackを呼ぶ
-        let regressed = await mgr.regressToPreviousTrack()
-        // Then: 戻らず、currentIndexも変化なし
-        #expect(!regressed)
-        #expect(mgr.currentIndex == 0)
-    }
-
-    @Test("regressToPreviousTrack: 前の曲がある場合は戻ること")
-    func testRegressSuccess() async {
-        // Given: 2曲、index=1
-        let mgr = MusicQueueManager()
-        await mgr.setQueue(
-            [makeDummySong(id: "A"),
-             makeDummySong(id: "B")],
-            startAt: 1
-        )
-        // When: regressToPreviousTrackを呼ぶ
-        let regressed = await mgr.regressToPreviousTrack()
-        // Then: 戻り、currentIndex=0
-        #expect(regressed)
-        #expect(mgr.currentIndex == 0)
-    }
-
-    @Test("songsForPlayerQueueDescriptor: キューがからの場合は空配列を返すこと")
-    func testSongsForPlayerQueueDescriptorEmpty() async {
-        // Given: 空のキュー
-        let mgr = MusicQueueManager()
-        // When: songsForPlayerQueueDescriptorを呼ぶ
-        let list = await mgr.songsForPlayerQueueDescriptor()
-        // Then: 空配列が返る
-        #expect(list.isEmpty)
-    }
-
-    @Test("songsForPlayerQueueDescriptor: currentIndex以降の配列生成")
-    func testSongsForPlayerQueueDescriptor() async {
-        // Given: 3曲、index=1
-        let mgr = MusicQueueManager()
-        await mgr.setQueue(
-            [makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C")],
-            startAt: 1
-        )
-        // When: songsForPlayerQueueDescriptorを呼ぶ
-        let list = await mgr.songsForPlayerQueueDescriptor()
-        // Then: indexから末尾までの配列が返る（ローテーションなし）
-        #expect(list.map(\.id.rawValue) == ["B", "C"])
-    }
 }
 
 // MARK: - MusicPlayerServiceImpl Tests

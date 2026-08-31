@@ -30,11 +30,11 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     public var nowPlayingIndex: Int { queue.currentIndex }
 
     private var player: PlayerControllable
-    public var queue: QueueManaging
+    public var queue: any QueueManaging<Song>
 
     private let rateManager: PlaybackRateManager
     private let persistenceService: PlayerPersistenceService
-    private let historyManager: PlayHistoryManaging
+    private let historyManager: any PlayHistoryManaging<Song>
     private let artworkService: ArtworkCacheService
     private let musicKitService: MusicKitService?
     private let allowanceEnforcer: AllowanceEnforcer?
@@ -57,11 +57,11 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
     init(
         rateManager: PlaybackRateManager,
         persistenceService: PlayerPersistenceService,
-        historyManager: PlayHistoryManaging,
+        historyManager: any PlayHistoryManaging<Song>,
         artworkService: ArtworkCacheService,
         musicKitService: MusicKitService? = nil,
         playerAdapter: PlayerControllable? = nil,
-        queueManager: QueueManaging? = nil,
+        queueManager: (any QueueManaging<Song>)? = nil,
         allowanceEnforcer: AllowanceEnforcer? = nil,
         now: @escaping () -> Date = Date.init
     ) {
@@ -74,7 +74,7 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         self.now = now
 
         self.player   = playerAdapter ?? MPMusicPlayerAdapter(defaultRate: rateManager.defaultRate)
-        self.queue    = queueManager ?? MusicQueueManager()
+        self.queue    = queueManager ?? MusicQueueManager<Song>()
 
         do {
             let session = AVAudioSession.sharedInstance()
