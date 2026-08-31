@@ -3,6 +3,7 @@ import MusicKit
 import MediaPlayer
 import Combine
 import Observation
+import NightCoreDomain
 
 @Observable
 @MainActor
@@ -125,7 +126,7 @@ final class MusicPlayerViewModel {
     }
 
     func playPauseTrack() { Task { await isPlaying ? service.pause() : service.play() } }
-    func nextTrack() { Task { await service.next()      } }
+    func nextTrack() { Task { await service.next() } }
     func previousTrack() { Task { await service.previous() } }
     func rewind15() {
         let newTime = max(currentTime - skipSeconds, 0)

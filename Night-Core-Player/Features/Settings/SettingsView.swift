@@ -2,6 +2,7 @@ import SwiftUI
 import StoreKit
 import Combine
 import Inject
+import NightCoreDomain
 
 struct SettingsView: View {
     @ObserveInjection var inject

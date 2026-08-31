@@ -1,7 +1,8 @@
 import Testing
 import Foundation
 import Combine
-@testable import Night_Core_Player
+import NightCoreDomain
+import NightCoreDomainTestSupport
 
 @Suite("AllowanceEnforcer Tests")
 @MainActor

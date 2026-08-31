@@ -1,7 +1,8 @@
 import Foundation
 import SwiftData
+import NightCoreDomain
 
-final class AllowanceRepository {
+final class AllowanceRepository: AllowanceRepositoryPort {
     private let context: ModelContext
 
     init(context: ModelContext) {

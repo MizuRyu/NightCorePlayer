@@ -1,6 +1,7 @@
 import Testing
 import SwiftData
 import MediaPlayer
+import NightCoreDomain
 
 @testable import Night_Core_Player
 

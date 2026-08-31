@@ -19,6 +19,7 @@ fastlane/README.md
 
 # Build artifacts
 build/
+.build/
 .derivedData*/
 *.ipa
 *.dSYM.zip

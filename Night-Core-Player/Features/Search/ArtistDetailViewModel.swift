@@ -1,6 +1,7 @@
 import Foundation
 import MusicKit
 import Observation
+import NightCoreDomain
 
 @Observable
 @MainActor

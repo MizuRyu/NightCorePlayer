@@ -6,7 +6,7 @@ import os
 
 // MARK: - Event
 
-enum AllowanceEvent: Sendable {
+public enum AllowanceEvent: Sendable {
     case exhaustedPendingSongEnd
     case stoppedAtSongEnd
     /// 残高がないまま倍速へ変更したため等速へ戻した。無言で速度が戻ると理由が伝わらない
@@ -16,7 +16,7 @@ enum AllowanceEvent: Sendable {
 // MARK: - Protocol
 
 @MainActor
-protocol AllowanceEnforcer: Sendable {
+public protocol AllowanceEnforcer: Sendable {
     var events: AnyPublisher<AllowanceEvent, Never> { get }
     var isExhausted: Bool { get }
     func tick(isPlaying: Bool, rate: Double, songID: String?, now: Date)
@@ -30,7 +30,7 @@ protocol AllowanceEnforcer: Sendable {
 // MARK: - Impl
 
 @MainActor
-final class AllowanceEnforcerImpl: AllowanceEnforcer {
+public final class AllowanceEnforcerImpl: AllowanceEnforcer {
     private let logger = Logger(subsystem: Constants.Logging.subsystem, category: "Allowance")
     /// 前回tickからの経過が異常に長い場合のconsume上限（バックグラウンド放置で残高が一気に飛ぶのを防ぐ）
     private static let maxTickIntervalSeconds: TimeInterval = 60
@@ -41,7 +41,7 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
     private let isProEntitled: () -> Bool
 
     private let eventSubject = PassthroughSubject<AllowanceEvent, Never>()
-    var events: AnyPublisher<AllowanceEvent, Never> {
+    public var events: AnyPublisher<AllowanceEvent, Never> {
         eventSubject.eraseToAnyPublisher()
     }
 
@@ -68,7 +68,7 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
     /// 「残高があった」と誤認してしまうため、観測前は猶予を与えない
     private var hasObservedBalance = false
 
-    init(
+    public init(
         allowanceService: AllowanceService,
         isProEntitled: @escaping () -> Bool = { false }
     ) {
@@ -76,9 +76,9 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
         self.isProEntitled = isProEntitled
     }
 
-    var isExhausted: Bool { isBalanceExhausted }
+    public var isExhausted: Bool { isBalanceExhausted }
 
-    func tick(isPlaying: Bool, rate: Double, songID: String?, now: Date) {
+    public func tick(isPlaying: Bool, rate: Double, songID: String?, now: Date) {
         // Proは消費もアームもしない。既存の停止予約があれば解除して即return
         guard !isProEntitled() else {
             // lastTickAtを進めないとPro期間ぶんが溜まり、Pro解除後の初回tickで一括消費される
@@ -145,22 +145,22 @@ final class AllowanceEnforcerImpl: AllowanceEnforcer {
         eventSubject.send(.exhaustedPendingSongEnd)
     }
 
-    func shouldStopAtSongBoundary() -> Bool {
+    public func shouldStopAtSongBoundary() -> Bool {
         // tickを経由せず曲境界判定が走っても、Proユーザーを止めない
         !isProEntitled() && graceSongID != nil
     }
 
-    func shouldRevertToNormalRateNow() -> Bool {
+    public func shouldRevertToNormalRateNow() -> Bool {
         !isProEntitled() && needsRevertToNormalRate
     }
 
-    func markStoppedAtSongEnd() {
+    public func markStoppedAtSongEnd() {
         guard graceSongID != nil else { return }
         graceSongID = nil
         eventSubject.send(.stoppedAtSongEnd)
     }
 
-    func markRevertedToNormalRate() {
+    public func markRevertedToNormalRate() {
         guard needsRevertToNormalRate else { return }
         needsRevertToNormalRate = false
         eventSubject.send(.revertedToNormalRate)

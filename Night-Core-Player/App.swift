@@ -7,6 +7,7 @@
 
 import SwiftUI
 import GoogleMobileAds
+import NightCoreDomain
 
 @main
 struct NightcorePlayerApp: App {

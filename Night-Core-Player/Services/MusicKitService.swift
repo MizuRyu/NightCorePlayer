@@ -2,6 +2,7 @@ import Foundation
 import MusicKit
 import OSLog
 import SwiftUI
+import NightCoreDomain
 
 private let musicKitLogger = Logger(subsystem: Constants.Logging.subsystem, category: "MusicKit")
 

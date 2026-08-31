@@ -2,6 +2,7 @@ import Testing
 import Combine
 import SwiftUI
 import MusicKit
+import NightCoreDomain
 @testable import Night_Core_Player
 
 @MainActor

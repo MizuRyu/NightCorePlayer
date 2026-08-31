@@ -3,6 +3,8 @@ import SwiftUI
 import Combine
 import MediaPlayer
 import MusicKit
+import NightCoreDomain
+import NightCoreDomainTestSupport
 
 @testable import Night_Core_Player
 

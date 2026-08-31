@@ -3,6 +3,7 @@ import Combine
 import SwiftUI
 import MusicKit
 import MediaPlayer
+import NightCoreDomain
 @testable import Night_Core_Player
 
 final class PlayerControllableMock: PlayerControllable {

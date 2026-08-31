@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Protocol
 
 @MainActor
-protocol AllowanceService: Sendable {
+public protocol AllowanceService: Sendable {
     func entitlement(now: Date) throws -> PlaybackEntitlement
     func consume(_ seconds: TimeInterval, now: Date) throws
     func grantReward(now: Date) throws -> TimeInterval
@@ -23,19 +23,19 @@ protocol AllowanceService: Sendable {
 // MARK: - Impl
 
 @MainActor
-final class AllowanceServiceImpl: AllowanceService {
+public final class AllowanceServiceImpl: AllowanceService {
     private static let daySeconds: TimeInterval = 86400
 
     /// 実時刻が初回起動より1時間以上過去なら時計改竄とみなす許容幅
     private static let trialClockToleranceSeconds: TimeInterval = 3600
 
-    private let repo: AllowanceRepository
+    private let repo: AllowanceRepositoryPort
 
-    init(repo: AllowanceRepository) {
+    public init(repo: AllowanceRepositoryPort) {
         self.repo = repo
     }
 
-    func entitlement(now: Date) throws -> PlaybackEntitlement {
+    public func entitlement(now: Date) throws -> PlaybackEntitlement {
         let snapshot = try normalizedSnapshot(now: now)
         if isTrialActive(snapshot: snapshot, now: now) {
             return .trial(endsAt: trialEndDate(firstLaunchAt: snapshot.firstLaunchAt))
@@ -45,18 +45,18 @@ final class AllowanceServiceImpl: AllowanceService {
             : .exhausted
     }
 
-    func consume(_ seconds: TimeInterval, now: Date) throws {
+    public func consume(_ seconds: TimeInterval, now: Date) throws {
         var snapshot = try normalizedSnapshot(now: now)
         guard !isTrialActive(snapshot: snapshot, now: now) else { return }
         snapshot.remainingSeconds = max(0, snapshot.remainingSeconds - max(0, seconds))
         try repo.save(snapshot)
     }
 
-    func grantReward(now: Date) throws -> TimeInterval {
+    public func grantReward(now: Date) throws -> TimeInterval {
         var snapshot = try normalizedSnapshot(now: now)
         // UI側でボタンを無効化しているが、時刻またぎ等での重複付与をここでも止める
         guard snapshot.rewardCountToday < Constants.Allowance.dailyRewardLimit else {
-            throw AppError.player(String(localized: "You've reached today's ad limit. It resets tomorrow."))
+            throw AllowanceError.dailyRewardLimitReached
         }
         snapshot.remainingSeconds += Constants.Allowance.rewardSeconds
         snapshot.rewardCountTotal += 1
@@ -65,25 +65,25 @@ final class AllowanceServiceImpl: AllowanceService {
         return snapshot.remainingSeconds
     }
 
-    func rewardsRemainingToday(now: Date) throws -> Int {
+    public func rewardsRemainingToday(now: Date) throws -> Int {
         let snapshot = try normalizedSnapshot(now: now)
         return max(0, Constants.Allowance.dailyRewardLimit - snapshot.rewardCountToday)
     }
 
-    func shouldShowProPrompt(now: Date) throws -> Bool {
+    public func shouldShowProPrompt(now: Date) throws -> Bool {
         let snapshot = try normalizedSnapshot(now: now)
         return snapshot.rewardCountTotal >= Constants.Allowance.proPromptRewardCount
             && !snapshot.proPromptShown
     }
 
-    func markProPromptShown(now: Date) throws {
+    public func markProPromptShown(now: Date) throws {
         var snapshot = try normalizedSnapshot(now: now)
         snapshot.proPromptShown = true
         try repo.save(snapshot)
     }
 
     #if DEBUG
-        func debugExhaust(now: Date) throws {
+        public func debugExhaust(now: Date) throws {
             var snapshot = try normalizedSnapshot(now: now)
             // トライアル判定を抜けるため初回起動をトライアル期間より前に倒す
             snapshot.firstLaunchAt = now.addingTimeInterval(
@@ -96,7 +96,7 @@ final class AllowanceServiceImpl: AllowanceService {
             try repo.save(snapshot)
         }
 
-        func debugReset() throws {
+        public func debugReset() throws {
             try repo.reset()
         }
     #endif
