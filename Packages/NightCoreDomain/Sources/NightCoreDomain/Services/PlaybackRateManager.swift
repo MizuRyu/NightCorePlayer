@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Protocol
 
 @MainActor
-protocol PlaybackRateManager: Sendable {
+public protocol PlaybackRateManager: Sendable {
     var defaultRate: Double { get }
     func setDefaultRate(_ rate: Double) throws
 }
@@ -11,17 +11,17 @@ protocol PlaybackRateManager: Sendable {
 // MARK: - Impl
 
 @MainActor
-final class PlaybackRateManagerImpl: PlaybackRateManager {
-    private let repo: PlayerStateRepository
-    private(set) var defaultRate: Double
+public final class PlaybackRateManagerImpl: PlaybackRateManager {
+    private let repo: PlayerStateRepositoryPort
+    public private(set) var defaultRate: Double
 
-    init(repo: PlayerStateRepository) {
+    public init(repo: PlayerStateRepositoryPort) {
         self.repo = repo
         self.defaultRate = (try? repo.load().playbackRate)
             ?? Constants.MusicPlayer.defaultPlaybackRate
     }
 
-    func setDefaultRate(_ rate: Double) throws {
+    public func setDefaultRate(_ rate: Double) throws {
         let clamped = min(
             max(rate, Constants.MusicPlayer.minPlaybackRate),
             Constants.MusicPlayer.maxPlaybackRate

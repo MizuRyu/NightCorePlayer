@@ -1,8 +1,9 @@
 import Foundation
 import SwiftData
 import MediaPlayer
+import NightCoreDomain
 
-final class PlayerStateRepository {
+final class PlayerStateRepository: PlayerStateRepositoryPort {
     private let context: ModelContext
 
     init(context: ModelContext) {
@@ -31,6 +32,7 @@ final class PlayerStateRepository {
         try context.save()
     }
 
+    // swiftlint:disable:next large_tuple
     func load() throws -> (
         queueIDs: [String],
         currentIndex: Int,

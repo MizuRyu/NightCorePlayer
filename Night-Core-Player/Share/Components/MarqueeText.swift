@@ -1,4 +1,5 @@
 import SwiftUI
+import NightCoreDomain
 
 /// https://qiita.com/takehilo/items/2499c632c2e0e5cdcb06
 private struct TextWidthKey: PreferenceKey {

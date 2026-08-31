@@ -4,6 +4,7 @@ import MusicKit
 import Foundation
 import AVFoundation
 import os
+import NightCoreDomain
 
 @MainActor
 public final class MusicPlayerServiceImpl: MusicPlayerService {

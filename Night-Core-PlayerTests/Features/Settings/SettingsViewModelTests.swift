@@ -1,5 +1,7 @@
 import Testing
 import Foundation
+import NightCoreDomain
+import NightCoreDomainTestSupport
 
 @testable import Night_Core_Player
 

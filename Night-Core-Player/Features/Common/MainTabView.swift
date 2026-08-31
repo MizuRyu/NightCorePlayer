@@ -1,6 +1,7 @@
 import SwiftUI
 import Inject
 import MusicKit
+import NightCoreDomain
 struct MainTabView: View {
     @ObserveInjection var inject
     @Environment(PlayerNavigator.self) private var nav

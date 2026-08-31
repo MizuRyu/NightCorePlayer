@@ -1,6 +1,7 @@
 import SwiftUI
 import Observation
 import StoreKit
+import NightCoreDomain
 
 @Observable
 @MainActor

@@ -1,6 +1,7 @@
 import Foundation
 import MusicKit
 import OSLog
+import NightCoreDomain
 
 // MARK: - Protocol
 

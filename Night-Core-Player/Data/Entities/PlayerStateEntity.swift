@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import MediaPlayer
+import NightCoreDomain
 
 @Model
 final class PlayerStateEntity {

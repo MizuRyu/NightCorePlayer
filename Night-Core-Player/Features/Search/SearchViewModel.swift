@@ -1,6 +1,7 @@
 import SwiftUI
 import MusicKit
 import Observation
+import NightCoreDomain
 
 @Observable
 @MainActor

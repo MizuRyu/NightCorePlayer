@@ -6,6 +6,7 @@
 import Foundation
 import AppTrackingTransparency
 import os
+import NightCoreDomain
 
 // MARK: - Protocol
 

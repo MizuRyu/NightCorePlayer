@@ -1,6 +1,7 @@
 import Foundation
 import GoogleMobileAds
 import os
+import NightCoreDomain
 
 // MARK: - Error
 

@@ -1,4 +1,4 @@
-import SwiftUI
+import Foundation
 
 public enum Constants {
 
@@ -26,7 +26,7 @@ public enum Constants {
         public static let rateStepSmall: Double = 0.01
         public static let skipSeconds: Double = 15.0
         public static let sliderDivisions: Int = 10
-        public static let artworkSize: CGFloat = 300
+        public static let artworkSize: Double = 300
         public static let updateInterval: TimeInterval = 0.5
     }
 

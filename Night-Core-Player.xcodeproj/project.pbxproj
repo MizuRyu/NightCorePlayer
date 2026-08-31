@@ -11,6 +11,8 @@
 		291CFAAD80F7F6A835B7D9AE /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 6617C606136C3CE99B081163 /* GoogleMobileAds */; };
 		E1A1957EC4B920C2CEC656A3 /* DemoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BE74BD8A1D03DB172F3F71C /* DemoUITests.swift */; };
 		F391D4232DCF2E5500517D0B /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = F391D4222DCF2E5500517D0B /* Inject */; };
+		F3D0A0010000000000000004 /* NightCoreDomain in Frameworks */ = {isa = PBXBuildFile; productRef = F3D0A0010000000000000002 /* NightCoreDomain */; };
+		F3D0A0010000000000000006 /* NightCoreDomainTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = F3D0A0010000000000000008 /* NightCoreDomainTestSupport */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +82,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F3D0A0010000000000000006 /* NightCoreDomainTestSupport in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -89,6 +92,7 @@
 			files = (
 				F391D4232DCF2E5500517D0B /* Inject in Frameworks */,
 				291CFAAD80F7F6A835B7D9AE /* GoogleMobileAds in Frameworks */,
+				F3D0A0010000000000000004 /* NightCoreDomain in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -179,6 +183,9 @@
 				F36015DD2DD6E8EE008A255A /* Night-Core-PlayerTests */,
 			);
 			name = "Night-Core-PlayerTests";
+			packageProductDependencies = (
+				F3D0A0010000000000000008 /* NightCoreDomainTestSupport */,
+			);
 			productName = "Night-Core-PlayerTests";
 			productReference = F36015DC2DD6E8EE008A255A /* Night-Core-PlayerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -202,6 +209,7 @@
 			packageProductDependencies = (
 				F391D4222DCF2E5500517D0B /* Inject */,
 				6617C606136C3CE99B081163 /* GoogleMobileAds */,
+				F3D0A0010000000000000002 /* NightCoreDomain */,
 			);
 			productName = "Night-Core-Player";
 			productReference = F3FD9E852DCDAD7300645A6A /* Night-Core-Player.app */;
@@ -239,6 +247,7 @@
 			packageReferences = (
 				F391D4212DCF2E5500517D0B /* XCRemoteSwiftPackageReference "Inject" */,
 				33D80190376A948ED89E98EE /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+				F3D0A0010000000000000001 /* XCLocalSwiftPackageReference "Packages/NightCoreDomain" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F3FD9E862DCDAD7300645A6A /* Products */;
@@ -634,6 +643,13 @@
 		};
 /* End XCRemoteSwiftPackageReference section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		F3D0A0010000000000000001 /* XCLocalSwiftPackageReference "Packages/NightCoreDomain" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/NightCoreDomain;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		6617C606136C3CE99B081163 /* GoogleMobileAds */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -644,6 +660,14 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F391D4212DCF2E5500517D0B /* XCRemoteSwiftPackageReference "Inject" */;
 			productName = Inject;
+		};
+		F3D0A0010000000000000002 /* NightCoreDomain */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NightCoreDomain;
+		};
+		F3D0A0010000000000000008 /* NightCoreDomainTestSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NightCoreDomainTestSupport;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

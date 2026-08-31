@@ -1,5 +1,6 @@
 import SwiftUI
 import Inject
+import NightCoreDomain
 
 struct SettingsPlaybackSpeedView: View {
     @ObserveInjection var inject

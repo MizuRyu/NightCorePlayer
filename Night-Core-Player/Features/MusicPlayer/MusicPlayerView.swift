@@ -1,6 +1,7 @@
 import SwiftUI
 import Inject
 import MusicKit
+import NightCoreDomain
 
 struct SpeedControlButton: View {
     let label: String

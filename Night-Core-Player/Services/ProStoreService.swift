@@ -2,6 +2,7 @@ import Foundation
 import StoreKit
 import Observation
 import os
+import NightCoreDomain
 
 // MARK: - Outcome
 

@@ -1,8 +1,6 @@
 import Testing
 import Foundation
-import SwiftData
-
-@testable import Night_Core_Player
+import NightCoreDomain
 
 @Suite("AllowanceService Tests", .serialized)
 @MainActor
@@ -13,10 +11,8 @@ struct AllowanceServiceTests {
     private static let day0 = ISO8601DateFormatter().date(from: "2026-08-01T12:00:00+09:00")!
     private static let daySeconds: TimeInterval = 86400
 
-    private static func makeService() throws -> (service: AllowanceServiceImpl, repo: AllowanceRepository) {
-        let context = TestDataStore.container.mainContext
-        let repo = AllowanceRepository(context: context)
-        try repo.reset()
+    private static func makeService() throws -> (service: AllowanceServiceImpl, repo: InMemoryAllowanceRepository) {
+        let repo = InMemoryAllowanceRepository()
         let service = AllowanceServiceImpl(repo: repo)
         return (service, repo)
     }
@@ -191,7 +187,7 @@ struct AllowanceServiceTests {
 
     @Test
     func persistence_survivesServiceRecreation() throws {
-        let (service, _) = try Self.makeService()
+        let (service, repo) = try Self.makeService()
         _ = try service.entitlement(now: Self.day0)
         let now = Self.afterTrial()
 
@@ -201,9 +197,8 @@ struct AllowanceServiceTests {
         }
         try service.markProPromptShown(now: now)
 
-        // Service/Repository を作り直しても状態が維持される
-        let recreatedRepo = AllowanceRepository(context: TestDataStore.container.mainContext)
-        let recreated = AllowanceServiceImpl(repo: recreatedRepo)
+        // Service を作り直しても、同じ永続化先なら状態が維持される
+        let recreated = AllowanceServiceImpl(repo: repo)
 
         let expectedRemaining =
             Constants.Allowance.dailyFreeSeconds - 600
@@ -246,7 +241,7 @@ struct AllowanceServiceTests {
         }
         #expect(try service.rewardsRemainingToday(now: now) == 0)
         // 上限到達後は付与しない。UI側でボタンを塞ぐが、サービス側でも止める
-        #expect(throws: AppError.self) {
+        #expect(throws: AllowanceError.dailyRewardLimitReached) {
             _ = try service.grantReward(now: now)
         }
     }

@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import NightCoreDomain
 import Observation
 import os
 
@@ -157,6 +158,9 @@ final class AllowanceSheetViewModel {
         errorMessage = nil
         do {
             _ = try allowanceService.grantReward(now: now())
+        } catch let error as AllowanceError {
+            errorMessage = AppError(error).errorDescription
+            return
         } catch {
             errorMessage = (error as? AppError)?.errorDescription ?? error.localizedDescription
             return

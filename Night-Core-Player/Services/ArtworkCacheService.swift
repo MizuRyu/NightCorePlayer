@@ -1,6 +1,8 @@
 import Foundation
 import UIKit
 import MusicKit
+import NightCoreDomain
+import os
 
 // MARK: - Protocol
 
@@ -14,6 +16,7 @@ protocol ArtworkCacheService: Sendable {
 @MainActor
 final class ArtworkCacheServiceImpl: ArtworkCacheService {
     private let artworkCache = NSCache<NSString, NSData>()
+    private let logger = Logger(subsystem: Constants.Logging.subsystem, category: "Artwork")
 
     func getArtwork(for song: Song?) async -> Data? {
         guard let song = song else { return nil }
@@ -48,7 +51,7 @@ final class ArtworkCacheServiceImpl: ArtworkCacheService {
             let resp = try await req.response()
             return resp.items.first ?? song
         } catch {
-            print("⚠️ fetchSongDetails error: \(error.localizedDescription)")
+            logger.error("fetchSongDetails error: \(error.localizedDescription)")
             return song
         }
     }
@@ -65,7 +68,7 @@ final class ArtworkCacheServiceImpl: ArtworkCacheService {
             guard UIImage(data: data) != nil else { return nil }
             return data
         } catch {
-            print("⚠️ Artwork Download Error: \(error.localizedDescription)")
+            logger.error("Artwork Download Error: \(error.localizedDescription)")
             return nil
         }
     }
