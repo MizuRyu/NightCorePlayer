@@ -16,12 +16,12 @@ protocol PlayHistoryManaging: Sendable {
 
 @MainActor
 final class PlayHistoryManagerImpl: PlayHistoryManaging {
-    private let historyRepo: HistoryRepository
+    private let historyRepo: any HistoryRepositoryPort
     private let maxHistoryCount: Int = Constants.History.maxHistoryCount
 
     private(set) var history: [Song] = []
 
-    init(historyRepo: HistoryRepository) {
+    init(historyRepo: any HistoryRepositoryPort) {
         self.historyRepo = historyRepo
     }
 

@@ -1,5 +1,6 @@
 import Foundation
 import MusicKit
+import NightCoreDomain
 
 // MARK: - Protocol
 
@@ -13,6 +14,7 @@ protocol PlayerPersistenceService: Sendable {
         repeatModeRaw: Int,
         isAutoPlayEnabled: Bool
     ) throws
+    // swiftlint:disable:next large_tuple
     func loadState() throws -> (
         queueIDs: [String],
         currentIndex: Int,
@@ -29,10 +31,10 @@ protocol PlayerPersistenceService: Sendable {
 
 @MainActor
 final class PlayerPersistenceServiceImpl: PlayerPersistenceService {
-    private let playerStateRepo: PlayerStateRepository
-    private let historyRepo: HistoryRepository
+    private let playerStateRepo: any PlayerStateRepositoryPort
+    private let historyRepo: any HistoryRepositoryPort
 
-    init(playerStateRepo: PlayerStateRepository, historyRepo: HistoryRepository) {
+    init(playerStateRepo: any PlayerStateRepositoryPort, historyRepo: any HistoryRepositoryPort) {
         self.playerStateRepo = playerStateRepo
         self.historyRepo = historyRepo
     }
@@ -55,6 +57,7 @@ final class PlayerPersistenceServiceImpl: PlayerPersistenceService {
         )
     }
 
+    // swiftlint:disable:next large_tuple
     func loadState() throws -> (
         queueIDs: [String],
         currentIndex: Int,
