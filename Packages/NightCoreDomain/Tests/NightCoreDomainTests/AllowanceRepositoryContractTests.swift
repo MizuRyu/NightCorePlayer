@@ -21,11 +21,11 @@ struct AllowanceRepositoryContractTests {
 
     @Test
     func save() throws {
-        // 「Repository を作り直しても復元される」検証のため、make() は同じ fake を返す
-        // (in-memory fake は状態をインスタンス自身が持つため)
-        let repo = InMemoryAllowanceRepository()
+        // 「Repository を作り直しても復元される」検証のため、make() は同じ store を
+        // 共有する別インスタンスを毎回返す
+        let store = InMemoryAllowanceStore()
         try AllowanceRepositoryContract.verifySave(
-            { repo },
+            { InMemoryAllowanceRepository(store: store) },
             now: Self.day0
         )
     }

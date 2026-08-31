@@ -17,9 +17,11 @@ struct PlayerStateRepositoryContractTests {
 
     @Test
     func saveAndLoad() throws {
-        // 「別インスタンスから読み直せる」検証のため、make() は同じ fake を返す
-        // (in-memory fake は状態をインスタンス自身が持つため)
-        let repo = InMemoryPlayerStateRepository()
-        try PlayerStateRepositoryContract.verifySaveAndLoad { repo }
+        // 「別インスタンスから読み直せる」検証のため、make() は同じ store を
+        // 共有する別インスタンスを毎回返す
+        let store = InMemoryPlayerStateStore()
+        try PlayerStateRepositoryContract.verifySaveAndLoad {
+            InMemoryPlayerStateRepository(store: store)
+        }
     }
 }

@@ -24,6 +24,7 @@ swiftformat-lint: ## SwiftFormat の整形漏れを検査（修正はしない�
 	swiftformat --lint .
 
 test: ## ユニットテスト実行（デモ用UIテストは除外。実行は scripts/record-demo.sh）
+	swift test --package-path Packages/NightCoreDomain
 	xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \

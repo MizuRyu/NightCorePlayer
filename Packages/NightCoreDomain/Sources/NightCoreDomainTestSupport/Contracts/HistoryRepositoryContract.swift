@@ -31,10 +31,9 @@ public enum HistoryRepositoryContract {
             try repo.append(songID: "song-\(i)")
         }
 
-        let ids = try repo.loadAll()
-        #expect(ids.count == maxCount)
-        #expect(ids.first == "song-\(maxCount + 4)")
-        #expect(ids.last == "song-5")
+        // 新しい順で song-5...song-(maxCount+4) が残り、古い5件(song-0...song-4)は切り詰められる
+        let expected = (5..<(maxCount + 5)).reversed().map { "song-\($0)" }
+        #expect(try repo.loadAll() == expected)
     }
 
     public static func verifyClear(

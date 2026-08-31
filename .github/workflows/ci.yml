@@ -58,6 +58,10 @@ jobs:
           swift --version
           xcrun simctl list devices available
 
+      - name: SPM Tests
+        shell: bash
+        run: swift test --package-path Packages/NightCoreDomain
+
       - name: Resolve simulator
         shell: bash
         run: |
