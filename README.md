@@ -93,6 +93,7 @@ make format  # SwiftFormat で自動整形
 
 - pre-commit（lefthook）: 変更ファイルに対して `swiftlint lint --strict` + `gitleaks protect --staged`
 - commit-msg（lefthook）: Conventional Commits 形式を強制
+- SwiftFormat のインストール: `brew install swiftformat`（バージョンは `.swiftformat-version` を参照。不一致時は `make check` / `make format` が失敗する）
 - UI に変更がある PR は `scripts/record-demo.sh` でデモ GIF / mp4 / スクショを生成し、`docs/conventions/pr-assets.md` の手順で `pr-assets` ブランチへ添付する
 
 ## Legal Pages
