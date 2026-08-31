@@ -602,4 +602,31 @@ struct AllowanceSheetViewModelTests {
         // Then
         #expect(!vm.isExhaustionBannerVisible)
     }
+
+    @Test("バナー表示中に残高が回復すると通知なしでバナーが消えること")
+    func balanceRecovers_whileBannerVisible_hidesBanner() {
+        // Given
+        let (vm, enforcer, allowanceMock, _, _) = Self.setUp()
+        enforcer.send(.exhaustedPendingSongEnd)
+        #expect(vm.isExhaustionBannerVisible)
+
+        // When: 日次リセット等でサービス側の残高が正に戻る(ViewModelへの通知経路はない)
+        allowanceMock.entitlementResult = .free(remaining: 1800)
+
+        // Then
+        #expect(!vm.isExhaustionBannerVisible)
+    }
+
+    @Test("残高が回復しないうちはバナーが出続けること")
+    func balanceStillExhausted_keepsBannerVisible() {
+        // Given
+        let (vm, enforcer, allowanceMock, _, _) = Self.setUp()
+        enforcer.send(.exhaustedPendingSongEnd)
+
+        // When: 残高0のまま
+        allowanceMock.entitlementResult = .free(remaining: 0)
+
+        // Then
+        #expect(vm.isExhaustionBannerVisible)
+    }
 }

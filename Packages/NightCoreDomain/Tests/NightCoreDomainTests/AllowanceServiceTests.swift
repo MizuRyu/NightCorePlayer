@@ -261,4 +261,97 @@ struct AllowanceServiceTests {
         #expect(try service.rewardsRemainingToday(now: day9) == Constants.Allowance.dailyRewardLimit)
         _ = try service.grantReward(now: day9)
     }
+
+    // MARK: - 観測プロパティ (#103)
+
+    @Test
+    func observableProperties_areNilBeforeFirstNormalization() throws {
+        let (service, _) = try Self.makeService()
+        #expect(service.observableRemainingSeconds == nil)
+        #expect(service.observableEntitlement == nil)
+    }
+
+    @Test
+    func observableProperties_reflectEntitlementCall() throws {
+        let (service, _) = try Self.makeService()
+        _ = try service.entitlement(now: Self.day0)
+
+        // トライアル中も残高は生の値として見える
+        #expect(service.observableRemainingSeconds == Constants.Allowance.dailyFreeSeconds)
+        guard case .trial = service.observableEntitlement else {
+            Issue.record("トライアル中は .trial であるべき: \(String(describing: service.observableEntitlement))")
+            return
+        }
+    }
+
+    @Test
+    func observableProperties_reflectConsume() throws {
+        let (service, _) = try Self.makeService()
+        _ = try service.entitlement(now: Self.day0)
+        let now = Self.afterTrial()
+        _ = try service.entitlement(now: now)
+
+        try service.consume(600, now: now)
+
+        let expected = Constants.Allowance.dailyFreeSeconds - 600
+        #expect(service.observableRemainingSeconds == expected)
+        #expect(service.observableEntitlement == .free(remaining: expected))
+    }
+
+    @Test
+    func observableProperties_reflectExhaustion() throws {
+        let (service, _) = try Self.makeService()
+        _ = try service.entitlement(now: Self.day0)
+        let now = Self.afterTrial()
+
+        try service.consume(Constants.Allowance.dailyFreeSeconds, now: now)
+
+        #expect(service.observableRemainingSeconds == 0)
+        #expect(service.observableEntitlement == .exhausted)
+    }
+
+    @Test
+    func observableProperties_reflectGrantReward() throws {
+        let (service, _) = try Self.makeService()
+        _ = try service.entitlement(now: Self.day0)
+        let now = Self.afterTrial()
+        try service.consume(Constants.Allowance.dailyFreeSeconds, now: now)
+
+        _ = try service.grantReward(now: now)
+
+        let expected = Constants.Allowance.rewardSeconds
+        #expect(service.observableRemainingSeconds == expected)
+        #expect(service.observableEntitlement == .free(remaining: expected))
+    }
+
+    @Test
+    func observableProperties_reflectDailyReset() throws {
+        let (service, _) = try Self.makeService()
+        _ = try service.entitlement(now: Self.day0)
+        let day8 = Self.afterTrial()
+        try service.consume(Constants.Allowance.dailyFreeSeconds, now: day8)
+        #expect(service.observableEntitlement == .exhausted)
+
+        // 読み取り経路(残りリワード回数)だけでも日次リセットが観測プロパティに載る
+        _ = try service.rewardsRemainingToday(now: Self.afterTrial(9))
+
+        #expect(service.observableRemainingSeconds == Constants.Allowance.dailyFreeSeconds)
+        #expect(service.observableEntitlement == .free(remaining: Constants.Allowance.dailyFreeSeconds))
+    }
+
+    #if DEBUG
+        @Test
+        func observableProperties_reflectDebugPaths() throws {
+            let (service, _) = try Self.makeService()
+            _ = try service.entitlement(now: Self.day0)
+
+            try service.debugExhaust(now: Self.day0)
+            #expect(service.observableRemainingSeconds == 0)
+            #expect(service.observableEntitlement == .exhausted)
+
+            try service.debugReset()
+            #expect(service.observableRemainingSeconds == nil)
+            #expect(service.observableEntitlement == nil)
+        }
+    #endif
 }
