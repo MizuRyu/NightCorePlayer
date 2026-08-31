@@ -14,7 +14,7 @@ private final class AllowanceEnforcerStub: AllowanceEnforcer {
     var events: AnyPublisher<AllowanceEvent, Never> { eventSubject.eraseToAnyPublisher() }
     var isExhausted = false
 
-    func tick(isPlaying: Bool, rate: Double, songID: String?, now: Date) {}
+    func tick(isPlaying: Bool, rate: Double, songID: String?, playbackPosition: TimeInterval?, now: Date) {}
     func shouldStopAtSongBoundary() -> Bool { false }
     func shouldRevertToNormalRateNow() -> Bool { false }
     func markStoppedAtSongEnd() {}

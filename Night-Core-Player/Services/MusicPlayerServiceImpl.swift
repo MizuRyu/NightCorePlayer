@@ -443,11 +443,14 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         let item = player.nowPlayingItem
         let song = queue.currentSong
         let timestamp = now()
+        let currentTime = player.currentTime
 
         allowanceEnforcer?.tick(
             isPlaying: player.playbackState == .playing,
             rate: currentPlaybackRate,
             songID: song?.id.rawValue,
+            // 再生対象がない状態では NaN になり得る。消費計算の基準にできないためnilを渡す
+            playbackPosition: currentTime.isFinite ? currentTime : nil,
             now: timestamp
         )
 
@@ -457,7 +460,6 @@ public final class MusicPlayerServiceImpl: MusicPlayerService {
         let title = song?.title ?? item?.title ?? "-"
         let artist = song?.artistName ?? item?.artist ?? "-"
         let duration = song?.duration ?? item?.playbackDuration ?? 0
-        let currentTime = player.currentTime
 
         guard let song = song else {
             snapshot = MusicPlayerSnapshot.empty

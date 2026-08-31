@@ -83,6 +83,7 @@ UI 側でボタンを塞ぎ、サービス側 (`grantReward`) でも重複付与
 
 - `guardedNow` により、正当な理由（デバイス間同期のずれ等）で時計が多少前後した場合も一律で「戻さない」扱いになる。トライアル判定にだけ 1 時間の許容幅を設けているが、他の判定には無い
 - 枯渇後も曲の残り時間ぶんは倍速再生が続く。その間の消費時間は `consume()` でさらに `remainingSeconds` がマイナス方向には行かない（`max(0, ...)` でクランプ）ため、実害は「止まるまでのタイムラグ」のみ
+- 再生位置が継続的に取れない場合は wall-clock フォールバックになる。再生中とみなされている間はスタール中でも経過実時間ぶんを消費し得るが、上限は経過実時間であり、旧仕様の 60 秒クランプにあった過少消費よりは実態に近い
 
 ## Rejected Alternative
 
@@ -108,7 +109,8 @@ UI 側でボタンを塞ぎ、サービス側 (`grantReward`) でも重複付与
 ## Implementation Notes
 
 - `consume()` は等速再生時・トライアル中は呼ばれない（`AllowanceEnforcer.tick` 側でガード）
-- 1 tick あたりの消費時間は `maxTickIntervalSeconds`（60秒）でクランプする。バックグラウンド放置後の復帰時に、経過時間をまとめて一気に消費しないため
+- 1 tick あたりの消費時間は「実際に進んだ再生位置」から求める。前回 tick と同じ曲で両方の再生位置が取れた場合は `min(wallDelta, max(0, positionDelta) / max(rate, 1.0))`、曲が変わった tick や再生位置が取れない tick は `wallDelta` をそのまま消費する（フォールバック）。倍速で position が x 秒進んだなら費やした実時間は x / rate 秒であり、`wallDelta` を上限に置くことで前方シークでも過大請求しない。後方シークした tick は消費 0
+  - バックグラウンドで tick が欠落しても、鳴っていた時間ぶんは positionDelta に現れるため正しく消費される。逆にポーズしていた時間は positionDelta が伸びないため消費されない
 - Pro ユーザーは `AllowanceEnforcer.tick` の冒頭でガードされ、消費・停止予約のいずれも行わない
 
 ## Acceptance Criteria

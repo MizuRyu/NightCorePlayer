@@ -4,6 +4,14 @@ import Combine
 import NightCoreDomain
 import NightCoreDomainTestSupport
 
+/// 再生位置を渡さないtick。位置が取れない場合の wall-clock フォールバックが対象のケース用
+@MainActor
+private extension AllowanceEnforcerImpl {
+    func tick(isPlaying: Bool, rate: Double, songID: String?, now: Date) {
+        tick(isPlaying: isPlaying, rate: rate, songID: songID, playbackPosition: nil, now: now)
+    }
+}
+
 @Suite("AllowanceEnforcer Tests")
 @MainActor
 struct AllowanceEnforcerTests {
@@ -87,16 +95,132 @@ struct AllowanceEnforcerTests {
         #expect(mock.consumeArgs.isEmpty)
     }
 
-    @Test("tick: 前回tickから60秒超の間隔は60秒にクランプされる")
-    func tickClampsLongGapToSixtySeconds() {
+    @Test("tick: tickが欠落しても、実際に進んだ再生位置ぶんは消費される")
+    func tickConsumesActualPlaybackAcrossLongGap() {
         let (enforcer, mock, _) = Self.makeEnforcer()
         let t0 = Self.base
-        // When: バックグラウンド放置を想定した1時間後のtick
-        enforcer.tick(isPlaying: true, rate: 2.0, songID: "S1", now: t0)
-        enforcer.tick(isPlaying: true, rate: 2.0, songID: "S1", now: t0.addingTimeInterval(3600))
-        // Then: 消費は60秒にクランプされる
+        // When: tickが1時間欠落し、その間ずっと2倍速で鳴っていた（位置は7200秒進む）
+        enforcer.tick(isPlaying: true, rate: 2.0, songID: "S1", playbackPosition: 0, now: t0)
+        enforcer.tick(
+            isPlaying: true,
+            rate: 2.0,
+            songID: "S1",
+            playbackPosition: 7200,
+            now: t0.addingTimeInterval(3600)
+        )
+        // Then: 実再生1時間ぶんが消費される（旧仕様の60秒クランプによる過少消費は起きない）
         #expect(mock.consumeArgs.count == 1)
-        #expect(mock.consumeArgs.first?.seconds == 60)
+        #expect(mock.consumeArgs.first?.seconds == 3600)
+    }
+
+    @Test("tick: gapが長くても再生位置が進んでいなければ位置ぶんしか消費しない")
+    func tickDoesNotConsumeWallClockWhenPositionBarelyAdvanced() {
+        let (enforcer, mock, _) = Self.makeEnforcer()
+        let t0 = Self.base
+        // When: 1時間の gap だが、実際には10秒しか鳴っていなかった
+        enforcer.tick(isPlaying: true, rate: 2.0, songID: "S1", playbackPosition: 100, now: t0)
+        enforcer.tick(
+            isPlaying: true,
+            rate: 2.0,
+            songID: "S1",
+            playbackPosition: 110,
+            now: t0.addingTimeInterval(3600)
+        )
+        // Then: 10秒ぶんの倍速再生に費やした実時間 = 10 / 2.0
+        #expect(mock.consumeArgs.count == 1)
+        #expect(mock.consumeArgs.first?.seconds == 5)
+    }
+
+    @Test("tick: 後方シークしたtickは消費しない")
+    func tickWithBackwardSeekConsumesNothing() {
+        let (enforcer, mock, _) = Self.makeEnforcer()
+        let t0 = Self.base
+        enforcer.tick(isPlaying: true, rate: 2.0, songID: "S1", playbackPosition: 200, now: t0)
+        // When: 曲の先頭へ戻す
+        enforcer.tick(
+            isPlaying: true,
+            rate: 2.0,
+            songID: "S1",
+            playbackPosition: 0,
+            now: t0.addingTimeInterval(10)
+        )
+        // Then: 位置差が負のtickは消費0
+        #expect(mock.consumeArgs.isEmpty)
+    }
+
+    @Test("tick: 前方シークしても経過実時間を超えて消費しない")
+    func tickWithForwardSeekIsCappedByWallDelta() {
+        let (enforcer, mock, _) = Self.makeEnforcer()
+        let t0 = Self.base
+        enforcer.tick(isPlaying: true, rate: 2.0, songID: "S1", playbackPosition: 0, now: t0)
+        // When: 10秒後のtickまでの間に大きく先へシークする
+        enforcer.tick(
+            isPlaying: true,
+            rate: 2.0,
+            songID: "S1",
+            playbackPosition: 10_000,
+            now: t0.addingTimeInterval(10)
+        )
+        // Then: 消費は経過実時間の10秒が上限
+        #expect(mock.consumeArgs.count == 1)
+        #expect(mock.consumeArgs.first?.seconds == 10)
+    }
+
+    @Test("tick: 再生位置が取れない場合は経過実時間を消費する")
+    func tickWithoutPositionFallsBackToWallClock() {
+        let (enforcer, mock, _) = Self.makeEnforcer()
+        let t0 = Self.base
+        enforcer.tick(isPlaying: true, rate: 2.0, songID: "S1", playbackPosition: nil, now: t0)
+        enforcer.tick(
+            isPlaying: true,
+            rate: 2.0,
+            songID: "S1",
+            playbackPosition: nil,
+            now: t0.addingTimeInterval(30)
+        )
+        // Then: クランプなしで経過実時間ぶんを消費
+        #expect(mock.consumeArgs.count == 1)
+        #expect(mock.consumeArgs.first?.seconds == 30)
+    }
+
+    @Test("tick: 曲が変わったtickは経過実時間を消費し、基準は新しい曲で再設定される")
+    func tickOnSongChangeFallsBackThenRebaselines() {
+        let (enforcer, mock, _) = Self.makeEnforcer()
+        let t0 = Self.base
+        enforcer.tick(isPlaying: true, rate: 2.0, songID: "S1", playbackPosition: 0, now: t0)
+        // When: 次の曲へ移る（S1の位置とは比較できない）
+        enforcer.tick(
+            isPlaying: true,
+            rate: 2.0,
+            songID: "S2",
+            playbackPosition: 5,
+            now: t0.addingTimeInterval(10)
+        )
+        // そのまま S2 の再生を続ける
+        enforcer.tick(
+            isPlaying: true,
+            rate: 2.0,
+            songID: "S2",
+            playbackPosition: 45,
+            now: t0.addingTimeInterval(30)
+        )
+        // Then: 曲が変わったtickは実時間10秒、続くtickは S2 の位置差(40) / 2.0 = 20秒
+        #expect(mock.consumeArgs.map(\.seconds) == [10, 20])
+    }
+
+    @Test("tick: 等速では再生位置が進んでいても消費しない")
+    func tickNormalRateDoesNotConsumeEvenWithPosition() {
+        let (enforcer, mock, _) = Self.makeEnforcer()
+        let t0 = Self.base
+        enforcer.tick(isPlaying: true, rate: 1.0, songID: "S1", playbackPosition: 0, now: t0)
+        enforcer.tick(
+            isPlaying: true,
+            rate: 1.0,
+            songID: "S1",
+            playbackPosition: 30,
+            now: t0.addingTimeInterval(30)
+        )
+        #expect(mock.consumeArgs.isEmpty)
     }
 
     @Test("tick: トライアル中は枯渇扱いしない")

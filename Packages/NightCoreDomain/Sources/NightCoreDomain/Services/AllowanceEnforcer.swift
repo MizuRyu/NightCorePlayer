@@ -19,7 +19,7 @@ public enum AllowanceEvent: Sendable {
 public protocol AllowanceEnforcer: Sendable {
     var events: AnyPublisher<AllowanceEvent, Never> { get }
     var isExhausted: Bool { get }
-    func tick(isPlaying: Bool, rate: Double, songID: String?, now: Date)
+    func tick(isPlaying: Bool, rate: Double, songID: String?, playbackPosition: TimeInterval?, now: Date)
     func shouldStopAtSongBoundary() -> Bool
     /// 猶予対象外の曲で倍速再生が始まった場合に true。曲末を待たず等速へ戻す
     func shouldRevertToNormalRateNow() -> Bool
@@ -32,8 +32,6 @@ public protocol AllowanceEnforcer: Sendable {
 @MainActor
 public final class AllowanceEnforcerImpl: AllowanceEnforcer {
     private let logger = Logger(subsystem: Constants.Logging.subsystem, category: "Allowance")
-    /// 前回tickからの経過が異常に長い場合のconsume上限（バックグラウンド放置で残高が一気に飛ぶのを防ぐ）
-    private static let maxTickIntervalSeconds: TimeInterval = 60
 
     private let allowanceService: AllowanceService
 
@@ -46,6 +44,11 @@ public final class AllowanceEnforcerImpl: AllowanceEnforcer {
     }
 
     private var lastTickAt: Date?
+
+    /// 前回tick時点の再生位置と、その位置が属していた曲。消費量を wall-clock ではなく
+    /// 実際に進んだ再生位置から求めるための基準（tickが欠落しても実再生ぶんだけ消費する）
+    private var lastPlaybackPosition: TimeInterval?
+    private var lastPositionSongID: String?
 
     /// entitlement == .exhausted の写し。残高そのものの状態を表し、停止予約とは独立している
     private var isBalanceExhausted = false
@@ -78,11 +81,12 @@ public final class AllowanceEnforcerImpl: AllowanceEnforcer {
 
     public var isExhausted: Bool { isBalanceExhausted }
 
-    public func tick(isPlaying: Bool, rate: Double, songID: String?, now: Date) {
+    public func tick(isPlaying: Bool, rate: Double, songID: String?, playbackPosition: TimeInterval?, now: Date) {
         // Proは消費もアームもしない。既存の停止予約があれば解除して即return
         guard !isProEntitled() else {
             // lastTickAtを進めないとPro期間ぶんが溜まり、Pro解除後の初回tickで一括消費される
             lastTickAt = now
+            recordPosition(playbackPosition, songID: songID)
             isBalanceExhausted = false
             clearGrace()
             return
@@ -98,15 +102,24 @@ public final class AllowanceEnforcerImpl: AllowanceEnforcer {
 
         // 等速再生・素の再生は消費しない。トライアル中かはAllowanceService内部で判定される
         if isPlaying, rate != Constants.MusicPlayer.normalPlaybackRate {
-            let elapsed = min(max(0, now.timeIntervalSince(baseline)), Self.maxTickIntervalSeconds)
-            if elapsed > 0 {
+            let consumable = consumableSeconds(
+                wallDelta: max(0, now.timeIntervalSince(baseline)),
+                rate: rate,
+                songID: songID,
+                playbackPosition: playbackPosition
+            )
+            if consumable > 0 {
                 do {
-                    try allowanceService.consume(elapsed, now: now)
+                    try allowanceService.consume(consumable, now: now)
                 } catch {
                     logger.error("Allowance consume error: \(error.localizedDescription)")
                 }
             }
         }
+
+        // 消費しないtick（等速・停止中）でも基準は進める。進めないと、次に倍速へ入ったtickで
+        // 等速再生ぶんの位置差まで消費対象に含まれてしまう
+        recordPosition(playbackPosition, songID: songID)
 
         // 残高状態の写しを更新。consume後に判定することで、残高が尽きたtick内で以降の分岐に反映できる
         if let entitlement = try? allowanceService.entitlement(now: now) {
@@ -167,6 +180,31 @@ public final class AllowanceEnforcerImpl: AllowanceEnforcer {
     }
 
     // MARK: - Private
+
+    /// 実際に進んだ再生位置から消費秒数を求める。倍速で position が x 秒進めば、
+    /// 費やした実時間は x / rate 秒。wallDelta を上限に置くのは前方シークで過大請求しないため
+    private func consumableSeconds(
+        wallDelta: TimeInterval,
+        rate: Double,
+        songID: String?,
+        playbackPosition: TimeInterval?
+    ) -> TimeInterval {
+        guard
+            songID == lastPositionSongID,
+            let previous = lastPlaybackPosition,
+            let current = playbackPosition
+        else {
+            // 曲間や位置取得不能時のフォールバック。位置で検算できないぶんは wall-clock で消費する
+            return wallDelta
+        }
+        // 後方シークは positionDelta が負になる。その tick は消費しない
+        return min(wallDelta, max(0, current - previous) / max(rate, 1.0))
+    }
+
+    private func recordPosition(_ playbackPosition: TimeInterval?, songID: String?) {
+        lastPlaybackPosition = playbackPosition
+        lastPositionSongID = songID
+    }
 
     private func clearGrace() {
         graceSongID = nil
