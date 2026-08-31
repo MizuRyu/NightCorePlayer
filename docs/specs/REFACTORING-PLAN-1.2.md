@@ -1,6 +1,6 @@
 # 1.2 サイクル リファクタリング計画 (#69, #102, #103, #104)
 
-> Status: In Progress
+> Status: Completed (2026-09-01)
 > Date: 2026-08-31
 > 対象: 1.1 審査待ち期間〜1.2 リリースまで
 
@@ -9,8 +9,14 @@
 
 ## 実施順序と、その理由
 
-進捗(2026-08-31 時点): #104 完了(PR #117)、Stage A 完了(PR #118)、Stage B1 完了(PR #119)、
-Stage B2 レビュー中(PR #120)。残りは Stage C。
+結果(2026-09-01 完了): #104 完了(PR #117)、Stage A(PR #118)、Stage B1(PR #119)、
+Stage B2(PR #120)、Stage C1 = #102(PR #123)、Stage C2 = #103(PR #124)、
+swiftformat 一括適用(PR #125)。全 PR に codex の敵対的レビューを適用し、
+指摘は修正(計 8 ラウンド)または理由つき見送りとして各 PR / issue に記録した。
+
+残件の引き継ぎ: `MusicPlayerServiceImpl` の分割は #126、MusicKitService 本体の port 化と
+RecommendationService の Domain 化は見送り(理由は Stage B 節)。計測導入は #68 で
+TelemetryDeck 採用を決定済み。
 
 | 順 | 対象 | 内容 | なぜこの順か |
 |---|---|---|---|
