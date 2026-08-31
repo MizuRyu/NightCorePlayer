@@ -1,9 +1,15 @@
 import Foundation
+import Observation
 
 // MARK: - Protocol
 
 @MainActor
 public protocol AllowanceService: Sendable {
+    /// 最後に正規化した時点の残り秒数。トライアル/Pro 判定を含まない生の残高。nil は未ロード
+    var observableRemainingSeconds: TimeInterval? { get }
+    /// 最後に正規化した時点の権限。トライアル中・枯渇の表示に使う。nil は未ロード
+    var observableEntitlement: PlaybackEntitlement? { get }
+
     func entitlement(now: Date) throws -> PlaybackEntitlement
     func consume(_ seconds: TimeInterval, now: Date) throws
     func grantReward(now: Date) throws -> TimeInterval
@@ -22,6 +28,7 @@ public protocol AllowanceService: Sendable {
 
 // MARK: - Impl
 
+@Observable
 @MainActor
 public final class AllowanceServiceImpl: AllowanceService {
     private static let daySeconds: TimeInterval = 86400
@@ -29,7 +36,10 @@ public final class AllowanceServiceImpl: AllowanceService {
     /// 実時刻が初回起動より1時間以上過去なら時計改竄とみなす許容幅
     private static let trialClockToleranceSeconds: TimeInterval = 3600
 
-    private let repo: AllowanceRepositoryPort
+    public private(set) var observableRemainingSeconds: TimeInterval?
+    public private(set) var observableEntitlement: PlaybackEntitlement?
+
+    @ObservationIgnored private let repo: AllowanceRepositoryPort
 
     public init(repo: AllowanceRepositoryPort) {
         self.repo = repo
@@ -37,19 +47,14 @@ public final class AllowanceServiceImpl: AllowanceService {
 
     public func entitlement(now: Date) throws -> PlaybackEntitlement {
         let snapshot = try normalizedSnapshot(now: now)
-        if isTrialActive(snapshot: snapshot, now: now) {
-            return .trial(endsAt: trialEndDate(firstLaunchAt: snapshot.firstLaunchAt))
-        }
-        return snapshot.remainingSeconds > 0
-            ? .free(remaining: snapshot.remainingSeconds)
-            : .exhausted
+        return entitlement(of: snapshot, now: now)
     }
 
     public func consume(_ seconds: TimeInterval, now: Date) throws {
         var snapshot = try normalizedSnapshot(now: now)
         guard !isTrialActive(snapshot: snapshot, now: now) else { return }
         snapshot.remainingSeconds = max(0, snapshot.remainingSeconds - max(0, seconds))
-        try repo.save(snapshot)
+        try persist(snapshot, now: now)
     }
 
     public func grantReward(now: Date) throws -> TimeInterval {
@@ -61,7 +66,7 @@ public final class AllowanceServiceImpl: AllowanceService {
         snapshot.remainingSeconds += Constants.Allowance.rewardSeconds
         snapshot.rewardCountTotal += 1
         snapshot.rewardCountToday += 1
-        try repo.save(snapshot)
+        try persist(snapshot, now: now)
         return snapshot.remainingSeconds
     }
 
@@ -79,7 +84,7 @@ public final class AllowanceServiceImpl: AllowanceService {
     public func markProPromptShown(now: Date) throws {
         var snapshot = try normalizedSnapshot(now: now)
         snapshot.proPromptShown = true
-        try repo.save(snapshot)
+        try persist(snapshot, now: now)
     }
 
     #if DEBUG
@@ -93,15 +98,38 @@ public final class AllowanceServiceImpl: AllowanceService {
             // normalizedSnapshot の日次リセットで残高が戻らないよう次回リセットを先送りする
             snapshot.nextResetAt = now.addingTimeInterval(Self.daySeconds)
             snapshot.lastSeenAt = now
-            try repo.save(snapshot)
+            try persist(snapshot, now: now)
         }
 
         public func debugReset() throws {
             try repo.reset()
+            // 残高の記録ごと消えたので未ロードに戻す。次の正規化で再構築される
+            observableRemainingSeconds = nil
+            observableEntitlement = nil
         }
     #endif
 
     // MARK: - Private
+
+    /// 保存と観測プロパティの更新を必ず一緒に行う。片方だけ更新すると表示が実残高から外れる
+    private func persist(_ snapshot: AllowanceSnapshot, now: Date) throws {
+        try repo.save(snapshot)
+        reflect(snapshot, now: now)
+    }
+
+    private func reflect(_ snapshot: AllowanceSnapshot, now: Date) {
+        observableRemainingSeconds = snapshot.remainingSeconds
+        observableEntitlement = entitlement(of: snapshot, now: now)
+    }
+
+    private func entitlement(of snapshot: AllowanceSnapshot, now: Date) -> PlaybackEntitlement {
+        if isTrialActive(snapshot: snapshot, now: now) {
+            return .trial(endsAt: trialEndDate(firstLaunchAt: snapshot.firstLaunchAt))
+        }
+        return snapshot.remainingSeconds > 0
+            ? .free(remaining: snapshot.remainingSeconds)
+            : .exhausted
+    }
 
     /// 時計を過去に戻しても lastSeenAt より前には進まない
     private func guardedNow(_ now: Date, snapshot: AllowanceSnapshot) -> Date {
@@ -118,6 +146,7 @@ public final class AllowanceServiceImpl: AllowanceService {
             snapshot.nextResetAt = guarded.addingTimeInterval(Self.daySeconds)
             try repo.save(snapshot)
         }
+        reflect(snapshot, now: guarded)
         return snapshot
     }
 

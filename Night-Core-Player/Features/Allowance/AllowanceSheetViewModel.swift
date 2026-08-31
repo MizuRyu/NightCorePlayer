@@ -21,13 +21,27 @@ final class AllowanceSheetViewModel {
     private(set) var isPurchasing = false
     private(set) var isWatchingAd = false
     private(set) var showProPromptPitch = false
-    /// 残高が尽きた瞬間、曲末までの猶予を非モーダルで知らせるバナー。ADR-003の
-    /// 「黙って猶予を与える」だけだった状態を解消する(#104)
-    private(set) var isExhaustionBannerVisible = false
     private(set) var presentationReason: AllowancePresentationReason = .exhausted
     /// 今日あと何回リワードを受け取れるか。0 なら視聴ボタンを塞ぐ
     private(set) var rewardsRemainingToday = Constants.Allowance.dailyRewardLimit
     var errorMessage: String?
+
+    /// バナーを出すべき状況に入ったか。消滅経路はこのフラグを下ろす
+    private var isExhaustionBannerRequested = false
+
+    /// 残高が尽きた瞬間、曲末までの猶予を非モーダルで知らせるバナー。ADR-003の
+    /// 「黙って猶予を与える」だけだった状態を解消する(#104)。
+    /// 残高が回復（日次リセット・リワード・Pro）すれば案内は不要になるため、
+    /// 要求フラグと実残高の両方から導出する(#103)
+    var isExhaustionBannerVisible: Bool {
+        isExhaustionBannerRequested && isBalanceExhausted
+    }
+
+    /// 未ロード(nil)は残高が回復した根拠がないため枯渇として扱う
+    private var isBalanceExhausted: Bool {
+        if allowanceService.observableEntitlement == .exhausted { return true }
+        return (allowanceService.observableRemainingSeconds ?? 0) <= 0
+    }
 
     private let allowanceService: AllowanceService
     private let proStoreService: ProStoreService
@@ -68,7 +82,7 @@ final class AllowanceSheetViewModel {
                     // 「残高0でも再生できるバグ」に見えるため非モーダルバナーで知らせる。
                     // ダイアログが既に開いている間はバナーを重ねて出さない
                     guard !isPresented else { return }
-                    isExhaustionBannerVisible = true
+                    isExhaustionBannerRequested = true
                 }
             }
             .store(in: &cancellables)
@@ -88,7 +102,7 @@ final class AllowanceSheetViewModel {
 
     /// 枯渇バナー右端の閉じるボタン。自動タイムアウトはしない仕様のため明示操作でのみ消える
     func dismissExhaustionBanner() {
-        isExhaustionBannerVisible = false
+        isExhaustionBannerRequested = false
     }
 
     /// 広告視聴中・購入中
@@ -139,7 +153,7 @@ final class AllowanceSheetViewModel {
                 switch try await proStoreService.purchase() {
                 case .purchased:
                     // Pro購入で残高制限そのものが外れるので枯渇バナーの案内は不要になる
-                    isExhaustionBannerVisible = false
+                    isExhaustionBannerRequested = false
                     close()
                 case .unavailable:
                     errorMessage = String(localized: "Pro is not available right now. Please try again later.")
@@ -167,7 +181,7 @@ final class AllowanceSheetViewModel {
         }
         refreshRewardsRemaining()
         // 残高が回復したので枯渇バナーの案内は不要になる
-        isExhaustionBannerVisible = false
+        isExhaustionBannerRequested = false
 
         // 境界停止で等速に戻された再生を、停止前の倍速で自動再開する (#87)
         if let musicPlayerService {
@@ -212,7 +226,7 @@ final class AllowanceSheetViewModel {
         refreshRewardsRemaining()
         isPresented = true
         // ダイアログが開いたらバナーは役目を終える(同時表示を避ける)
-        isExhaustionBannerVisible = false
+        isExhaustionBannerRequested = false
         // キューシートとの提示競合を避けるため排他にする
         playerNavigator.isQueuePresented = false
         // 「動画を見る」を押した瞬間に広告が出せるよう、開いた時点でロードしておく

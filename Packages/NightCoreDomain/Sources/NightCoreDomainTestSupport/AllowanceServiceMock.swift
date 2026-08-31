@@ -17,6 +17,20 @@ public final class AllowanceServiceMock: AllowanceService {
 
     public init() {}
 
+    /// 実装は正規化した snapshot から両者を導くため、モックでも entitlementResult を唯一の入力にする
+    public var observableEntitlement: PlaybackEntitlement? { entitlementResult }
+
+    public var observableRemainingSeconds: TimeInterval? {
+        switch entitlementResult {
+        case .trial:
+            return Constants.Allowance.dailyFreeSeconds
+        case .free(let remaining):
+            return remaining
+        case .exhausted:
+            return 0
+        }
+    }
+
     public func entitlement(now: Date) throws -> PlaybackEntitlement {
         entitlementResult
     }

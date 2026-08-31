@@ -96,18 +96,16 @@ struct SettingsView: View {
                 }
             }
             .task {
-                settingsVM.refreshAllowance()
+                settingsVM.refreshAllowanceSnapshot()
                 await settingsVM.loadProState()
             }
-            // 倍速再生中に残高が減っていくのを見せる。画面を離れれば task ごと止まる
+            // 残高の減少は consume（倍速再生中は0.5秒ごと）が観測プロパティを更新するため自動で追随する。
+            // 停止中に日次リセット時刻を跨いだケースだけは正規化の契機がないので、粗い間隔で促す。
+            // 画面を離れれば task ごと止まる
             .task {
-                for await _ in Timer.publish(every: 1, on: .main, in: .common).autoconnect().values {
-                    settingsVM.refreshAllowance()
+                for await _ in Timer.publish(every: 60, on: .main, in: .common).autoconnect().values {
+                    settingsVM.refreshAllowanceSnapshot()
                 }
-            }
-            // リワード付与は枠超過シート側で起きるため、閉じた時点で残高表示を追随させる
-            .onChange(of: allowanceSheetVM.isPresented) { _, isPresented in
-                if !isPresented { settingsVM.refreshAllowance() }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

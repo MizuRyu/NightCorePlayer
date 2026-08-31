@@ -13,23 +13,19 @@ final class SettingsViewModel {
     var isProEntitled: Bool { proStore?.isProEntitled ?? false }
     private(set) var proPriceText: String?
 
-    /// AllowanceService は @Observable ではなく、残高の変化を SwiftUI が追跡できない。
-    /// この値の更新が remainingTimeText の再評価契機になる
-    private var allowanceRevision = 0
-
-    /// 残高が外部（リワード付与など）で変わった後に表示を追随させる
-    func refreshAllowance() {
-        allowanceRevision += 1
+    /// 残高スナップショットの正規化を促す。表示は observable プロパティ経由で自動追随するが、
+    /// 未ロード時と、停止中に日次リセット時刻を跨いだときは正規化の契機がないため明示的に呼ぶ
+    func refreshAllowanceSnapshot() {
+        _ = try? allowanceService?.entitlement(now: Date())
     }
 
     /// 残高欄の下に出す補足。制限が倍速再生だけに掛かることと、次に何が起きるかを伝える
     var allowanceDetailText: String {
-        _ = allowanceRevision
         guard let allowanceService else { return "" }
         if isProEntitled {
             return String(localized: "Speed control has no time limit with Pro.")
         }
-        guard let entitlement = try? allowanceService.entitlement(now: Date()) else { return "" }
+        guard let entitlement = allowanceService.observableEntitlement else { return "" }
         switch entitlement {
         case .trial(let endsAt):
             let date = endsAt.formatted(date: .abbreviated, time: .shortened)
@@ -41,21 +37,18 @@ final class SettingsViewModel {
 
     /// 今日の残り再生時間の表示テキスト。Pro > トライアル > 無料残高/枯渇の優先順位で判定する
     var remainingTimeText: String {
-        _ = allowanceRevision
         guard let allowanceService else { return "" }
         if isProEntitled {
             return String(localized: "Unlimited")
         }
-        do {
-            switch try allowanceService.entitlement(now: Date()) {
-            case .trial:
-                return String(localized: "Trial in Progress")
-            case .free(let remaining):
-                return Self.formattedRemaining(remaining)
-            case .exhausted:
-                return Self.formattedRemaining(0)
-            }
-        } catch {
+        switch allowanceService.observableEntitlement {
+        case .trial:
+            return String(localized: "Trial in Progress")
+        case .free(let remaining):
+            return Self.formattedRemaining(remaining)
+        case .exhausted:
+            return Self.formattedRemaining(0)
+        case nil:
             return ""
         }
     }
@@ -153,7 +146,8 @@ final class SettingsViewModel {
             guard let allowanceService else { return }
             do {
                 try change(allowanceService)
-                refreshAllowance()
+                // debugReset は記録ごと消すため、表示のために再ロードが必要
+                refreshAllowanceSnapshot()
                 infoMessage = message
             } catch {
                 errorMessage = (error as? AppError)?.errorDescription ?? error.localizedDescription
