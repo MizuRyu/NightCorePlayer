@@ -760,6 +760,26 @@
           }
         }
       }
+    },
+    "Free time used up — sped-up playback stops after this song.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の無料再生時間を使い切りました。この曲の終了後に倍速再生を停止します。"
+          }
+        }
+      }
+    },
+    "Normal speed stays free. Tap to add time.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等速再生は引き続き無料です。タップで再生時間を追加できます。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

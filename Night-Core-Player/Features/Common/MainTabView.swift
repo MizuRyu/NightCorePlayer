@@ -131,6 +131,15 @@ struct MainTabView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: allowanceSheetVM.isPresented)
+        .overlay(alignment: .top) {
+            // safe area直下に出す非モーダル通知。ミニプレイヤー・タブバーには被せない
+            if allowanceSheetVM.isExhaustionBannerVisible {
+                AllowanceExhaustionBannerView(viewModel: allowanceSheetVM)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: allowanceSheetVM.isExhaustionBannerVisible)
         .enableInjection()
     }
 }
