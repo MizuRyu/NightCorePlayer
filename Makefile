@@ -6,7 +6,7 @@ SCHEME := Night-Core-Player
 # 端末名は最新ランタイムに存在するものを指定する（iPhone SE は iOS 18 系までのため latest では見つからない）
 DESTINATION ?= platform=iOS Simulator,name=iPhone 17,OS=latest
 
-.PHONY: check build lint swiftformat-lint test format
+.PHONY: check build lint swiftformat-lint test format check-swiftformat-version
 
 check: build lint swiftformat-lint ## ビルド + Lint 一式
 
@@ -20,7 +20,16 @@ build: ## デバッグビルドが通ることを確認
 lint: ## SwiftLint で全体を検査（警告は失敗にしない。--strict は pre-commit で実施）
 	swiftlint lint
 
-swiftformat-lint: ## SwiftFormat の整形漏れを検査（修正はしない）
+check-swiftformat-version: ## インストール済み swiftformat が .swiftformat-version と一致するか検査
+	@expected="$$(cat .swiftformat-version)"; \
+	installed="$$(swiftformat --version 2>/dev/null)"; \
+	if [ "$$installed" != "$$expected" ]; then \
+		echo "swiftformat のバージョンが不一致です（期待: $$expected / 検出: $${installed:-未インストール}）"; \
+		echo "インストール: brew install swiftformat（バージョンは .swiftformat-version を参照）"; \
+		exit 1; \
+	fi
+
+swiftformat-lint: check-swiftformat-version ## SwiftFormat の整形漏れを検査（修正はしない）
 	swiftformat --lint .
 
 test: ## ユニットテスト実行（デモ用UIテストは除外。実行は scripts/record-demo.sh）
@@ -33,5 +42,5 @@ test: ## ユニットテスト実行（デモ用UIテストは除外。実行は
 		-parallel-testing-enabled NO \
 		-quiet
 
-format: ## SwiftFormat で自動整形
+format: check-swiftformat-version ## SwiftFormat で自動整形
 	swiftformat .

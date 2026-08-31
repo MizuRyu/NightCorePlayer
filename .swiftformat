@@ -5,4 +5,4 @@
 
 --importgrouping testable-bottom
 
---disable wrapArguments,wrapMultilineStatementBraces,wrapMultilineFunctionChains,wrapMultilineLiteralBrackets
+--disable wrapArguments,wrapMultilineStatementBraces,wrapMultilineFunctionChains
