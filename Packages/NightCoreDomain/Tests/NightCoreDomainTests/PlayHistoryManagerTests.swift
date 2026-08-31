@@ -1,12 +1,11 @@
-import Testing
 import NightCoreDomain
 import NightCoreDomainTestSupport
+import Testing
 
 /// 再生履歴の重複排除・上限トリムの検証。songID 抽出を注入するため Item == String で固定する
 @Suite("PlayHistoryManager Tests", .serialized)
 @MainActor
 struct PlayHistoryManagerTests {
-
     // MARK: - Helpers
 
     private static func makeManager() -> (
@@ -66,7 +65,7 @@ struct PlayHistoryManagerTests {
         let (manager, _) = PlayHistoryManagerTests.makeManager()
         let maxCount = Constants.History.maxHistoryCount
 
-        for i in 0..<(maxCount + 5) {
+        for i in 0 ..< (maxCount + 5) {
             try manager.append("song-\(i)")
         }
 
@@ -92,7 +91,7 @@ struct PlayHistoryManagerTests {
     }
 
     @Test("restoreHistory: 渡した配列がそのまま履歴に設定されること")
-    func restoreHistory_songs_setsHistory() throws {
+    func restoreHistory_songs_setsHistory() {
         let (manager, _) = PlayHistoryManagerTests.makeManager()
 
         manager.restoreHistory(["r-1", "r-2", "r-3"])

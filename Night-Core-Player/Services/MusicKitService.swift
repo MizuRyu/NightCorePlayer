@@ -1,8 +1,8 @@
 import Foundation
 import MusicKit
+import NightCoreDomain
 import OSLog
 import SwiftUI
-import NightCoreDomain
 
 private let musicKitLogger = Logger(subsystem: Constants.Logging.subsystem, category: "MusicKit")
 
@@ -23,6 +23,7 @@ extension MusicKitService {
     func searchSongs(keyword: String, limit: Int) async throws -> [Song] {
         try await searchSongs(keyword: keyword, limit: limit, offset: 0)
     }
+
     func fetchPersonalRecommendations(limit: Int) async throws -> [Song] {
         try await fetchPersonalRecommendations(history: [], limit: limit)
     }
@@ -69,6 +70,7 @@ struct DefaultMusicKitClient: MusicKitClient {
     func requestAuthorization() async -> MusicAuthorization.Status {
         await MusicAuthorization.request()
     }
+
     func searchCatalogSongs(term: String, limit: Int, offset: Int = 0) async throws -> [Song] {
         var req = MusicCatalogSearchRequest(term: term, types: [Song.self])
         req.limit = limit
@@ -76,16 +78,20 @@ struct DefaultMusicKitClient: MusicKitClient {
         let res = try await req.response()
         return Array(res.songs)
     }
+
     func searchCatalogArtists(term: String, limit: Int) async throws -> [Artist] {
         var req = MusicCatalogSearchRequest(term: term, types: [Artist.self])
         req.limit = limit
         let res = try await req.response()
         return Array(res.artists)
     }
+
     func fetchArtistTopSongs(artist: Artist) async throws -> [Song] {
         let detailed = try await artist.with([.topSongs])
         let top = Array(detailed.topSongs ?? [])
-        if !top.isEmpty { return Array(top.prefix(25)) }
+        if !top.isEmpty {
+            return Array(top.prefix(25))
+        }
 
         // topSongs が空の場合、アーティスト名でカタログ検索にフォールバック
         var req = MusicCatalogSearchRequest(term: artist.name, types: [Song.self])
@@ -93,6 +99,7 @@ struct DefaultMusicKitClient: MusicKitClient {
         let res = try await req.response()
         return Array(res.songs)
     }
+
     func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song] {
         var req = MusicCatalogSearchRequest(term: artist.name, types: [Song.self])
         req.limit = limit
@@ -102,12 +109,14 @@ struct DefaultMusicKitClient: MusicKitClient {
             song.artistURL == artist.url || song.artistName == artist.name
         }
     }
+
     func fetchLibraryPlaylists(limit: Int) async throws -> [Playlist] {
         var req = MusicLibraryRequest<Playlist>()
         req.limit = limit
         let res = try await req.response()
         return Array(res.items.prefix(limit))
     }
+
     func fetchSongs(in playlist: Playlist) async throws -> [Song] {
         let playlistID = playlist.id.rawValue
         let playlistKind = playlist.kind.map { String(describing: $0) }
@@ -187,7 +196,9 @@ struct DefaultMusicKitClient: MusicKitClient {
 
     private func extractSongs(from tracks: MusicItemCollection<Track>?) -> [Song] {
         tracks?.compactMap { track -> Song? in
-            if case let .song(song) = track { return song }
+            if case let .song(song) = track {
+                return song
+            }
             return nil
         } ?? []
     }
@@ -195,7 +206,9 @@ struct DefaultMusicKitClient: MusicKitClient {
     @available(iOS 16.0, *)
     private func extractSongs(from entries: MusicItemCollection<Playlist.Entry>?) -> [Song] {
         entries?.compactMap { entry -> Song? in
-            if case let .song(song)? = entry.item { return song }
+            if case let .song(song)? = entry.item {
+                return song
+            }
             return nil
         } ?? []
     }
@@ -211,6 +224,7 @@ final class MusicKitServiceImpl: MusicKitService {
         self.client = client
         self.recommender = recommender ?? RecommendationServiceImpl(client: client)
     }
+
     func ensureAuth() async throws {
         let status = await client.requestAuthorization()
         guard status == .authorized else {
@@ -221,6 +235,7 @@ final class MusicKitServiceImpl: MusicKitService {
             )
         }
     }
+
     func searchSongs(
         keyword: String,
         limit: Int = Constants.MusicAPI.musicKitSearchLimit,
@@ -229,6 +244,7 @@ final class MusicKitServiceImpl: MusicKitService {
         try await ensureAuth()
         return try await client.searchCatalogSongs(term: keyword, limit: limit, offset: offset)
     }
+
     func searchArtists(
         keyword: String,
         limit: Int = 5
@@ -236,18 +252,22 @@ final class MusicKitServiceImpl: MusicKitService {
         try await ensureAuth()
         return try await client.searchCatalogArtists(term: keyword, limit: limit)
     }
+
     func fetchArtistTopSongs(artist: Artist) async throws -> [Song] {
         try await ensureAuth()
         return try await client.fetchArtistTopSongs(artist: artist)
     }
+
     func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song] {
         try await ensureAuth()
         return try await client.fetchArtistSongs(artist: artist, limit: limit, offset: offset)
     }
+
     func fetchLibraryPlaylists(limit: Int = 10) async throws -> [Playlist] {
         try await ensureAuth()
         return try await client.fetchLibraryPlaylists(limit: limit)
     }
+
     func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song] {
         try await ensureAuth()
         let songs = try await client.fetchSongs(in: playlist)
@@ -267,7 +287,9 @@ final class MusicKitServiceImpl: MusicKitService {
         }
 
         let recommended = await recommender.buildDailyQueue(history: history, limit: limit)
-        if !recommended.isEmpty { return recommended }
+        if !recommended.isEmpty {
+            return recommended
+        }
 
         // フォールバック: 聴取実績が全く無い場合はライブラリのプレイリストからシャッフル。
         // 個別プレイリストの取得失敗はスキップして残りを試す
@@ -275,11 +297,13 @@ final class MusicKitServiceImpl: MusicKitService {
         var songs: [Song] = []
         for playlist in playlists {
             do {
-                songs.append(contentsOf: try await client.fetchSongs(in: playlist))
+                try songs.append(contentsOf: await client.fetchSongs(in: playlist))
             } catch {
                 musicKitLogger.warning("recommendation fallback: fetchSongs('\(playlist.name)') failed: \(error.localizedDescription)")
             }
-            if songs.count >= limit { break }
+            if songs.count >= limit {
+                break
+            }
         }
         return Array(songs.shuffled().prefix(limit))
     }

@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 import NightCoreDomain
 import Observation
 import os
@@ -39,7 +39,9 @@ final class AllowanceSheetViewModel {
 
     /// 未ロード(nil)は残高が回復した根拠がないため枯渇として扱う
     private var isBalanceExhausted: Bool {
-        if allowanceService.observableEntitlement == .exhausted { return true }
+        if allowanceService.observableEntitlement == .exhausted {
+            return true
+        }
         return (allowanceService.observableRemainingSeconds ?? 0) <= 0
     }
 
@@ -106,7 +108,9 @@ final class AllowanceSheetViewModel {
     }
 
     /// 広告視聴中・購入中
-    var isBusy: Bool { isWatchingAd || isPurchasing }
+    var isBusy: Bool {
+        isWatchingAd || isPurchasing
+    }
 
     /// 閉じるボタン・背景タップからの明示的な操作。処理中は結果もエラーも見えなくなるため塞ぐ
     /// （購入成功後の自動クローズは処理中に呼ばれるため close() を使う）

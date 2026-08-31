@@ -1,21 +1,20 @@
-import Testing
 import Combine
-import SwiftUI
 import MusicKit
 import NightCoreDomain
-
+import SwiftUI
+import Testing
 @testable import Night_Core_Player
 
 @Suite("MusicPlayerViewModel Tests", .serialized)
 @MainActor
 struct MusicPlayerViewModelTests {
     static func waitUntil(
-        timeoutMilliseconds: Int = 1_000,
+        timeoutMilliseconds: Int = 1000,
         pollMilliseconds: Int = 10,
         condition: @escaping @MainActor () -> Bool
     ) async {
         let attempts = max(1, timeoutMilliseconds / pollMilliseconds)
-        for _ in 0..<attempts {
+        for _ in 0 ..< attempts {
             if condition() {
                 return
             }
@@ -29,7 +28,7 @@ struct MusicPlayerViewModelTests {
         cancel: AnyCancellable
     ) {
         let svc = MusicPlayerServiceMock()
-        let vm  = MusicPlayerViewModel(service: svc)
+        let vm = MusicPlayerViewModel(service: svc)
         let cancel = svc.snapshotSubject.sink { _ in }
         return (vm, svc, cancel)
     }
@@ -39,12 +38,12 @@ struct MusicPlayerViewModelTests {
         // Given
         let (vm, _, cancel) = MusicPlayerViewModelTests.setUp()
         // Then
-        #expect(vm.title      == "—", "タイトルの初期値")
-        #expect(vm.artist     == "—", "アーティストの初期値")
+        #expect(vm.title == "—", "タイトルの初期値")
+        #expect(vm.artist == "—", "アーティストの初期値")
         #expect(vm.currentTime == 0, "currentTimeの初期値")
-        #expect(vm.duration    == 0, "durationの初期値")
-        #expect(vm.rate        == Constants.MusicPlayer.defaultPlaybackRate, "rateの初期値")
-        #expect(vm.isPlaying   == false, "isPlayingの初期値")
+        #expect(vm.duration == 0, "durationの初期値")
+        #expect(vm.rate == Constants.MusicPlayer.defaultPlaybackRate, "rateの初期値")
+        #expect(vm.isPlaying == false, "isPlayingの初期値")
         cancel.cancel()
     }
 
@@ -56,7 +55,7 @@ struct MusicPlayerViewModelTests {
         vm.playPauseTrack()
         await MusicPlayerViewModelTests.waitUntil { svc.playCallCount == 1 }
         // Then
-        #expect(svc.playCallCount  == 1, "play()が１回呼ばれる")
+        #expect(svc.playCallCount == 1, "play()が１回呼ばれる")
         #expect(svc.pauseCallCount == 0, "pause()は呼ばれない")
         cancel.cancel()
     }
@@ -79,7 +78,7 @@ struct MusicPlayerViewModelTests {
         await MusicPlayerViewModelTests.waitUntil { svc.pauseCallCount == 1 }
         // Then
         #expect(svc.pauseCallCount == 1, "pause()が１回呼ばれる")
-        #expect(svc.playCallCount  == 0, "play()は呼ばれない")
+        #expect(svc.playCallCount == 0, "play()は呼ばれない")
         cancel.cancel()
     }
 
@@ -211,7 +210,7 @@ struct MusicPlayerViewModelTests {
         vm.setRate(to: 0.1)
         await MusicPlayerViewModelTests.waitUntil {
             vm.rate == Constants.MusicPlayer.minPlaybackRate &&
-            svc.rateArgs.last == Constants.MusicPlayer.minPlaybackRate
+                svc.rateArgs.last == Constants.MusicPlayer.minPlaybackRate
         }
         // Then
         #expect(vm.rate == Constants.MusicPlayer.minPlaybackRate, "rateは最小値に補正される")
@@ -220,7 +219,7 @@ struct MusicPlayerViewModelTests {
         vm.setRate(to: 3.0)
         await MusicPlayerViewModelTests.waitUntil {
             vm.rate == Constants.MusicPlayer.maxPlaybackRate &&
-            svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate
+                svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate
         }
         // Then
         #expect(vm.rate == Constants.MusicPlayer.maxPlaybackRate, "rateは最大値に補正される")
@@ -236,7 +235,7 @@ struct MusicPlayerViewModelTests {
         vm.setRate(to: 1.5)
         await MusicPlayerViewModelTests.waitUntil {
             vm.rate == 1.5 &&
-            svc.rateArgs.last == 1.5
+                svc.rateArgs.last == 1.5
         }
         // Then
         #expect(vm.rate == 1.5, "rateが1.5にセットされる")
@@ -266,7 +265,7 @@ struct MusicPlayerViewModelTests {
         vm.adjustRate(by: Constants.MusicPlayer.maxPlaybackRate * 2)
         await MusicPlayerViewModelTests.waitUntil {
             vm.rate == Constants.MusicPlayer.maxPlaybackRate &&
-            svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate
+                svc.rateArgs.last == Constants.MusicPlayer.maxPlaybackRate
         }
         // Then
         #expect(vm.rate == Constants.MusicPlayer.maxPlaybackRate, "rate が最大値にクランプされること")
@@ -288,7 +287,7 @@ struct MusicPlayerViewModelTests {
         await MusicPlayerViewModelTests.waitUntil { svc.setQueueArgs.count == 1 }
         // Then
         #expect(svc.setQueueArgs.count == 1, "setQueueが呼ばれる")
-        #expect(svc.playCallCount     == 0, "play()は呼ばれない")
+        #expect(svc.playCallCount == 0, "play()は呼ばれない")
         cancel.cancel()
     }
 
@@ -313,13 +312,13 @@ struct MusicPlayerViewModelTests {
     func setQueue_withStartAt_updatesQueueAndIndex() async {
         // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        let songs = [ makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C") ]
+        let songs = [makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C")]
         // When
         vm.setQueue(songs, startAt: 2)
         await MusicPlayerViewModelTests.waitUntil { vm.musicPlayerQueue == songs }
         // Then
         #expect(vm.musicPlayerQueue == songs, "musicPlayerQueue が setQueue の内容になること")
-        #expect(vm.currentIndex     == 2, "currentIndex が startAt=2 になること")
+        #expect(vm.currentIndex == 2, "currentIndex が startAt=2 になること")
         cancel.cancel()
     }
 
@@ -375,7 +374,7 @@ struct MusicPlayerViewModelTests {
         await MusicPlayerViewModelTests.waitUntil { vm.musicPlayerQueue == [B] }
         // Then
         #expect(vm.musicPlayerQueue == [B], "playNow 後にキューが [B] のみになること")
-        #expect(vm.currentIndex     == 0, "currentIndex が0になること")
+        #expect(vm.currentIndex == 0, "currentIndex が0になること")
         cancel.cancel()
     }
 
@@ -399,7 +398,7 @@ struct MusicPlayerViewModelTests {
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
         let song = makeDummySong(id: "Y")
         svc.musicPlayerQueue = [makeDummySong(id: "A"), song, makeDummySong(id: "B")]
-        svc.nowPlayingIndex  = 1
+        svc.nowPlayingIndex = 1
         // When
         vm.playNowNext(song)
         await MusicPlayerViewModelTests.waitUntil { vm.musicPlayerQueue == svc.musicPlayerQueue }
@@ -415,7 +414,7 @@ struct MusicPlayerViewModelTests {
     func insertNext_song_insertsAfterCurrent() async {
         // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        let songs = [ makeDummySong(id: "A"), makeDummySong(id: "B") ]
+        let songs = [makeDummySong(id: "A"), makeDummySong(id: "B")]
         vm.setQueue(songs, startAt: 0)
         await MusicPlayerViewModelTests.waitUntil { vm.musicPlayerQueue == songs }
         // When
@@ -434,7 +433,7 @@ struct MusicPlayerViewModelTests {
     func clearHistory_withHistory_clearsAll() async {
         // Given
         let (vm, svc, cancel) = MusicPlayerViewModelTests.setUp()
-        svc.playHistory = [ makeDummySong(id: "A") ]
+        svc.playHistory = [makeDummySong(id: "A")]
         svc.snapshotSubject.send(.empty)
         await MusicPlayerViewModelTests.waitUntil { !vm.history.isEmpty }
         #expect(vm.history.isEmpty == false, "事前に history に要素があること")
@@ -464,12 +463,12 @@ struct MusicPlayerViewModelTests {
         svc.snapshotSubject.send(snap)
         await MusicPlayerViewModelTests.waitUntil { vm.title == "テスト曲" }
         // Then
-        #expect(vm.title       == "テスト曲", "タイトル更新")
-        #expect(vm.artist      == "アーティスト", "アーティスト更新")
+        #expect(vm.title == "テスト曲", "タイトル更新")
+        #expect(vm.artist == "アーティスト", "アーティスト更新")
         #expect(vm.currentTime == 20, "currentTime更新")
-        #expect(vm.duration    == 120, "duration更新")
-        #expect(vm.rate        == 1.2, "rate更新")
-        #expect(vm.isPlaying   == true, "isPlaying更新")
+        #expect(vm.duration == 120, "duration更新")
+        #expect(vm.rate == 1.2, "rate更新")
+        #expect(vm.isPlaying == true, "isPlaying更新")
         cancel.cancel()
     }
 

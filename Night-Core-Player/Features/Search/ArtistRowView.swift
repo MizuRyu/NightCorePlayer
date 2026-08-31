@@ -1,5 +1,5 @@
-import SwiftUI
 import MusicKit
+import SwiftUI
 
 struct ArtistRowView: View {
     let artist: Artist

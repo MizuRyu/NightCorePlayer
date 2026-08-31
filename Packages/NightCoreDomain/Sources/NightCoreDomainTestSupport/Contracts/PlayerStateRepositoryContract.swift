@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 import NightCoreDomain
+import Testing
 
 /// PlayerStateRepositoryPort の契約検証。fake(InMemoryPlayerStateRepository)と
 /// アプリ側の永続化実装(PlayerStateRepository)の両方から同じアサーションを実行するために使う

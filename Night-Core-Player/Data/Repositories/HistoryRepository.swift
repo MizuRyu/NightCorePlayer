@@ -1,6 +1,6 @@
 import Foundation
-import SwiftData
 import NightCoreDomain
+import SwiftData
 
 final class HistoryRepository: HistoryRepositoryPort {
     private let context: ModelContext

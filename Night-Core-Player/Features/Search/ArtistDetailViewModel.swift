@@ -1,7 +1,7 @@
 import Foundation
 import MusicKit
-import Observation
 import NightCoreDomain
+import Observation
 
 @Observable
 @MainActor
@@ -56,7 +56,9 @@ final class ArtistDetailViewModel {
                 songs.append(contentsOf: newSongs)
                 currentOffset += more.count
                 hasMoreSongs = more.count >= Constants.MusicAPI.musicKitSearchLimit
-                if songs.count >= 50 { break }
+                if songs.count >= 50 {
+                    break
+                }
             } catch {
                 break
             }

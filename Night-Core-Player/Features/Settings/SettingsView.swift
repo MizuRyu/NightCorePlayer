@@ -1,8 +1,8 @@
-import SwiftUI
-import StoreKit
 import Combine
 import Inject
 import NightCoreDomain
+import StoreKit
+import SwiftUI
 
 struct SettingsView: View {
     @ObserveInjection var inject
@@ -112,7 +112,11 @@ struct SettingsView: View {
         // 同一ViewへのalertはSwiftUIが片方しか表示しないため、エラーと通知を1つに統合する
         .alert(alertTitle, isPresented: Binding<Bool>(
             get: { alertMessage != nil },
-            set: { if !$0 { dismissAlert() } }
+            set: {
+                if !$0 {
+                    dismissAlert()
+                }
+            }
         )) {
             Button("OK") { dismissAlert() }
         } message: {
@@ -122,6 +126,7 @@ struct SettingsView: View {
     }
 
     #if DEBUG
+
         // MARK: - Debug
 
         /// 残高の状態を手で作るための検証用セクション。トライアル中は枠超過シートに到達できず
@@ -230,7 +235,6 @@ struct SettingsView: View {
 
     // MARK: - Pro
 
-    @ViewBuilder
     private var proSection: some View {
         Section {
             if settingsVM.isProEntitled {

@@ -1,16 +1,15 @@
-import Testing
 import Combine
-import SwiftUI
 import MusicKit
+import SwiftUI
+import Testing
 @testable import Night_Core_Player
 
 @Suite("MusicKitServiceImpl Tests")
 @MainActor
 struct MusicKitServiceImplTests {
-
     static func setUp() -> (svc: MusicKitServiceImpl, mock: MusicKitClientMock) {
         let mock = MusicKitClientMock()
-        let svc  = MusicKitServiceImpl(client: mock)
+        let svc = MusicKitServiceImpl(client: mock)
         return (svc, mock)
     }
 
@@ -20,7 +19,7 @@ struct MusicKitServiceImplTests {
     func searchSongs_authorized_returnsSongs() async throws {
         // Given
         let (svc, mock) = MusicKitServiceImplTests.setUp()
-        mock.authStatus   = .authorized
+        mock.authStatus = .authorized
         mock.searchResult = [makeDummySong(id: "S1"), makeDummySong(id: "S2")]
 
         // When
@@ -36,7 +35,7 @@ struct MusicKitServiceImplTests {
     func searchSongs_noResults_returnsEmpty() async throws {
         // Given
         let (svc, mock) = MusicKitServiceImplTests.setUp()
-        mock.authStatus   = .authorized
+        mock.authStatus = .authorized
         mock.searchResult = []
 
         // When
@@ -63,7 +62,7 @@ struct MusicKitServiceImplTests {
     func searchSongs_firstGrant_succeeds() async throws {
         // Given
         let (svc, mock) = MusicKitServiceImplTests.setUp()
-        mock.authStatus   = .authorized
+        mock.authStatus = .authorized
         mock.searchResult = [makeDummySong(id: "S1")]
 
         // When
@@ -94,7 +93,7 @@ struct MusicKitServiceImplTests {
         // Given
         let (svc, mock) = MusicKitServiceImplTests.setUp()
         mock.authStatus = .authorized
-        mock.playlists  = [
+        mock.playlists = [
             makeDummyPlaylist(id: "P1", name: "name1"),
             makeDummyPlaylist(id: "P2", name: "name2"),
             makeDummyPlaylist(id: "P3", name: "name3")
@@ -113,7 +112,7 @@ struct MusicKitServiceImplTests {
         // Given
         let (svc, mock) = MusicKitServiceImplTests.setUp()
         mock.authStatus = .authorized
-        mock.playlists  = (0..<15).map { i in makeDummyPlaylist(id: "P\(i)", name: "name\(i)") }
+        mock.playlists = (0 ..< 15).map { i in makeDummyPlaylist(id: "P\(i)", name: "name\(i)") }
 
         // When
         let lists = try await svc.fetchLibraryPlaylists(limit: 10)
@@ -141,8 +140,8 @@ struct MusicKitServiceImplTests {
     func fetchPlaylistSongs_authorized_returnsSongs() async throws {
         // Given
         let (svc, mock) = MusicKitServiceImplTests.setUp()
-        mock.authStatus    = .authorized
-        mock.playlistSongs = (1...5).map { i in makeDummySong(id: "S\(i)") }
+        mock.authStatus = .authorized
+        mock.playlistSongs = (1 ... 5).map { i in makeDummySong(id: "S\(i)") }
         let pl = makeDummyPlaylist(id: "P1")
 
         // When
@@ -157,7 +156,7 @@ struct MusicKitServiceImplTests {
     func fetchPlaylistSongs_empty_returnsEmpty() async throws {
         // Given
         let (svc, mock) = MusicKitServiceImplTests.setUp()
-        mock.authStatus    = .authorized
+        mock.authStatus = .authorized
         mock.playlistSongs = []
         let pl = makeDummyPlaylist(id: "P1")
 

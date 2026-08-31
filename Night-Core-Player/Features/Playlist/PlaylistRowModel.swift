@@ -1,6 +1,6 @@
 import Foundation
-import SwiftUI
 import MusicKit
+import SwiftUI
 
 struct PlaylistRowModel: Identifiable {
     let id: Playlist.ID
@@ -13,6 +13,7 @@ extension PlaylistRowModel: Hashable {
     static func == (lhs: PlaylistRowModel, rhs: PlaylistRowModel) -> Bool {
         lhs.id == rhs.id
     }
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }

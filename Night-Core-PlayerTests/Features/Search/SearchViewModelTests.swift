@@ -1,18 +1,18 @@
-import Testing
 import Combine
-import SwiftUI
 import MusicKit
 import NightCoreDomain
+import SwiftUI
+import Testing
 @testable import Night_Core_Player
 
 @MainActor
 private func waitUntil(
-    timeoutMilliseconds: Int = 3_000,
+    timeoutMilliseconds: Int = 3000,
     pollMilliseconds: Int = 25,
     condition: @escaping @MainActor () -> Bool
 ) async {
     let attempts = max(1, timeoutMilliseconds / pollMilliseconds)
-    for _ in 0..<attempts {
+    for _ in 0 ..< attempts {
         if condition() {
             return
         }
@@ -23,7 +23,6 @@ private func waitUntil(
 @Suite("SearchViewModel Tests", .serialized)
 @MainActor
 struct SearchViewModelTests {
-
     /// 共通セットアップ
     static let testSuiteName = "SearchViewModelTests"
 
@@ -34,7 +33,7 @@ struct SearchViewModelTests {
         let defaults = UserDefaults(suiteName: testSuiteName)!
         defaults.removePersistentDomain(forName: testSuiteName)
         let svc = MusicKitServiceMock_Search()
-        let vm  = SearchViewModel(musicKitService: svc, userDefaults: defaults)
+        let vm = SearchViewModel(musicKitService: svc, userDefaults: defaults)
         return (vm, svc)
     }
 
@@ -156,7 +155,7 @@ struct SearchViewModelTests {
     func loadMore_hasMoreSongsFlag() async {
         // Given
         let (vm, svc) = SearchViewModelTests.setUp()
-        let songs = (0..<25).map { makeDummySong(id: "S\($0)") }
+        let songs = (0 ..< 25).map { makeDummySong(id: "S\($0)") }
         svc.stubSongs = songs
 
         // When
@@ -184,7 +183,7 @@ struct SearchViewModelTests {
     func loadMoreSongs_notTriggeredAtMiddleSong() async {
         // Given
         let (vm, svc) = SearchViewModelTests.setUp()
-        let songs = (0..<25).map { makeDummySong(id: "S\($0)") }
+        let songs = (0 ..< 25).map { makeDummySong(id: "S\($0)") }
         svc.stubSongs = songs
 
         // When
@@ -235,7 +234,7 @@ struct SearchViewModelTests {
         svc.stubSongs = [makeDummySong(id: "S1")]
 
         // When
-        for i in 0..<25 {
+        for i in 0 ..< 25 {
             await vm.performSearch(keyword: "keyword\(i)")
         }
 

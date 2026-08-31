@@ -1,11 +1,10 @@
-import Testing
 import AppTrackingTransparency
+import Testing
 @testable import Night_Core_Player
 
 @Suite("TrackingAuthorizationService Tests")
 @MainActor
 struct TrackingAuthorizationServiceTests {
-
     @Test("requestIfNeeded: notDetermined時は要求してauthorizedへ遷移すること")
     func requestIfNeeded_notDetermined_requests() async {
         let mock = TrackingAuthorizationServiceMock()

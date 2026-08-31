@@ -1,7 +1,8 @@
-import SwiftUI
 import Inject
 import MusicKit
 import NightCoreDomain
+import SwiftUI
+
 struct MainTabView: View {
     @ObserveInjection var inject
     @Environment(PlayerNavigator.self) private var nav
@@ -53,7 +54,7 @@ struct MainTabView: View {
         let tabBinding = Binding<PlayerNavigator.Tab>(
             get: { nav.selectedTab },
             set: { newTab in
-                if newTab == nav.selectedTab && newTab == .search {
+                if newTab == nav.selectedTab, newTab == .search {
                     nav.searchBarFocusRequestID += 1
                 }
                 nav.selectedTab = newTab

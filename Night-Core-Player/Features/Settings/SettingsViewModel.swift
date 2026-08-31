@@ -1,7 +1,7 @@
-import SwiftUI
+import NightCoreDomain
 import Observation
 import StoreKit
-import NightCoreDomain
+import SwiftUI
 
 @Observable
 @MainActor
@@ -10,7 +10,10 @@ final class SettingsViewModel {
     var errorMessage: String?
     var infoMessage: String?
     private(set) var isPurchasing = false
-    var isProEntitled: Bool { proStore?.isProEntitled ?? false }
+    var isProEntitled: Bool {
+        proStore?.isProEntitled ?? false
+    }
+
     private(set) var proPriceText: String?
 
     /// 残高スナップショットの正規化を促す。表示は observable プロパティ経由で自動追随するが、
@@ -27,7 +30,7 @@ final class SettingsViewModel {
         }
         guard let entitlement = allowanceService.observableEntitlement else { return "" }
         switch entitlement {
-        case .trial(let endsAt):
+        case let .trial(endsAt):
             let date = endsAt.formatted(date: .abbreviated, time: .shortened)
             return String(localized: "Unlimited speed control until \(date).")
         case .free, .exhausted:
@@ -44,7 +47,7 @@ final class SettingsViewModel {
         switch allowanceService.observableEntitlement {
         case .trial:
             return String(localized: "Trial in Progress")
-        case .free(let remaining):
+        case let .free(remaining):
             return Self.formattedRemaining(remaining)
         case .exhausted:
             return Self.formattedRemaining(0)

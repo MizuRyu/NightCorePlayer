@@ -1,8 +1,8 @@
 import Foundation
-import StoreKit
+import NightCoreDomain
 import Observation
 import os
-import NightCoreDomain
+import StoreKit
 
 // MARK: - Outcome
 
@@ -36,7 +36,7 @@ final class ProStoreServiceImpl: ProStoreService {
 
     private(set) var isProEntitled = false
 
-    // deinit(nonisolated)からcancelするため隔離を外す。書き込みはinitのみ
+    /// deinit(nonisolated)からcancelするため隔離を外す。書き込みはinitのみ
     private nonisolated(unsafe) var updatesTask: Task<Void, Never>?
 
     /// 取得済みの商品。purchase()のたびの再取得を避ける
@@ -75,7 +75,7 @@ final class ProStoreServiceImpl: ProStoreService {
         }
         let result = try await product.purchase()
         switch result {
-        case .success(let verification):
+        case let .success(verification):
             // 検証失敗時はfinishせずエラーとして返す（不正トランザクションを完了扱いにしない）
             let transaction = try Self.checkVerified(verification)
             await refreshEntitlement()
@@ -131,9 +131,9 @@ final class ProStoreServiceImpl: ProStoreService {
 
     private nonisolated static func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         switch result {
-        case .unverified(_, let error):
+        case let .unverified(_, error):
             throw error
-        case .verified(let safe):
+        case let .verified(safe):
             return safe
         }
     }

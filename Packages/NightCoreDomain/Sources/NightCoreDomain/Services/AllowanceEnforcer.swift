@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 import os
 
 // Playback: 再生パイプライン内で残高消費と枯渇時の曲境界停止を担う
@@ -87,7 +87,9 @@ public final class AllowanceEnforcerImpl: AllowanceEnforcer {
         self.isProEntitled = isProEntitled
     }
 
-    public var isExhausted: Bool { isBalanceExhausted }
+    public var isExhausted: Bool {
+        isBalanceExhausted
+    }
 
     public func tick(isPlaying: Bool, rate: Double, songID: String?, playbackPosition: TimeInterval?, now: Date) {
         let isSpedUpNow = isPlaying && rate != Constants.MusicPlayer.normalPlaybackRate

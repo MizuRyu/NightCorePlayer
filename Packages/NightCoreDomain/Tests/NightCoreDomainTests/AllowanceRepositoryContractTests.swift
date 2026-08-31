@@ -1,14 +1,13 @@
-import Testing
 import Foundation
 import NightCoreDomain
 import NightCoreDomainTestSupport
+import Testing
 
 /// InMemoryAllowanceRepository が AllowanceRepositoryPort の契約を満たすことの検証。
 /// 同じ契約はアプリ側の AllowanceRepositoryTests (SwiftData実装) からも呼ばれる
 @Suite("AllowanceRepositoryContract Tests (fake)")
 @MainActor
 struct AllowanceRepositoryContractTests {
-
     private static let day0 = ISO8601DateFormatter().date(from: "2026-08-01T12:00:00+09:00")!
 
     @Test

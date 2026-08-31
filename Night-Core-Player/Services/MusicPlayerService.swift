@@ -1,7 +1,7 @@
 import Combine
+import Foundation
 import MediaPlayer
 import MusicKit
-import Foundation
 import NightCoreDomain
 
 // MARK: - PlayerControllable

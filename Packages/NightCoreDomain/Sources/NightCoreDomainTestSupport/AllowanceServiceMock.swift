@@ -18,20 +18,22 @@ public final class AllowanceServiceMock: AllowanceService {
     public init() {}
 
     /// 実装は正規化した snapshot から両者を導くため、モックでも entitlementResult を唯一の入力にする
-    public var observableEntitlement: PlaybackEntitlement? { entitlementResult }
+    public var observableEntitlement: PlaybackEntitlement? {
+        entitlementResult
+    }
 
     public var observableRemainingSeconds: TimeInterval? {
         switch entitlementResult {
         case .trial:
             return Constants.Allowance.dailyFreeSeconds
-        case .free(let remaining):
+        case let .free(remaining):
             return remaining
         case .exhausted:
             return 0
         }
     }
 
-    public func entitlement(now: Date) throws -> PlaybackEntitlement {
+    public func entitlement(now _: Date) throws -> PlaybackEntitlement {
         entitlementResult
     }
 
@@ -39,7 +41,7 @@ public final class AllowanceServiceMock: AllowanceService {
         consumeArgs.append((seconds, now))
     }
 
-    public func grantReward(now: Date) throws -> TimeInterval {
+    public func grantReward(now _: Date) throws -> TimeInterval {
         grantRewardCallCount += 1
         if let grantRewardError {
             throw grantRewardError
@@ -49,15 +51,15 @@ public final class AllowanceServiceMock: AllowanceService {
 
     public var rewardsRemainingTodayResult = Constants.Allowance.dailyRewardLimit
 
-    public func rewardsRemainingToday(now: Date) throws -> Int {
+    public func rewardsRemainingToday(now _: Date) throws -> Int {
         rewardsRemainingTodayResult
     }
 
-    public func shouldShowProPrompt(now: Date) throws -> Bool {
+    public func shouldShowProPrompt(now _: Date) throws -> Bool {
         shouldShowProPromptResult && !proPromptShown
     }
 
-    public func markProPromptShown(now: Date) throws {
+    public func markProPromptShown(now _: Date) throws {
         markProPromptShownCallCount += 1
         if let markProPromptShownError {
             throw markProPromptShownError
@@ -65,7 +67,7 @@ public final class AllowanceServiceMock: AllowanceService {
         proPromptShown = true
     }
 
-    public func debugExhaust(now: Date) throws {
+    public func debugExhaust(now _: Date) throws {
         entitlementResult = .exhausted
     }
 

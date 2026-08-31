@@ -1,7 +1,7 @@
 import Foundation
 import GoogleMobileAds
-import os
 import NightCoreDomain
+import os
 
 // MARK: - Error
 
@@ -81,7 +81,9 @@ final class RewardedAdServiceImpl: NSObject, RewardedAdService {
     // MARK: - Private
 
     private func currentLoadTask() -> Task<RewardedAd, Error> {
-        if let loadTask { return loadTask }
+        if let loadTask {
+            return loadTask
+        }
         let task = Task<RewardedAd, Error> {
             do {
                 let ad = try await RewardedAd.load(with: self.adUnitID, request: Request())
@@ -132,7 +134,7 @@ final class RewardedAdServiceImpl: NSObject, RewardedAdService {
 // MARK: - FullScreenContentDelegate
 
 extension RewardedAdServiceImpl: FullScreenContentDelegate {
-    func ad(_ ad: FullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
+    func ad(_: FullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
         logger.error("Rewarded ad failed to present: \(error.localizedDescription)")
         presentingAd = nil
         dismissContinuation?.resume(throwing: RewardedAdError.presentFailed)
@@ -140,7 +142,7 @@ extension RewardedAdServiceImpl: FullScreenContentDelegate {
         Task { await preload() }
     }
 
-    func adDidDismissFullScreenContent(_ ad: FullScreenPresentingAd) {
+    func adDidDismissFullScreenContent(_: FullScreenPresentingAd) {
         presentingAd = nil
         dismissContinuation?.resume(returning: rewardEarned)
         dismissContinuation = nil

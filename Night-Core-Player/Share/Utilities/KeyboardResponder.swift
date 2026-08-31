@@ -1,6 +1,6 @@
-import SwiftUI
 import Combine
 import Observation
+import SwiftUI
 
 @Observable
 final class KeyboardResponder {

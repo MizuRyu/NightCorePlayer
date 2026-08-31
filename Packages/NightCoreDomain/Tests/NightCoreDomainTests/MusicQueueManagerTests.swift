@@ -1,11 +1,10 @@
-import Testing
 import NightCoreDomain
+import Testing
 
 /// キュー操作アルゴリズムの検証。要素は不透明に扱われるため Item == String で固定する
 @Suite("MusicQueueManager Tests", .serialized)
 @MainActor
 struct MusicQueueManagerTests {
-
     @Test("setQueue: 空配列なら playerShouldStop & currentIndex=0")
     func setQueue_empty_stopsPlayer() async {
         let mgr = MusicQueueManager<String>()

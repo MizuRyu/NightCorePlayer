@@ -1,12 +1,11 @@
-import Testing
 import Foundation
 import MusicKit
+import Testing
 @testable import Night_Core_Player
 
 @Suite("PlaylistDetailViewModel Tests")
 @MainActor
 struct PlaylistDetailViewModelTests {
-
     static func setUp() -> (
         viewModel: PlaylistDetailViewModel,
         serviceMock: MusicKitServiceMock

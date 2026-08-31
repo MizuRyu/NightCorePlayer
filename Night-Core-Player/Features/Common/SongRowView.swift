@@ -1,6 +1,6 @@
-import SwiftUI
 import Inject
 import MusicKit
+import SwiftUI
 
 struct SongRowView: View {
     @ObserveInjection var inject

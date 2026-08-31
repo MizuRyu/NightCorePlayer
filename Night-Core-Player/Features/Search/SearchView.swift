@@ -1,7 +1,7 @@
-import SwiftUI
 import Inject
 import MusicKit
 import NightCoreDomain
+import SwiftUI
 
 struct SearchRowView: View {
     let song: Song
@@ -130,7 +130,11 @@ struct SearchView: View {
             }
             .alert("Error", isPresented: Binding<Bool>(
                 get: { vm.errorMessage != nil },
-                set: { if !$0 { vm.errorMessage = nil } }
+                set: {
+                    if !$0 {
+                        vm.errorMessage = nil
+                    }
+                }
             )) {
                 Button("OK") { vm.errorMessage = nil }
             } message: {

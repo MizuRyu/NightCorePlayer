@@ -1,7 +1,7 @@
-import SwiftUI
 import Inject
 import MusicKit
 import NightCoreDomain
+import SwiftUI
 
 struct PlaylistView: View {
     @ObserveInjection var inject

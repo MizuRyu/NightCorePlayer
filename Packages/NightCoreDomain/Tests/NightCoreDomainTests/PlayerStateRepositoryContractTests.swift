@@ -1,13 +1,12 @@
-import Testing
 import NightCoreDomain
 import NightCoreDomainTestSupport
+import Testing
 
 /// InMemoryPlayerStateRepository が PlayerStateRepositoryPort の契約を満たすことの検証。
 /// 同じ契約はアプリ側の PlayerStateRepositoryTests (SwiftData実装) からも呼ばれる
 @Suite("PlayerStateRepositoryContract Tests (fake)")
 @MainActor
 struct PlayerStateRepositoryContractTests {
-
     @Test
     func loadDefaults() throws {
         try PlayerStateRepositoryContract.verifyLoadDefaults {

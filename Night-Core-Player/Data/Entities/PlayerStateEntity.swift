@@ -1,7 +1,7 @@
 import Foundation
-import SwiftData
 import MediaPlayer
 import NightCoreDomain
+import SwiftData
 
 @Model
 final class PlayerStateEntity {
@@ -23,11 +23,11 @@ final class PlayerStateEntity {
         repeatModeRaw: Int = MPMusicRepeatMode.none.rawValue,
         isAutoPlayEnabled: Bool = false
     ) {
-        self.queueIDs       = queueIDs
-        self.currentIndex   = currentIndex
-        self.playbackRate   = playbackRate
+        self.queueIDs = queueIDs
+        self.currentIndex = currentIndex
+        self.playbackRate = playbackRate
         self.shuffleModeRaw = shuffleModeRaw
-        self.repeatModeRaw  = repeatModeRaw
+        self.repeatModeRaw = repeatModeRaw
         self.isAutoPlayEnabled = isAutoPlayEnabled
     }
 }

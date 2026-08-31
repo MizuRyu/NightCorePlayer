@@ -1,5 +1,5 @@
-import SwiftUI
 import MusicKit
+import SwiftUI
 
 struct PlayingQueueItemRowView: View {
     let song: Song
@@ -10,7 +10,7 @@ struct PlayingQueueItemRowView: View {
             if let url = song.artwork?.url(width: 44, height: 44) {
                 AsyncImage(url: url) { phase in
                     switch phase {
-                    case .success(let image):
+                    case let .success(image):
                         image
                             .resizable()
                             .scaledToFit()

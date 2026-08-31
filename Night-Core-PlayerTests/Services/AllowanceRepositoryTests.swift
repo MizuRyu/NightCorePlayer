@@ -1,8 +1,7 @@
-import Testing
 import Foundation
 import NightCoreDomain
 import NightCoreDomainTestSupport
-
+import Testing
 @testable import Night_Core_Player
 
 /// 残高ロジックのテストは NightCoreDomain 側 (fake ベース) にある。
@@ -10,7 +9,6 @@ import NightCoreDomainTestSupport
 @Suite("AllowanceRepository Tests", .serialized)
 @MainActor
 struct AllowanceRepositoryTests {
-
     // MARK: - Helpers
 
     private static let day0 = ISO8601DateFormatter().date(from: "2026-08-01T12:00:00+09:00")!

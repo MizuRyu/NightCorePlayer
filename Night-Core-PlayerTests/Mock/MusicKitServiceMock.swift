@@ -1,17 +1,19 @@
-import Testing
 import Combine
-import SwiftUI
 import MusicKit
+import SwiftUI
+import Testing
 @testable import Night_Core_Player
 
 /// MusicKitService の統一モック
 final class MusicKitServiceMock: MusicKitService, @unchecked Sendable {
     // MARK: - Search トラッキング
+
     var searchCallArgs: [(keyword: String, limit: Int)] = []
     var stubSongs: [Song] = []
     var searchError: Error?
 
     // MARK: - Artist トラッキング
+
     var searchArtistsCallArgs: [(keyword: String, limit: Int)] = []
     var stubArtists: [Artist] = []
     var searchArtistsError: Error?
@@ -21,45 +23,51 @@ final class MusicKitServiceMock: MusicKitService, @unchecked Sendable {
     var fetchArtistSongsResult: Result<[Song], Error> = .success([])
 
     // MARK: - Playlist トラッキング
+
     var fetchLibraryPlaylistsCallCount = 0
     var fetchPlaylistSongsCallCount = 0
     var fetchLibraryPlaylistsHandler: ((Int) throws -> [Playlist])?
     var fetchPlaylistSongsResult: Result<[Song], Error> = .success([])
 
     // MARK: - Recommendation トラッキング
+
     var fetchPersonalRecommendationsCallCount = 0
     var stubRecommendationSongs: [Song] = []
     var fetchRecommendationsError: Error?
 
     // MARK: - Protocol メソッド
 
-    func ensureAuth() async throws { }
+    func ensureAuth() async throws {}
 
-    func searchSongs(keyword: String, limit: Int, offset: Int) async throws -> [Song] {
+    func searchSongs(keyword: String, limit: Int, offset _: Int) async throws -> [Song] {
         searchCallArgs.append((keyword, limit))
-        if let e = searchError { throw e }
+        if let e = searchError {
+            throw e
+        }
         return stubSongs
     }
 
     func searchArtists(keyword: String, limit: Int) async throws -> [Artist] {
         searchArtistsCallArgs.append((keyword, limit))
-        if let e = searchArtistsError { throw e }
+        if let e = searchArtistsError {
+            throw e
+        }
         return stubArtists
     }
 
-    func fetchArtistTopSongs(artist: Artist) async throws -> [Song] {
+    func fetchArtistTopSongs(artist _: Artist) async throws -> [Song] {
         fetchArtistTopSongsCallCount += 1
         switch fetchArtistTopSongsResult {
-        case .success(let songs): return songs
-        case .failure(let error): throw error
+        case let .success(songs): return songs
+        case let .failure(error): throw error
         }
     }
 
-    func fetchArtistSongs(artist: Artist, limit: Int, offset: Int) async throws -> [Song] {
+    func fetchArtistSongs(artist _: Artist, limit: Int, offset: Int) async throws -> [Song] {
         fetchArtistSongsCallArgs.append((limit, offset))
         switch fetchArtistSongsResult {
-        case .success(let songs): return songs
-        case .failure(let error): throw error
+        case let .success(songs): return songs
+        case let .failure(error): throw error
         }
     }
 
@@ -71,17 +79,19 @@ final class MusicKitServiceMock: MusicKitService, @unchecked Sendable {
         return []
     }
 
-    func fetchPlaylistSongs(in playlist: Playlist) async throws -> [Song] {
+    func fetchPlaylistSongs(in _: Playlist) async throws -> [Song] {
         fetchPlaylistSongsCallCount += 1
         switch fetchPlaylistSongsResult {
-        case .success(let songs): return songs
-        case .failure(let error): throw error
+        case let .success(songs): return songs
+        case let .failure(error): throw error
         }
     }
 
-    func fetchPersonalRecommendations(history: [Song], limit: Int) async throws -> [Song] {
+    func fetchPersonalRecommendations(history _: [Song], limit: Int) async throws -> [Song] {
         fetchPersonalRecommendationsCallCount += 1
-        if let e = fetchRecommendationsError { throw e }
+        if let e = fetchRecommendationsError {
+            throw e
+        }
         return Array(stubRecommendationSongs.prefix(limit))
     }
 }

@@ -10,7 +10,7 @@ final class HistoryEntity {
     var playedAt: Date
 
     init(songID: String, playedAt: Date = .now) {
-        self.songID   = songID
+        self.songID = songID
         self.playedAt = playedAt
     }
 }

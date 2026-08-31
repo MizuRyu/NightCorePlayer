@@ -1,12 +1,11 @@
 import Foundation
-import Testing
 import NightCoreDomain
+import Testing
 
 /// AllowanceRepositoryPort の契約検証。fake(InMemoryAllowanceRepository)と
 /// アプリ側の永続化実装(AllowanceRepository)の両方から同じアサーションを実行するために使う。
 /// 永続化の検証(作り直して復元)が必要なため、インスタンスでなくファクトリを受け取る
 public enum AllowanceRepositoryContract {
-
     public static func verifyLoadOrCreate(
         _ make: () throws -> any AllowanceRepositoryPort,
         now: Date

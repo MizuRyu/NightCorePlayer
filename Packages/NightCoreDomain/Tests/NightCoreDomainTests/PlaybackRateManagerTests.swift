@@ -1,10 +1,9 @@
-import Testing
 import NightCoreDomain
+import Testing
 
 @Suite("PlaybackRateManager Tests", .serialized)
 @MainActor
 struct PlaybackRateManagerTests {
-
     // MARK: - Helpers
 
     private static func makeRepo() -> InMemoryPlayerStateRepository {
@@ -14,7 +13,7 @@ struct PlaybackRateManagerTests {
     // MARK: - Tests
 
     @Test("初期化: 空のリポジトリからデフォルト再生速度が返ること")
-    func init_emptyRepo_returnsDefaultRate() throws {
+    func init_emptyRepo_returnsDefaultRate() {
         let repo = PlaybackRateManagerTests.makeRepo()
         let manager = PlaybackRateManagerImpl(repo: repo)
 

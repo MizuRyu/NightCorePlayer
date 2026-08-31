@@ -98,7 +98,7 @@ struct DemoMusicKitService: MusicKitService {
         return Self.seedSongs.filter { ids.contains($0.id.rawValue) }
     }
 
-    func fetchPersonalRecommendations(history: [Song], limit: Int) async throws -> [Song] {
+    func fetchPersonalRecommendations(history _: [Song], limit: Int) async throws -> [Song] {
         Array(Self.seedSongs.shuffled().prefix(limit))
     }
 

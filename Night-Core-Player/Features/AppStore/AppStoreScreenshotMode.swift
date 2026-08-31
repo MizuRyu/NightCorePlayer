@@ -21,7 +21,9 @@ enum AppStoreScreenshotScene: String, CaseIterable {
         return Self(rawValue: arguments[flagIndex + 1])
     }
 
-    var fileStem: String { rawValue }
+    var fileStem: String {
+        rawValue
+    }
 }
 
 // MARK: - Root
@@ -30,17 +32,15 @@ struct AppStoreScreenshotRootView: View {
     let scene: AppStoreScreenshotScene
 
     var body: some View {
-        Group {
-            switch scene {
-            case .player:
-                AppStorePlayerScreenshotView()
-            case .search:
-                AppStoreSearchScreenshotView()
-            case .playlist:
-                AppStorePlaylistScreenshotView()
-            case .queue:
-                AppStoreQueueScreenshotView()
-            }
+        switch scene {
+        case .player:
+            AppStorePlayerScreenshotView()
+        case .search:
+            AppStoreSearchScreenshotView()
+        case .playlist:
+            AppStorePlaylistScreenshotView()
+        case .queue:
+            AppStoreQueueScreenshotView()
         }
     }
 }

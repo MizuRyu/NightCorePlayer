@@ -1,6 +1,6 @@
-import Testing
 import Foundation
 import MusicKit
+import Testing
 @testable import Night_Core_Player
 
 // MARK: - Helpers
@@ -28,18 +28,18 @@ private struct Fixture {
     let service: RecommendationServiceImpl
 
     /// 履歴: FavArtist を高頻度で聴いている。similar 経由で未聴曲が取れる状態を既定にする
-    init(similarTopSongs: [Song] = (0..<10).map { makeSong(id: "D\($0)", artist: "SimilarArtist") }) {
+    init(similarTopSongs: [Song] = (0 ..< 10).map { makeSong(id: "D\($0)", artist: "SimilarArtist") }) {
         client.artistSearchResult = [makeDummyArtist(id: "AR-FAV", name: "FavArtist")]
         client.similarArtists = [makeDummyArtist(id: "AR-SIM", name: "SimilarArtist")]
         client.artistTopSongsByID = [
-            "AR-FAV": (0..<10).map { makeSong(id: "C\($0)", artist: "FavArtist") },
+            "AR-FAV": (0 ..< 10).map { makeSong(id: "C\($0)", artist: "FavArtist") },
             "AR-SIM": similarTopSongs
         ]
         service = RecommendationServiceImpl(client: client)
     }
 
     static func history(count: Int = 12) -> [Song] {
-        (0..<count).map { makeSong(id: "H\($0 % 4)", artist: "FavArtist") }
+        (0 ..< count).map { makeSong(id: "H\($0 % 4)", artist: "FavArtist") }
     }
 }
 
@@ -47,9 +47,8 @@ private struct Fixture {
 
 @Suite("RecommendationService")
 struct RecommendationServiceTests {
-
     @Test("履歴+探索で指定数を返し、探索枠(3割)は未聴曲だけになる")
-    func mixRatio() async throws {
+    func mixRatio() async {
         let fx = Fixture()
         let result = await fx.service.buildDailyQueue(history: Fixture.history(), limit: 20)
 
@@ -64,7 +63,7 @@ struct RecommendationServiceTests {
     }
 
     @Test("similarArtists が失敗したら履歴系だけで埋める")
-    func fallbackToFamiliarOnly() async throws {
+    func fallbackToFamiliarOnly() async {
         let fx = Fixture()
         fx.client.similarArtistsError = NSError(domain: "test", code: 1)
         let result = await fx.service.buildDailyQueue(history: Fixture.history(), limit: 20)
@@ -74,7 +73,7 @@ struct RecommendationServiceTests {
     }
 
     @Test("MusicKit 履歴が失敗してもローカル履歴だけで生成できる")
-    func recentlyPlayedFailure() async throws {
+    func recentlyPlayedFailure() async {
         let fx = Fixture()
         fx.client.recentlyPlayedError = NSError(domain: "test", code: 1)
         let result = await fx.service.buildDailyQueue(history: Fixture.history(), limit: 20)
@@ -83,7 +82,7 @@ struct RecommendationServiceTests {
     }
 
     @Test("素材ゼロ (履歴なし・MusicKit履歴も空) なら空配列")
-    func emptySources() async throws {
+    func emptySources() async {
         let fx = Fixture()
         let result = await fx.service.buildDailyQueue(history: [], limit: 20)
 
@@ -93,7 +92,7 @@ struct RecommendationServiceTests {
     }
 
     @Test("素材が limit 未満でも壊れず、あるだけ返す")
-    func shortSources() async throws {
+    func shortSources() async {
         let fx = Fixture(similarTopSongs: [])
         fx.client.artistTopSongsByID["AR-FAV"] = []
         let result = await fx.service.buildDailyQueue(history: Fixture.history(count: 3), limit: 20)
@@ -103,7 +102,7 @@ struct RecommendationServiceTests {
     }
 
     @Test("同日2回目はキャッシュを返し、API を再呼び出ししない")
-    func dailyCache() async throws {
+    func dailyCache() async {
         let fx = Fixture()
         let first = await fx.service.buildDailyQueue(history: Fixture.history(), limit: 20)
         let callsAfterFirst = fx.client.fetchRecentlyPlayedCalls
@@ -114,9 +113,9 @@ struct RecommendationServiceTests {
     }
 
     @Test("MusicKit の再生履歴も頻度ソースに合算される")
-    func recentlyPlayedMerged() async throws {
+    func recentlyPlayedMerged() async {
         let fx = Fixture()
-        fx.client.recentlyPlayedSongs = (0..<5).map { makeSong(id: "R\($0)", artist: "FavArtist") }
+        fx.client.recentlyPlayedSongs = (0 ..< 5).map { makeSong(id: "R\($0)", artist: "FavArtist") }
         let result = await fx.service.buildDailyQueue(history: [], limit: 20)
 
         // ローカル履歴が空でも MusicKit 履歴から生成できる
@@ -125,10 +124,10 @@ struct RecommendationServiceTests {
     }
 
     @Test("探索候補に既知曲が混ざっていても除外される")
-    func discoveryExcludesKnownSongs() async throws {
+    func discoveryExcludesKnownSongs() async {
         // similar 側の topSongs に履歴曲 H0 を混入させる
         let contaminated = [makeSong(id: "H0", artist: "FavArtist")]
-            + (0..<10).map { makeSong(id: "D\($0)", artist: "SimilarArtist") }
+            + (0 ..< 10).map { makeSong(id: "D\($0)", artist: "SimilarArtist") }
         let fx = Fixture(similarTopSongs: contaminated)
         let result = await fx.service.buildDailyQueue(history: Fixture.history(), limit: 20)
 
@@ -139,8 +138,8 @@ struct RecommendationServiceTests {
     }
 
     @Test("C が不足するときは D を広げて総数を守る")
-    func discoveryFillsFamiliarShortfall() async throws {
-        let fx = Fixture(similarTopSongs: (0..<20).map { makeSong(id: "D\($0)", artist: "SimilarArtist") })
+    func discoveryFillsFamiliarShortfall() async {
+        let fx = Fixture(similarTopSongs: (0 ..< 20).map { makeSong(id: "D\($0)", artist: "SimilarArtist") })
         fx.client.artistTopSongsByID["AR-FAV"] = []
         // 履歴はユニーク3曲だけ
         let result = await fx.service.buildDailyQueue(history: Fixture.history(count: 3), limit: 20)
@@ -150,7 +149,7 @@ struct RecommendationServiceTests {
     }
 
     @Test("異なる limit はキャッシュを共有しない")
-    func cacheIsPerLimit() async throws {
+    func cacheIsPerLimit() async {
         let fx = Fixture()
         let small = await fx.service.buildDailyQueue(history: Fixture.history(), limit: 10)
         let large = await fx.service.buildDailyQueue(history: Fixture.history(), limit: 20)
@@ -160,7 +159,7 @@ struct RecommendationServiceTests {
     }
 
     @Test("API 失敗を含む縮退結果はキャッシュせず、次回再試行する")
-    func degradedResultIsNotCached() async throws {
+    func degradedResultIsNotCached() async {
         let fx = Fixture()
         fx.client.recentlyPlayedError = NSError(domain: "test", code: 1)
         _ = await fx.service.buildDailyQueue(history: Fixture.history(), limit: 20)
@@ -176,12 +175,11 @@ struct RecommendationServiceTests {
 
 @Suite("MusicKitServiceImpl レコメンドフォールバック")
 struct MusicKitServiceRecommendationFallbackTests {
-
     @Test("レコメンドが空ならライブラリシャッフルに落ちる")
     func libraryFallback() async throws {
         let client = MusicKitClientMock()
         client.playlists = [makeDummyPlaylist(id: "PL1")]
-        client.playlistSongs = (0..<5).map { makeDummySong(id: "L\($0)") }
+        client.playlistSongs = (0 ..< 5).map { makeDummySong(id: "L\($0)") }
         let service = MusicKitServiceImpl(client: client)
 
         let result = try await service.fetchPersonalRecommendations(history: [], limit: 20)
@@ -194,7 +192,7 @@ struct MusicKitServiceRecommendationFallbackTests {
     func deniedWithLocalHistory() async throws {
         let client = MusicKitClientMock()
         client.authStatus = .denied
-        let history = (0..<10).map { makeDummySong(id: "H\($0 % 4)") }
+        let history = (0 ..< 10).map { makeDummySong(id: "H\($0 % 4)") }
         let service = MusicKitServiceImpl(client: client)
 
         let result = try await service.fetchPersonalRecommendations(history: history, limit: 20)
@@ -219,8 +217,10 @@ struct MusicKitServiceRecommendationFallbackTests {
         let client = MusicKitClientMock()
         client.playlists = [makeDummyPlaylist(id: "PL-BAD"), makeDummyPlaylist(id: "PL-OK")]
         client.fetchSongsHandler = { playlist in
-            if playlist.id.rawValue == "PL-BAD" { throw NSError(domain: "test", code: 1) }
-            return (0..<5).map { makeDummySong(id: "L\($0)") }
+            if playlist.id.rawValue == "PL-BAD" {
+                throw NSError(domain: "test", code: 1)
+            }
+            return (0 ..< 5).map { makeDummySong(id: "L\($0)") }
         }
         let service = MusicKitServiceImpl(client: client)
 
@@ -233,8 +233,8 @@ struct MusicKitServiceRecommendationFallbackTests {
     func recommendationPath() async throws {
         let client = MusicKitClientMock()
         client.artistSearchResult = [makeDummyArtist(id: "AR1", name: "DummyArtist")]
-        client.artistTopSongs = (0..<20).map { makeDummySong(id: "T\($0)") }
-        let history = (0..<10).map { makeDummySong(id: "H\($0 % 3)") }
+        client.artistTopSongs = (0 ..< 20).map { makeDummySong(id: "T\($0)") }
+        let history = (0 ..< 10).map { makeDummySong(id: "H\($0 % 3)") }
         let service = MusicKitServiceImpl(client: client)
 
         let result = try await service.fetchPersonalRecommendations(history: history, limit: 20)

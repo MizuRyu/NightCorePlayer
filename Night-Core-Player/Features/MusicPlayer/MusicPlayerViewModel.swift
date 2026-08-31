@@ -1,9 +1,9 @@
-import SwiftUI
-import MusicKit
-import MediaPlayer
 import Combine
-import Observation
+import MediaPlayer
+import MusicKit
 import NightCoreDomain
+import Observation
+import SwiftUI
 
 @Observable
 @MainActor
@@ -12,8 +12,8 @@ final class MusicPlayerViewModel {
     private(set) var currentIndex: Int = 0
     private(set) var history: [Song] = []
 
-    private(set) var title: String      = "—"
-    private(set) var artist: String     = "—"
+    private(set) var title: String = "—"
+    private(set) var artist: String = "—"
     private(set) var artworkData: Data?
     private(set) var currentTime: Double = 0
 
@@ -23,10 +23,11 @@ final class MusicPlayerViewModel {
         }
         return Image(systemName: "music.note")
     }
-    private(set) var duration: Double    = 0
-    private(set) var rate: Double        = Constants.MusicPlayer.defaultPlaybackRate
-    private(set) var isPlaying: Bool     = false
-    private(set) var isShuffled: Bool    = false
+
+    private(set) var duration: Double = 0
+    private(set) var rate: Double = Constants.MusicPlayer.defaultPlaybackRate
+    private(set) var isPlaying: Bool = false
+    private(set) var isShuffled: Bool = false
     private(set) var repeatMode: Constants.RepeatMode = .none
     private(set) var isAutoPlayEnabled: Bool = false
     var errorMessage: String?
@@ -43,10 +44,11 @@ final class MusicPlayerViewModel {
             duration: duration,
             upcomingDurations: upcomingTracksDuration,
             rate: rate
-            )
+        )
     }
 
     // MARK: - Dependencies
+
     private let service: MusicPlayerService
     private var cancellables = Set<AnyCancellable>()
 
@@ -75,6 +77,7 @@ final class MusicPlayerViewModel {
             await service.moveItem(from: srcGlobal, to: dstGlobal)
         }
     }
+
     func removeQueueItem(at offsets: IndexSet) {
         Task {
             let absIndices = offsets.map { $0 + currentIndex + 1 }.sorted(by: >)
@@ -83,6 +86,7 @@ final class MusicPlayerViewModel {
             }
         }
     }
+
     func playNow(_ song: Song) {
         Task {
             await service.playNow(song)
@@ -90,6 +94,7 @@ final class MusicPlayerViewModel {
             self.currentIndex = service.nowPlayingIndex
         }
     }
+
     func playNowNext(_ song: Song) {
         Task {
             await service.playNextAndPlay(song)
@@ -97,6 +102,7 @@ final class MusicPlayerViewModel {
             self.currentIndex = service.nowPlayingIndex
         }
     }
+
     func insertNext(_ song: Song) {
         Task {
             await service.insertNext(song)
@@ -104,6 +110,7 @@ final class MusicPlayerViewModel {
             self.currentIndex = service.nowPlayingIndex
         }
     }
+
     func clearHistory() {
         do {
             try service.clearHistory()
@@ -125,23 +132,35 @@ final class MusicPlayerViewModel {
         Task { await service.toggleAutoPlay() }
     }
 
-    func playPauseTrack() { Task { await isPlaying ? service.pause() : service.play() } }
-    func nextTrack() { Task { await service.next() } }
-    func previousTrack() { Task { await service.previous() } }
+    func playPauseTrack() {
+        Task { await isPlaying ? service.pause() : service.play() }
+    }
+
+    func nextTrack() {
+        Task { await service.next() }
+    }
+
+    func previousTrack() {
+        Task { await service.previous() }
+    }
+
     func rewind15() {
         let newTime = max(currentTime - skipSeconds, 0)
         seek(to: newTime)
     }
+
     func forward15() {
         let newTime = min(currentTime + skipSeconds, duration)
         seek(to: newTime)
     }
+
     func seek(to time: Double) {
         currentTime = time
         Task {
             await service.seek(to: time)
         }
     }
+
     func setRate(to newVal: Double) {
         let tmp = min(max(newVal,
                           Constants.MusicPlayer.minPlaybackRate),
@@ -149,6 +168,7 @@ final class MusicPlayerViewModel {
         rate = tmp
         Task { await service.setSessionRate(tmp) }
     }
+
     func adjustRate(by delta: Double) {
         setRate(to: rate + delta)
     }
@@ -185,15 +205,15 @@ final class MusicPlayerViewModel {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] snap in
                 guard let self else { return }
-                self.title       = snap.title
-                self.artist      = snap.artist
+                self.title = snap.title
+                self.artist = snap.artist
                 self.artworkData = snap.artworkData
                 self.currentTime = snap.currentTime
-                self.duration    = snap.duration
-                self.rate        = snap.rate
-                self.isPlaying   = snap.isPlaying
-                self.isShuffled  = self.service.isShuffled
-                self.repeatMode  = self.service.repeatMode
+                self.duration = snap.duration
+                self.rate = snap.rate
+                self.isPlaying = snap.isPlaying
+                self.isShuffled = self.service.isShuffled
+                self.repeatMode = self.service.repeatMode
                 self.isAutoPlayEnabled = self.service.isAutoPlayEnabled
                 self.musicPlayerQueue = self.service.musicPlayerQueue
                 self.currentIndex = self.service.nowPlayingIndex
