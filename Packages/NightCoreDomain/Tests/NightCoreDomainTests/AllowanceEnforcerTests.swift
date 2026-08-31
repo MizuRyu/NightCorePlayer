@@ -430,6 +430,73 @@ struct AllowanceEnforcerTests {
         #expect(mock.consumeArgs.map(\.seconds) == [10])
     }
 
+    @Test("Pro解除直後は残高の観測をやり直すため、枯渇したままなら猶予を与えず等速へ戻す")
+    func proExpiryDoesNotGrantGraceWhenExhausted() {
+        var isPro = false
+        let (enforcer, _, recorder) = Self.makeEnforcer(
+            entitlement: .exhausted,
+            isProEntitled: { isPro }
+        )
+        let t0 = Self.base
+        // Given: 非Proの等速再生で枯渇を観測している
+        enforcer.tick(isPlaying: true, rate: 1.0, songID: "S1", playbackPosition: 0, now: t0)
+        // Proを有効化して倍速で再生する
+        isPro = true
+        enforcer.tick(
+            isPlaying: true,
+            rate: 2.0,
+            songID: "S1",
+            playbackPosition: 20,
+            now: t0.addingTimeInterval(10)
+        )
+        // When: 実残高0のままProが失効し、倍速のまま再生が続く
+        isPro = false
+        enforcer.tick(
+            isPlaying: true,
+            rate: 2.0,
+            songID: "S1",
+            playbackPosition: 40,
+            now: t0.addingTimeInterval(20)
+        )
+        // Then: 「残高があるうちから鳴っていた」とは扱わず、猶予なしで等速へ戻す
+        #expect(!enforcer.shouldStopAtSongBoundary())
+        #expect(enforcer.shouldRevertToNormalRateNow())
+        #expect(recorder.received.isEmpty)
+    }
+
+    @Test("Pro解除時に残高が残っていれば、観測やり直し後も倍速再生は妨げられない")
+    func proExpiryWithRemainingBalanceKeepsPlaying() {
+        var isPro = false
+        let (enforcer, mock, recorder) = Self.makeEnforcer(
+            entitlement: .free(remaining: 600),
+            isProEntitled: { isPro }
+        )
+        let t0 = Self.base
+        enforcer.tick(isPlaying: true, rate: 2.0, songID: "S1", playbackPosition: 0, now: t0)
+        isPro = true
+        enforcer.tick(
+            isPlaying: true,
+            rate: 2.0,
+            songID: "S1",
+            playbackPosition: 20,
+            now: t0.addingTimeInterval(10)
+        )
+        // When: 残高が残っている状態でProが失効する
+        isPro = false
+        enforcer.tick(
+            isPlaying: true,
+            rate: 2.0,
+            songID: "S1",
+            playbackPosition: 40,
+            now: t0.addingTimeInterval(20)
+        )
+        // Then: 停止も等速復帰も起こらず、Pro解除後の区間だけが消費される
+        #expect(!enforcer.shouldStopAtSongBoundary())
+        #expect(!enforcer.shouldRevertToNormalRateNow())
+        #expect(recorder.received.isEmpty)
+        #expect(mock.consumeArgs.map(\.seconds) == [10])
+    }
+
     @Test("tick: トライアル中は枯渇扱いしない")
     func tickTrialIsNotExhausted() {
         let (enforcer, _, recorder) = Self.makeEnforcer(

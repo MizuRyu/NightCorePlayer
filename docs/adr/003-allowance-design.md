@@ -108,7 +108,7 @@ UI 側でボタンを塞ぎ、サービス側 (`grantReward`) でも重複付与
 
 ## Implementation Notes
 
-- `consume()` は等速再生時・トライアル中は呼ばれない（`AllowanceEnforcer.tick` 側でガード）
+- 等速再生時は `AllowanceEnforcer.tick` 側でガードし、`consume()` を呼ばない。トライアル中は Enforcer は `consume()` を呼ぶが、`AllowanceServiceImpl.consume` 側が無消費で return する
 - 1 tick あたりの消費時間は「実際に進んだ再生位置」から求める。区間 [前回 tick, 今回 tick] を支配していたのは前回 tick 時点の再生状態なので、消費するか否かの判定と倍速の値には**前回の状態**を使う（倍速 → 一時停止 / 倍速 → 等速 の遷移 tick でも直前の倍速区間を取りこぼさない）
   - 位置経路（同じ曲・前後の再生位置が両方あり・位置が前進しており・前回 rate > 0）: `consumed = min(wallDelta, positionDelta / 前回rate)`。rate 倍で位置が x 秒進んだなら費やした実時間は x / rate 秒。`wallDelta` を上限に置くことで前方シークでも過大請求しない
   - フォールバック経路（曲変更・位置取得不能・位置が前進していない）: `consumed = min(wallDelta, fallbackMaxTickSeconds(60秒))`。位置で裏が取れない区間を wall-clock だけで長時間請求すると、実際には鳴っていなかった場合に取り返せないため保守的に上限を置く

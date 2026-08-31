@@ -97,6 +97,9 @@ public final class AllowanceEnforcerImpl: AllowanceEnforcer {
             // 基準を進めないとPro期間ぶんが溜まり、Pro解除後の初回tickで一括消費される
             recordBaseline(isSpedUp: isSpedUpNow, rate: rate, position: playbackPosition, songID: songID, now: now)
             isBalanceExhausted = false
+            // Pro期間中は残高を観測していない。観測をやり直さないと、解除直後のtickで
+            // 「残高があるうちから倍速で鳴っていた」と誤認して曲末猶予を与えてしまう
+            hasObservedBalance = false
             clearGrace()
             return
         }
