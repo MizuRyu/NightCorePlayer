@@ -1,8 +1,8 @@
 import Foundation
-import UIKit
 import MusicKit
 import NightCoreDomain
 import os
+import UIKit
 
 // MARK: - Protocol
 
@@ -45,7 +45,9 @@ final class ArtworkCacheServiceImpl: ArtworkCacheService {
     private func fetchSongDetails(_ song: Song) async -> Song {
         guard !song.id.rawValue.isEmpty else { return song }
         let raw = song.id.rawValue
-        if raw.hasPrefix("i.") { return song }
+        if raw.hasPrefix("i.") {
+            return song
+        }
         do {
             let req = MusicCatalogResourceRequest<Song>(matching: \.id, equalTo: song.id)
             let resp = try await req.response()

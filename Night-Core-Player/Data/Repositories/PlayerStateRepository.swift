@@ -1,7 +1,7 @@
 import Foundation
-import SwiftData
 import MediaPlayer
 import NightCoreDomain
+import SwiftData
 
 final class PlayerStateRepository: PlayerStateRepositoryPort {
     private let context: ModelContext
@@ -19,11 +19,11 @@ final class PlayerStateRepository: PlayerStateRepositoryPort {
         isAutoPlayEnabled: Bool
     ) throws {
         let entity = try fetch() ?? PlayerStateEntity()
-        entity.queueIDs      = queueIDs
-        entity.currentIndex  = currentIndex
-        entity.playbackRate  = playbackRate
+        entity.queueIDs = queueIDs
+        entity.currentIndex = currentIndex
+        entity.playbackRate = playbackRate
         entity.shuffleModeRaw = shuffleModeRaw
-        entity.repeatModeRaw  = repeatModeRaw
+        entity.repeatModeRaw = repeatModeRaw
         entity.isAutoPlayEnabled = isAutoPlayEnabled
 
         if try fetch() == nil {

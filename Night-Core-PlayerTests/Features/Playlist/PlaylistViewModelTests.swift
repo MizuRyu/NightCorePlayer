@@ -1,9 +1,10 @@
-import Testing
-import SwiftUI
 import MusicKit
+import SwiftUI
+import Testing
 @testable import Night_Core_Player
 
 // MARK: - PlaylistViewModel Tests
+
 @Suite("PlaylistViewModel Tests")
 @MainActor
 struct PlaylistViewModelTests {
@@ -36,7 +37,7 @@ struct PlaylistViewModelTests {
         ]
         let (vm, svc) = PlaylistViewModelTests.setUp()
         svc.fetchLibraryPlaylistsHandler = { _ in
-            return playlists
+            playlists
         }
 
         // When
@@ -83,7 +84,7 @@ struct PlaylistViewModelTests {
     func load_emptyResult_hasEmptyRows() async {
         // Given
         let (vm, svc) = PlaylistViewModelTests.setUp()
-        svc.fetchLibraryPlaylistsHandler = { _ in return [] }
+        svc.fetchLibraryPlaylistsHandler = { _ in [] }
 
         // When
         await vm.load(limit: 10)

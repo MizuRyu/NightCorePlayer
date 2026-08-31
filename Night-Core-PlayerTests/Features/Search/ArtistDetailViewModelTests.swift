@@ -1,12 +1,11 @@
-import Testing
 import Foundation
 import MusicKit
+import Testing
 @testable import Night_Core_Player
 
 @Suite("ArtistDetailViewModel Tests", .serialized)
 @MainActor
 struct ArtistDetailViewModelTests {
-
     @Test("初期化: プロパティが初期値であること")
     func init_default_hasEmptyState() {
         // Given
@@ -42,7 +41,9 @@ struct ArtistDetailViewModelTests {
     func load_failure_setsErrorMessage() async {
         // Given
         struct DummyErr: Error, LocalizedError {
-            var errorDescription: String? { "test error" }
+            var errorDescription: String? {
+                "test error"
+            }
         }
         let svc = MusicKitServiceMock()
         svc.fetchArtistTopSongsResult = .failure(DummyErr())
@@ -69,7 +70,7 @@ struct ArtistDetailViewModelTests {
         // When
         async let first: () = vm.load()
         async let second: () = vm.load()
-        _ = await (first, second)
+        _ = await(first, second)
 
         // Then
         #expect(svc.fetchArtistTopSongsCallCount == 1, "fetchArtistTopSongsが1回だけ呼ばれること")

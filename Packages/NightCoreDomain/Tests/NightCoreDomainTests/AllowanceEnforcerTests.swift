@@ -1,8 +1,8 @@
-import Testing
-import Foundation
 import Combine
+import Foundation
 import NightCoreDomain
 import NightCoreDomainTestSupport
+import Testing
 
 /// 再生位置を渡さないtick。位置が取れない場合の wall-clock フォールバックが対象のケース用
 @MainActor
@@ -15,7 +15,6 @@ private extension AllowanceEnforcerImpl {
 @Suite("AllowanceEnforcer Tests")
 @MainActor
 struct AllowanceEnforcerTests {
-
     // MARK: - Helpers
 
     private static let base = ISO8601DateFormatter().date(from: "2026-08-01T12:00:00+09:00")!
@@ -175,7 +174,7 @@ struct AllowanceEnforcerTests {
             isPlaying: true,
             rate: 2.0,
             songID: "S1",
-            playbackPosition: 10_000,
+            playbackPosition: 10000,
             now: t0.addingTimeInterval(10)
         )
         // Then: 消費は経過実時間の10秒が上限

@@ -1,13 +1,12 @@
 import Foundation
-import SwiftUI
 import MusicKit
-import Observation
 import NightCoreDomain
+import Observation
+import SwiftUI
 
 @Observable
 @MainActor
 final class PlaylistViewModel {
-
     var rows: [PlaylistRowModel] = []
     var isLoading = false
     var errorMessage: String?

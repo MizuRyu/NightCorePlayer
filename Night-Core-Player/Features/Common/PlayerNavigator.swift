@@ -1,6 +1,6 @@
 import Foundation
-import Observation
 import MusicKit
+import Observation
 
 @Observable
 final class PlayerNavigator {

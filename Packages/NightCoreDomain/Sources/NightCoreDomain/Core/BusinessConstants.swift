@@ -1,7 +1,6 @@
 import Foundation
 
 public enum Constants {
-
     public enum MusicAPI {
         public static let musicKitSearchLimit: Int = 25
         public static let playlistsLoadLimit: Int = 10
@@ -37,7 +36,7 @@ public enum Constants {
     }
 
     public enum Recommendation {
-        // 設計 (docs/specs/RECOMMENDATION.md) の「毎日20曲」に一致させる
+        /// 設計 (docs/specs/RECOMMENDATION.md) の「毎日20曲」に一致させる
         public static let defaultLimit: Int = 20
         // 配合と探索幅 (docs/specs/RECOMMENDATION.md)
         public static let discoveryRatio: Double = 0.3
@@ -64,9 +63,9 @@ public enum Constants {
     public enum Ads {
         // Debug は Google 公式のテストユニットID、Release は本番ユニットID(rewarded_balance)
         #if DEBUG
-        public static let rewardedUnitID: String = "ca-app-pub-3940256099942544/1712485313"
+            public static let rewardedUnitID: String = "ca-app-pub-3940256099942544/1712485313"
         #else
-        public static let rewardedUnitID: String = "ca-app-pub-4210364120390329/6068775358"
+            public static let rewardedUnitID: String = "ca-app-pub-4210364120390329/6068775358"
         #endif
     }
 }

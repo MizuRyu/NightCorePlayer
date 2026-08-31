@@ -1,9 +1,9 @@
-import Testing
 import Combine
-import SwiftUI
-import MusicKit
 import MediaPlayer
+import MusicKit
 import NightCoreDomain
+import SwiftUI
+import Testing
 @testable import Night_Core_Player
 
 final class PlayerControllableMock: PlayerControllable {
@@ -100,7 +100,10 @@ final class QueueManagingMock: QueueManaging {
         guard items.indices.contains(currentIndex) else { return nil }
         return items[currentIndex]
     }
-    var isEmpty: Bool { items.isEmpty }
+
+    var isEmpty: Bool {
+        items.isEmpty
+    }
 
     // 呼び出しトラッキング
     private(set) var setQueueArgs: [([Song], Int)] = []
@@ -187,43 +190,44 @@ final class QueueManagingMock: QueueManaging {
 
 final class MusicPlayerServiceMock: MusicPlayerService {
     private(set) var setQueueArgs: [([Song], Int)] = []
-    private(set) var playCallCount     = 0
-    private(set) var pauseCallCount    = 0
-    private(set) var nextCallCount     = 0
+    private(set) var playCallCount = 0
+    private(set) var pauseCallCount = 0
+    private(set) var nextCallCount = 0
     private(set) var previousCallCount = 0
     private(set) var clearHistoryCallCount = 0
     private(set) var seekArgs: [TimeInterval] = []
-    private(set) var rateArgs: [Double]        = []
-    private(set) var moveArgs: [(Int, Int)]    = []
-    private(set) var removeArgs: [Int]         = []
-    private(set) var playNowArgs: [Song]       = []
-    private(set) var insertNextArgs: [Song]    = []
+    private(set) var rateArgs: [Double] = []
+    private(set) var moveArgs: [(Int, Int)] = []
+    private(set) var removeArgs: [Int] = []
+    private(set) var playNowArgs: [Song] = []
+    private(set) var insertNextArgs: [Song] = []
     private(set) var playNextAndPlayArgs: [Song] = []
     // テストから send できる Subject
-    public let snapshotSubject = PassthroughSubject<MusicPlayerSnapshot, Never>()
-    public var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> {
+    let snapshotSubject = PassthroughSubject<MusicPlayerSnapshot, Never>()
+    var snapshotPublisher: AnyPublisher<MusicPlayerSnapshot, Never> {
         snapshotSubject.eraseToAnyPublisher()
     }
-    public let playbackErrorSubject = PassthroughSubject<Error, Never>()
-    public var playbackErrorPublisher: AnyPublisher<Error, Never> {
+
+    let playbackErrorSubject = PassthroughSubject<Error, Never>()
+    var playbackErrorPublisher: AnyPublisher<Error, Never> {
         playbackErrorSubject.eraseToAnyPublisher()
     }
 
     // ViewModel が参照する状態
-    public var musicPlayerQueue: [Song] = []
-    public var nowPlayingIndex: Int     = 0
-    public var playHistory: [Song]      = []
+    var musicPlayerQueue: [Song] = []
+    var nowPlayingIndex: Int = 0
+    var playHistory: [Song] = []
 
-    public private(set) var isShuffled: Bool       = false
-    public private(set) var repeatMode: Constants.RepeatMode = .none
-    public private(set) var isAutoPlayEnabled: Bool = false
+    private(set) var isShuffled: Bool = false
+    private(set) var repeatMode: Constants.RepeatMode = .none
+    private(set) var isAutoPlayEnabled: Bool = false
 
-    public func start() async {}
+    func start() async {}
 
-    public func setQueue(songs: [Song], startAt index: Int, autoPlay: Bool) async {
+    func setQueue(songs: [Song], startAt index: Int, autoPlay: Bool) async {
         setQueueArgs.append((songs, index))
         musicPlayerQueue = songs
-        nowPlayingIndex  = index
+        nowPlayingIndex = index
         if autoPlay {
             playCallCount += 1
             snapshotSubject.send(.empty.withPlaying(true))
@@ -232,94 +236,96 @@ final class MusicPlayerServiceMock: MusicPlayerService {
         }
     }
 
-    public func play() async {
+    func play() async {
         playCallCount += 1
         snapshotSubject.send(.empty.withPlaying(true))
     }
 
-    public func pause() async {
+    func pause() async {
         pauseCallCount += 1
         snapshotSubject.send(.empty.withPlaying(false))
     }
 
-    public func next() async {
+    func next() async {
         nextCallCount += 1
     }
 
-    public func previous() async {
+    func previous() async {
         previousCallCount += 1
     }
 
-    public func seek(to time: TimeInterval) async {
+    func seek(to time: TimeInterval) async {
         seekArgs.append(time)
         snapshotSubject.send(.empty.withCurrentTime(time))
     }
 
-    public func setSessionRate(_ rate: Double) async {
+    func setSessionRate(_ rate: Double) async {
         rateArgs.append(rate)
         snapshotSubject.send(.empty.withRate(rate))
     }
 
-    public private(set) var resumeAfterRewardGrantCallCount = 0
-    public func resumeAfterRewardGrant() async {
+    private(set) var resumeAfterRewardGrantCallCount = 0
+    func resumeAfterRewardGrant() async {
         resumeAfterRewardGrantCallCount += 1
     }
 
-    public func moveItem(from src: Int, to dst: Int) async {
+    func moveItem(from src: Int, to dst: Int) async {
         moveArgs.append((src, dst))
     }
 
-    public func removeItem(at idx: Int) async {
+    func removeItem(at idx: Int) async {
         removeArgs.append(idx)
     }
 
-    public func insertNext(_ song: Song) async {
+    func insertNext(_ song: Song) async {
         insertNextArgs.append(song)
         let insertAt = nowPlayingIndex + 1
         if musicPlayerQueue.isEmpty {
             musicPlayerQueue = [song]
             nowPlayingIndex = 0
-        } else if insertAt >= 0 && insertAt <= musicPlayerQueue.count {
+        } else if insertAt >= 0, insertAt <= musicPlayerQueue.count {
             musicPlayerQueue.insert(song, at: insertAt)
         }
         // ViewModel に反映されるように snapshot を送る
         snapshotSubject.send(.empty)
     }
-    public func playNextAndPlay(_ song: Song) async {
+
+    func playNextAndPlay(_ song: Song) async {
         playNextAndPlayArgs.append(song)
         snapshotSubject.send(.empty.withPlaying(true))
     }
-    public func playNow(_ song: Song) async {
+
+    func playNow(_ song: Song) async {
         playNowArgs.append(song)
         musicPlayerQueue = [song]
         nowPlayingIndex = 0
         snapshotSubject.send(.empty.withPlaying(true))
     }
 
-    public func clearHistory() throws {
+    func clearHistory() throws {
         clearHistoryCallCount += 1
         playHistory.removeAll()
     }
 
-    public func toggleShuffle() async {
+    func toggleShuffle() async {
         isShuffled.toggle()
     }
 
-    public func cycleRepeatMode() async {
+    func cycleRepeatMode() async {
         switch repeatMode {
         case .none: repeatMode = .all
-        case .all:  repeatMode = .one
-        case .one:  repeatMode = .none
+        case .all: repeatMode = .one
+        case .one: repeatMode = .none
         }
     }
 
-    public func toggleAutoPlay() async {
+    func toggleAutoPlay() async {
         isAutoPlayEnabled.toggle()
     }
 }
 
 extension MusicPlayerSnapshot {
-    // テスト時に一部フィールドだけ変えたいときのヘルパー
+    /// テスト時に一部フィールドだけ変えたいときのヘルパー
     func withPlaying(_ playing: Bool) -> MusicPlayerSnapshot {
         .init(title: title,
               artist: artist,
@@ -329,6 +335,7 @@ extension MusicPlayerSnapshot {
               rate: rate,
               isPlaying: playing)
     }
+
     func withCurrentTime(_ t: TimeInterval) -> MusicPlayerSnapshot {
         .init(title: title,
               artist: artist,
@@ -338,6 +345,7 @@ extension MusicPlayerSnapshot {
               rate: rate,
               isPlaying: isPlaying)
     }
+
     func withRate(_ r: Double) -> MusicPlayerSnapshot {
         .init(title: title,
               artist: artist,

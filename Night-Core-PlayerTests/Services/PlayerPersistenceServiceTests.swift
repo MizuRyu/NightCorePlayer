@@ -1,14 +1,12 @@
-import Testing
-import SwiftData
 import MediaPlayer
 import NightCoreDomain
-
+import SwiftData
+import Testing
 @testable import Night_Core_Player
 
 @Suite("PlayerPersistenceService Tests", .serialized)
 @MainActor
 struct PlayerPersistenceServiceTests {
-
     // MARK: - Helpers
 
     private static func makeService() -> (

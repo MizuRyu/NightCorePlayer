@@ -1,6 +1,6 @@
-import SwiftUI
 import Inject
 import NightCoreDomain
+import SwiftUI
 
 struct SettingsPlaybackSpeedView: View {
     @ObserveInjection var inject
@@ -33,7 +33,7 @@ struct SettingsPlaybackSpeedView: View {
 
                 Stepper(
                     value: $currentSpeed,
-                    in: Constants.MusicPlayer.minPlaybackRate...Constants.MusicPlayer.maxPlaybackRate,
+                    in: Constants.MusicPlayer.minPlaybackRate ... Constants.MusicPlayer.maxPlaybackRate,
                     step: Constants.MusicPlayer.rateStepSmall
                 ) {
                     EmptyView()
@@ -42,7 +42,6 @@ struct SettingsPlaybackSpeedView: View {
                     settingsVM.updateDefaultRate(to: newVal)
                 }
                 .labelsHidden()
-
             }
             .listRowSeparator(.hidden)
             .padding(.horizontal, 16)
@@ -61,7 +60,6 @@ struct SettingsPlaybackSpeedView: View {
             .padding(.leading, 16)
             .padding(.vertical, 0)
             .listRowSeparator(.hidden)
-
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)

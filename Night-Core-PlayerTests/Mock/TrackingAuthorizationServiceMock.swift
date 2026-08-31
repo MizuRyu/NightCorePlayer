@@ -1,5 +1,5 @@
-import Foundation
 import AppTrackingTransparency
+import Foundation
 @testable import Night_Core_Player
 
 @MainActor

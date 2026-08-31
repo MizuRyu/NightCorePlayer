@@ -1,11 +1,10 @@
-import Testing
 import Foundation
 import NightCoreDomain
+import Testing
 
 @Suite("AllowanceService Tests", .serialized)
 @MainActor
 struct AllowanceServiceTests {
-
     // MARK: - Helpers
 
     private static let day0 = ISO8601DateFormatter().date(from: "2026-08-01T12:00:00+09:00")!
@@ -27,7 +26,7 @@ struct AllowanceServiceTests {
     func firstLaunch_startsTrial() throws {
         let (service, _) = try Self.makeService()
         let state = try service.entitlement(now: Self.day0)
-        guard case .trial(let endsAt) = state else {
+        guard case let .trial(endsAt) = state else {
             Issue.record("trial ではない: \(state)")
             return
         }
@@ -63,7 +62,7 @@ struct AllowanceServiceTests {
         }
 
         let stateAtEnd = try service.entitlement(now: end)
-        if case .trial(let endsAt) = stateAtEnd {
+        if case let .trial(endsAt) = stateAtEnd {
             Issue.record("境界ちょうどはトライアルではないべき: endsAt=\(endsAt)")
         }
     }
@@ -192,7 +191,7 @@ struct AllowanceServiceTests {
         let now = Self.afterTrial()
 
         try service.consume(600, now: now)
-        for _ in 0..<Constants.Allowance.proPromptRewardCount {
+        for _ in 0 ..< Constants.Allowance.proPromptRewardCount {
             _ = try service.grantReward(now: now)
         }
         try service.markProPromptShown(now: now)
@@ -202,7 +201,7 @@ struct AllowanceServiceTests {
 
         let expectedRemaining =
             Constants.Allowance.dailyFreeSeconds - 600
-            + Constants.Allowance.rewardSeconds * TimeInterval(Constants.Allowance.proPromptRewardCount)
+                + Constants.Allowance.rewardSeconds * TimeInterval(Constants.Allowance.proPromptRewardCount)
         #expect(try recreated.entitlement(now: now) == .free(remaining: expectedRemaining))
 
         // rewardCountTotal >= 閾値かつ proPromptShown 済なので false であるべき
@@ -217,7 +216,7 @@ struct AllowanceServiceTests {
         _ = try service.entitlement(now: Self.day0)
         let now = Self.afterTrial()
 
-        for i in 0..<Constants.Allowance.proPromptRewardCount {
+        for i in 0 ..< Constants.Allowance.proPromptRewardCount {
             #expect(try service.shouldShowProPrompt(now: now) == false, "\(i)回目で早期表示")
             _ = try service.grantReward(now: now)
         }
@@ -235,7 +234,7 @@ struct AllowanceServiceTests {
         _ = try service.entitlement(now: Self.day0)
         let now = Self.afterTrial()
 
-        for i in 0..<Constants.Allowance.dailyRewardLimit {
+        for i in 0 ..< Constants.Allowance.dailyRewardLimit {
             #expect(try service.rewardsRemainingToday(now: now) == Constants.Allowance.dailyRewardLimit - i)
             _ = try service.grantReward(now: now)
         }
@@ -251,7 +250,7 @@ struct AllowanceServiceTests {
         let (service, _) = try Self.makeService()
         _ = try service.entitlement(now: Self.day0)
         let day8 = Self.afterTrial()
-        for _ in 0..<Constants.Allowance.dailyRewardLimit {
+        for _ in 0 ..< Constants.Allowance.dailyRewardLimit {
             _ = try service.grantReward(now: day8)
         }
         #expect(try service.rewardsRemainingToday(now: day8) == 0)

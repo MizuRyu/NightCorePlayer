@@ -3,10 +3,10 @@
 //  Night-Core-Player
 //
 
-import Foundation
 import AppTrackingTransparency
-import os
+import Foundation
 import NightCoreDomain
+import os
 
 // MARK: - Protocol
 

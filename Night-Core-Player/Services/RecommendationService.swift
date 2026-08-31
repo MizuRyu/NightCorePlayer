@@ -1,7 +1,7 @@
 import Foundation
 import MusicKit
-import OSLog
 import NightCoreDomain
+import OSLog
 
 // MARK: - Protocol
 
@@ -18,20 +18,21 @@ actor RecommendationServiceImpl: RecommendationBuilding {
     private let calendar: Calendar
     private let logger = Logger(subsystem: Constants.Logging.subsystem, category: "Recommendation")
 
-    // 同日・同 limit はメモリキャッシュを再利用する (アプリ再起動で再生成。永続化は見送り)。
-    // API 失敗を含む縮退結果はキャッシュしない (復旧後の再試行を妨げないため)
+    /// 同日・同 limit はメモリキャッシュを再利用する (アプリ再起動で再生成。永続化は見送り)。
+    /// API 失敗を含む縮退結果はキャッシュしない (復旧後の再試行を妨げないため)
     private struct CacheKey: Equatable {
         let day: Date
         let limit: Int
     }
+
     private var cacheKey: CacheKey?
     private var cachedQueue: [Song] = []
-    // 同時初回呼び出しの single-flight (actor は await 中に再入可能なため)
+    /// 同時初回呼び出しの single-flight (actor は await 中に再入可能なため)
     private var inFlight: [Int: Task<ComposeResult, Never>] = [:]
 
     private struct ComposeResult {
         let songs: [Song]
-        // 素材系 API のいずれかが失敗したまま組んだ結果か (キャッシュ可否の判定に使う)
+        /// 素材系 API のいずれかが失敗したまま組んだ結果か (キャッシュ可否の判定に使う)
         let degraded: Bool
     }
 
@@ -121,7 +122,7 @@ actor RecommendationServiceImpl: RecommendationBuilding {
 
         for artist in artists where pool.count < limit && !Task.isCancelled {
             do {
-                pool.append(contentsOf: try await client.fetchArtistTopSongs(artist: artist))
+                try pool.append(contentsOf: await client.fetchArtistTopSongs(artist: artist))
             } catch {
                 logger.warning("fetchArtistTopSongs(\(artist.name)) failed: \(error.localizedDescription)")
             }

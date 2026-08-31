@@ -1,5 +1,5 @@
-import SwiftUI
 import NightCoreDomain
+import SwiftUI
 
 /// https://qiita.com/takehilo/items/2499c632c2e0e5cdcb06
 private struct TextWidthKey: PreferenceKey {
@@ -14,9 +14,9 @@ struct MarqueeText: View {
     let font: Font
     let idleTextAlignment: Alignment
     let visibleWidth: CGFloat
-    let speed: Double               // pt／秒
+    let speed: Double // pt／秒
     let spacingBetweenTexts: CGFloat
-    let delayBeforeScroll: Double   // 秒
+    let delayBeforeScroll: Double // 秒
 
     @State private var contentWidth: CGFloat = 0
     @State private var isAnimating: Bool = false

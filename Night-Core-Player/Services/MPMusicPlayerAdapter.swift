@@ -15,28 +15,57 @@ final class MPMusicPlayerAdapter: PlayerControllable {
         player.endGeneratingPlaybackNotifications()
     }
 
-    var playbackState: MPMusicPlaybackState { player.playbackState }
-    var currentTime: TimeInterval { player.currentPlaybackTime }
-    var nowPlayingItem: MPMediaItem? { player.nowPlayingItem }
-    var indexOfNowPlayingItem: Int { player.indexOfNowPlayingItem }
+    var playbackState: MPMusicPlaybackState {
+        player.playbackState
+    }
+
+    var currentTime: TimeInterval {
+        player.currentPlaybackTime
+    }
+
+    var nowPlayingItem: MPMediaItem? {
+        player.nowPlayingItem
+    }
+
+    var indexOfNowPlayingItem: Int {
+        player.indexOfNowPlayingItem
+    }
+
     var playbackRate: Double {
         get { Double(player.currentPlaybackRate) }
         set { player.currentPlaybackRate = Float(newValue) }
     }
+
     var shuffleMode: MPMusicShuffleMode {
         get { player.shuffleMode }
         set { player.shuffleMode = newValue }
     }
+
     var repeatMode: MPMusicRepeatMode {
         get { player.repeatMode }
         set { player.repeatMode = newValue }
     }
 
-    func play() { player.play() }
-    func pause() { player.pause() }
-    func seek(to time: TimeInterval) { player.currentPlaybackTime = time }
-    func skipToNext() { player.skipToNextItem() }
-    func skipToPrevious() { player.skipToPreviousItem() }
+    func play() {
+        player.play()
+    }
+
+    func pause() {
+        player.pause()
+    }
+
+    func seek(to time: TimeInterval) {
+        player.currentPlaybackTime = time
+    }
+
+    func skipToNext() {
+        player.skipToNextItem()
+    }
+
+    func skipToPrevious() {
+        player.skipToPreviousItem()
+    }
+
     func prepareToPlay() async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             player.prepareToPlay { error in
@@ -48,7 +77,16 @@ final class MPMusicPlayerAdapter: PlayerControllable {
             }
         }
     }
-    func setQueue(with descriptor: MPMusicPlayerPlayParametersQueueDescriptor) { player.setQueue(with: descriptor) }
-    func prepend(_ descriptor: MPMusicPlayerPlayParametersQueueDescriptor) { player.prepend(descriptor) }
-    func stop() { player.stop() }
+
+    func setQueue(with descriptor: MPMusicPlayerPlayParametersQueueDescriptor) {
+        player.setQueue(with: descriptor)
+    }
+
+    func prepend(_ descriptor: MPMusicPlayerPlayParametersQueueDescriptor) {
+        player.prepend(descriptor)
+    }
+
+    func stop() {
+        player.stop()
+    }
 }

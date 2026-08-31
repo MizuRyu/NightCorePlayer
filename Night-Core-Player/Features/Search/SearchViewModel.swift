@@ -1,18 +1,18 @@
-import SwiftUI
 import MusicKit
-import Observation
 import NightCoreDomain
+import Observation
+import SwiftUI
 
 @Observable
 @MainActor
 final class SearchViewModel {
-
     private let musicKitService: MusicKitService
     private let userDefaults: UserDefaults
 
     var query: String = "" {
         didSet { scheduleSearch() }
     }
+
     private(set) var songs: [Song] = []
     private(set) var artists: [Artist] = []
     private(set) var isLoading = false
@@ -62,7 +62,7 @@ final class SearchViewModel {
         }
     }
 
-    public func performSearch(keyword: String) async {
+    func performSearch(keyword: String) async {
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         lastSearchedQuery = trimmed
         guard !trimmed.isEmpty else {

@@ -5,4 +5,8 @@
 
 --importgrouping testable-bottom
 
---disable wrapArguments,wrapMultilineStatementBraces,wrapMultilineFunctionChains
+# swiftlint(trailing_comma禁止)に合わせる
+--commas inline
+
+# redundantSelf: クロージャ内の明示selfを削るとcapture semanticsエラーになるため無効化
+--disable wrapArguments,wrapMultilineStatementBraces,wrapMultilineFunctionChains,redundantSelf,noForceUnwrapInTests

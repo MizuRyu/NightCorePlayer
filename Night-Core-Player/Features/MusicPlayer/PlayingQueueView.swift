@@ -1,6 +1,6 @@
-import SwiftUI
 import Inject
 import MusicKit
+import SwiftUI
 
 struct MusicPlayerControlsView: View {
     @ObserveInjection var inject
@@ -12,9 +12,9 @@ struct MusicPlayerControlsView: View {
                 Slider(
                     value: Binding(
                         get: { vm.currentTime },
-                        set: { vm.seek(to: $0 ) }
+                        set: { vm.seek(to: $0) }
                     ),
-                    in: 0...vm.duration
+                    in: 0 ... vm.duration
                 )
                 .accentColor(.indigo)
                 HStack {
@@ -51,7 +51,6 @@ struct MusicPlayerControlsView: View {
             }
             .foregroundColor(.indigo)
             .padding(.vertical, 8)
-
         }
     }
 }
@@ -79,7 +78,6 @@ struct NowPlayingHeaderView: View {
         }
         .padding(.horizontal)
         .padding(.bottom, 8)
-
     }
 }
 
@@ -111,21 +109,21 @@ struct HistorySectionView: View {
                 Button("Delete", role: .destructive) {
                     vm.clearHistory()
                 }
-                Button("Cancel", role: .cancel) { }
+                Button("Cancel", role: .cancel) {}
             }
-                ForEach(Array(vm.history.enumerated()), id: \.offset) { _, song in
-                    PlayingQueueItemRowView(
-                        song: song,
-                        isCurrent: false
-                    )
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        vm.playNowNext(song)
-                    }
+            ForEach(Array(vm.history.enumerated()), id: \.offset) { _, song in
+                PlayingQueueItemRowView(
+                    song: song,
+                    isCurrent: false
+                )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    vm.playNowNext(song)
                 }
             }
         }
     }
+}
 
 struct QueueSectionView: View {
     @Environment(MusicPlayerViewModel.self) private var vm
@@ -165,7 +163,6 @@ struct CombinedListView: View {
             List {
                 HistorySectionView()
                 QueueSectionView()
-
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)

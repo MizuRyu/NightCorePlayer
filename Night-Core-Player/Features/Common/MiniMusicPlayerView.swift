@@ -1,5 +1,5 @@
-import SwiftUI
 import Inject
+import SwiftUI
 
 struct MiniMusicPlayerView: View {
     @ObserveInjection var inject
@@ -10,8 +10,8 @@ struct MiniMusicPlayerView: View {
         VStack(spacing: 0) {
             GeometryReader { geo in
                 let progress = vm.duration > 0
-                ? vm.currentTime / vm.duration
-                : 0
+                    ? vm.currentTime / vm.duration
+                    : 0
                 Capsule()
                     .fill(Color.indigo)
                     .frame(width: geo.size.width * CGFloat(progress), height: 2)

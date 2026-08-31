@@ -1,7 +1,7 @@
-import SwiftUI
 import Inject
 import MusicKit
 import NightCoreDomain
+import SwiftUI
 
 struct SpeedControlButton: View {
     let label: String
@@ -29,10 +29,10 @@ struct SliderTickMarksOverlay: View {
     var body: some View {
         GeometryReader { geo in
             let total = Int((maxValue - minValue) / step)
-            ForEach(0...total, id: \.self) { i in
-                let value  = minValue + Double(i) * step
-                let ratio  = (value - minValue) / (maxValue - minValue)
-                let xPos   = geo.size.width * ratio
+            ForEach(0 ... total, id: \.self) { i in
+                let value = minValue + Double(i) * step
+                let ratio = (value - minValue) / (maxValue - minValue)
+                let xPos = geo.size.width * ratio
 
                 VStack(spacing: 4) {
                     Text(String(format: "%.1f", value))
@@ -42,12 +42,13 @@ struct SliderTickMarksOverlay: View {
                         .fill(Color.secondary.opacity(0.6))
                         .frame(width: 1, height: 8)
                 }
-                .position(x: xPos, y: max(0, geo.size.height/2 - 14))
+                .position(x: xPos, y: max(0, geo.size.height / 2 - 14))
             }
         }
         .allowsHitTesting(false)
     }
 }
+
 struct MusicPlayerView: View {
     @ObserveInjection var inject
     @Environment(PlayerNavigator.self) private var nav
@@ -131,9 +132,9 @@ struct MusicPlayerView: View {
                     Slider(
                         value: Binding(
                             get: { vm.currentTime },
-                            set: { vm.seek(to: $0 ) }
+                            set: { vm.seek(to: $0) }
                         ),
-                        in: 0...vm.duration
+                        in: 0 ... vm.duration
                     )
                     .accentColor(.indigo)
                     Text(timeString(from: vm.duration))
@@ -170,7 +171,7 @@ struct MusicPlayerView: View {
                             get: { vm.rate },
                             set: { vm.setRate(to: $0) }
                         ),
-                        in: Constants.MusicPlayer.minPlaybackRate...Constants.MusicPlayer.maxPlaybackRate,
+                        in: Constants.MusicPlayer.minPlaybackRate ... Constants.MusicPlayer.maxPlaybackRate,
                         step: 0.01
                     ) { _ in
                     }
@@ -238,7 +239,11 @@ struct MusicPlayerView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .alert("Playback Error", isPresented: Binding<Bool>(
                 get: { vm.errorMessage != nil },
-                set: { if !$0 { vm.errorMessage = nil } }
+                set: {
+                    if !$0 {
+                        vm.errorMessage = nil
+                    }
+                }
             )) {
                 Button("OK") { vm.errorMessage = nil }
             } message: {

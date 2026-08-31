@@ -1,9 +1,8 @@
-import Testing
-import Foundation
 import Combine
+import Foundation
 import NightCoreDomain
 import NightCoreDomainTestSupport
-
+import Testing
 @testable import Night_Core_Player
 
 // MARK: - Stub
@@ -11,12 +10,21 @@ import NightCoreDomainTestSupport
 @MainActor
 private final class AllowanceEnforcerStub: AllowanceEnforcer {
     private let eventSubject = PassthroughSubject<AllowanceEvent, Never>()
-    var events: AnyPublisher<AllowanceEvent, Never> { eventSubject.eraseToAnyPublisher() }
+    var events: AnyPublisher<AllowanceEvent, Never> {
+        eventSubject.eraseToAnyPublisher()
+    }
+
     var isExhausted = false
 
-    func tick(isPlaying: Bool, rate: Double, songID: String?, playbackPosition: TimeInterval?, now: Date) {}
-    func shouldStopAtSongBoundary() -> Bool { false }
-    func shouldRevertToNormalRateNow() -> Bool { false }
+    func tick(isPlaying _: Bool, rate _: Double, songID _: String?, playbackPosition _: TimeInterval?, now _: Date) {}
+    func shouldStopAtSongBoundary() -> Bool {
+        false
+    }
+
+    func shouldRevertToNormalRateNow() -> Bool {
+        false
+    }
+
     func markStoppedAtSongEnd() {}
     func markRevertedToNormalRate() {}
 
@@ -32,7 +40,6 @@ private struct SheetTestError: Error {}
 @Suite("AllowanceSheetViewModel Tests")
 @MainActor
 struct AllowanceSheetViewModelTests {
-
     // MARK: - Helpers
 
     private static func setUp(
@@ -65,13 +72,15 @@ struct AllowanceSheetViewModelTests {
     }
 
     private static func waitUntil(
-        timeoutMilliseconds: Int = 1_000,
+        timeoutMilliseconds: Int = 1000,
         pollMilliseconds: Int = 10,
         condition: @escaping @MainActor () -> Bool
     ) async {
         let attempts = max(1, timeoutMilliseconds / pollMilliseconds)
-        for _ in 0..<attempts {
-            if condition() { return }
+        for _ in 0 ..< attempts {
+            if condition() {
+                return
+            }
             try? await Task.sleep(nanoseconds: UInt64(pollMilliseconds) * 1_000_000)
         }
     }
@@ -106,7 +115,7 @@ struct AllowanceSheetViewModelTests {
     func stoppedAtSongEnd_dismissesQueueSheet() {
         // Given
         let (vm, enforcer, _, _, nav) = Self.setUp()
-        _ = vm  // sink が [weak self] のため VM を保持する
+        _ = vm // sink が [weak self] のため VM を保持する
         nav.isQueuePresented = true
 
         // When
@@ -245,7 +254,7 @@ struct AllowanceSheetViewModelTests {
     // MARK: - Reward Ad
 
     @Test("広告視聴に成功したらgrantRewardが呼ばれること")
-    func watchAdForReward_adSucceeds_callsGrantReward() async throws {
+    func watchAdForReward_adSucceeds_callsGrantReward() async {
         // Given
         let adMock = RewardedAdServiceMock()
         adMock.presentResult = .success(true)
@@ -262,7 +271,7 @@ struct AllowanceSheetViewModelTests {
     }
 
     @Test("広告のロード失敗・在庫切れでも、無条件付与にフォールバックしgrantRewardが呼ばれること")
-    func watchAdForReward_adUnavailable_stillGrantsReward() async throws {
+    func watchAdForReward_adUnavailable_stillGrantsReward() async {
         // Given
         let adMock = RewardedAdServiceMock()
         adMock.presentResult = .failure(RewardedAdError.notReady)
@@ -279,7 +288,7 @@ struct AllowanceSheetViewModelTests {
     }
 
     @Test("広告表示中に連打してもpresentCallCountは増えず、grantRewardも1回しか呼ばれないこと")
-    func watchAdForReward_doubleTapWhileWatching_doesNotCallPresentTwice() async throws {
+    func watchAdForReward_doubleTapWhileWatching_doesNotCallPresentTwice() async {
         // Given
         let adMock = RewardedAdServiceMock()
         adMock.presentResult = .success(true)
@@ -290,7 +299,7 @@ struct AllowanceSheetViewModelTests {
         // When
         vm.watchAdForReward()
         vm.watchAdForReward()
-        await Self.waitUntil(timeoutMilliseconds: 2_000) { !vm.isWatchingAd }
+        await Self.waitUntil(timeoutMilliseconds: 2000) { !vm.isWatchingAd }
 
         // Then
         #expect(adMock.presentCallCount == 1)
@@ -298,7 +307,7 @@ struct AllowanceSheetViewModelTests {
     }
 
     @Test("広告は表示されたが報酬条件を満たさなかった場合、付与してはいけないこと")
-    func watchAdForReward_adPresentedButNotEarned_doesNotGrantReward() async throws {
+    func watchAdForReward_adPresentedButNotEarned_doesNotGrantReward() async {
         // Given
         let adMock = RewardedAdServiceMock()
         adMock.presentResult = .success(false)
@@ -315,7 +324,7 @@ struct AllowanceSheetViewModelTests {
     }
 
     @Test("present()が想定外のエラーをthrowしても、無条件付与にフォールバックすること")
-    func watchAdForReward_presentThrowsUnexpectedError_stillGrantsReward() async throws {
+    func watchAdForReward_presentThrowsUnexpectedError_stillGrantsReward() async {
         // Given
         let adMock = RewardedAdServiceMock()
         adMock.presentResult = .failure(SheetTestError())
@@ -331,7 +340,7 @@ struct AllowanceSheetViewModelTests {
     }
 
     @Test("広告経由でgrantRewardがthrowしたらerrorMessageが設定され、isWatchingAdがfalseに戻ること")
-    func watchAdForReward_grantRewardThrowsAfterAd_setsErrorAndResetsWatching() async throws {
+    func watchAdForReward_grantRewardThrowsAfterAd_setsErrorAndResetsWatching() async {
         // Given
         let adMock = RewardedAdServiceMock()
         adMock.presentResult = .success(true)
@@ -365,7 +374,7 @@ struct AllowanceSheetViewModelTests {
     // MARK: - Purchase
 
     @Test("Pro購入: 購入成功でシートが閉じること")
-    func purchasePro_success_closesSheet() async throws {
+    func purchasePro_success_closesSheet() async {
         // Given
         let (vm, enforcer, _, storeMock, _) = Self.setUp(purchaseResult: .success(.purchased))
         enforcer.send(.stoppedAtSongEnd)
@@ -381,7 +390,7 @@ struct AllowanceSheetViewModelTests {
     }
 
     @Test("Pro購入: キャンセルではシートを閉じないこと")
-    func purchasePro_cancelled_keepsSheetOpen() async throws {
+    func purchasePro_cancelled_keepsSheetOpen() async {
         // Given
         let (vm, enforcer, _, storeMock, _) = Self.setUp(purchaseResult: .success(.cancelled))
         enforcer.send(.stoppedAtSongEnd)
@@ -395,7 +404,7 @@ struct AllowanceSheetViewModelTests {
     }
 
     @Test("Pro購入: 商品を取得できない場合はエラーを表示しシートを閉じないこと")
-    func purchasePro_unavailable_showsError() async throws {
+    func purchasePro_unavailable_showsError() async {
         // Given: StoreKitから商品を取得できない状態
         let (vm, enforcer, _, _, _) = Self.setUp(purchaseResult: .success(.unavailable))
         enforcer.send(.stoppedAtSongEnd)
@@ -410,7 +419,7 @@ struct AllowanceSheetViewModelTests {
     }
 
     @Test("Pro購入: 処理中はユーザー操作で閉じられないこと")
-    func dismissByUser_whilePurchasing_keepsSheetOpen() async throws {
+    func dismissByUser_whilePurchasing_keepsSheetOpen() async {
         // Given: 購入処理を遅延させ、処理中の窓を作る
         let (vm, enforcer, _, storeMock, _) = Self.setUp(purchaseResult: .success(.purchased))
         storeMock.purchaseDelayMilliseconds = 500
@@ -426,7 +435,7 @@ struct AllowanceSheetViewModelTests {
     }
 
     @Test("Pro購入: pendingではシートを閉じないこと")
-    func purchasePro_pending_keepsSheetOpen() async throws {
+    func purchasePro_pending_keepsSheetOpen() async {
         // Given
         let (vm, enforcer, _, storeMock, _) = Self.setUp(purchaseResult: .success(.pending))
         enforcer.send(.stoppedAtSongEnd)
@@ -440,7 +449,7 @@ struct AllowanceSheetViewModelTests {
     }
 
     @Test("Pro購入: エラーがシート内のerrorMessageに反映されること")
-    func purchasePro_throws_setsErrorMessage() async throws {
+    func purchasePro_throws_setsErrorMessage() async {
         // Given
         let (vm, enforcer, _, _, _) = Self.setUp(purchaseResult: .failure(SheetTestError()))
         enforcer.send(.stoppedAtSongEnd)
@@ -588,7 +597,7 @@ struct AllowanceSheetViewModelTests {
     }
 
     @Test("バナー表示中にPro購入が成功するとバナーが消えること")
-    func purchaseProSucceeds_whileBannerVisible_hidesBanner() async throws {
+    func purchaseProSucceeds_whileBannerVisible_hidesBanner() async {
         // Given
         let (vm, enforcer, _, storeMock, _) = Self.setUp(purchaseResult: .success(.purchased))
         enforcer.send(.exhaustedPendingSongEnd)

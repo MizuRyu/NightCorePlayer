@@ -1,20 +1,19 @@
-import SwiftUI
 import NightCoreDomain
+import SwiftUI
 
-extension Constants {
-
-    public enum DefaultValues {
+public extension Constants {
+    enum DefaultValues {
         public static let marqueeScrollSpeed: Double = 30.0
         public static let musicPlayerInitialDuration: Double = 240.0
     }
 
-    public enum MarqueeText {
+    enum MarqueeText {
         public static let defaultSpeed: Double = 30.0
         public static let defaultSpacing: CGFloat = 20.0
         public static let defaultDelay: Double = 3.0
     }
 
-    public enum UI {
+    enum UI {
         public enum CornerRadius {
             public static let standard: CGFloat = 8.0
             public static let medium: CGFloat = 10.0
@@ -53,21 +52,20 @@ extension Constants {
             public static let playlistDividerLeading: CGFloat = 36.0
         }
 
-        public enum Font {
-        }
+        public enum Font {}
 
         public enum Opacity {
             public static let sliderTickMark: Double = 0.6
         }
     }
 
-    public enum AppColors {
+    enum AppColors {
         public static let accent: Color = .indigo
         public static let decreaseButton: Color = .red
         public static let increaseButton: Color = .green
     }
 
-    public enum Playlist {
+    enum Playlist {
         public static let iconSystemNameSize: CGFloat = 15.0
     }
 }

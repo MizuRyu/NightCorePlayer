@@ -1,7 +1,7 @@
-import Testing
-import SwiftUI
-import MusicKit
 import MediaPlayer
+import MusicKit
+import SwiftUI
+import Testing
 
 public func makeDummySong(
     id: String,
@@ -43,7 +43,7 @@ public func makeDummyArtist(
 
 public func makeDummyPlaylist(
     id: String,
-    name: String = "DummyList",
+    name: String = "DummyList"
 ) -> Playlist {
     let data = """
     { "id":"\(id)",

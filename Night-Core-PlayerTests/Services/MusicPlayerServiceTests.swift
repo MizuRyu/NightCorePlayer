@@ -1,21 +1,20 @@
-import Testing
-import SwiftUI
 import Combine
 import MediaPlayer
 import MusicKit
 import NightCoreDomain
 import NightCoreDomainTestSupport
-
+import SwiftUI
+import Testing
 @testable import Night_Core_Player
 
 @MainActor
 private func waitUntil(
-    timeoutMilliseconds: Int = 5_000,
+    timeoutMilliseconds: Int = 5000,
     pollMilliseconds: Int = 50,
     condition: @escaping @MainActor () -> Bool
 ) async {
     let attempts = max(1, timeoutMilliseconds / pollMilliseconds)
-    for _ in 0..<attempts {
+    for _ in 0 ..< attempts {
         if condition() {
             return
         }
@@ -24,6 +23,7 @@ private func waitUntil(
 }
 
 // MARK: - SUT 構造体
+
 private struct SUT {
     let service: MusicPlayerServiceImpl
     let adapter: PlayerControllableMock
@@ -34,7 +34,7 @@ private struct SUT {
 
     @MainActor
     static func make(allowanceEnforcer: AllowanceEnforcer? = nil) -> SUT {
-        let adapter   = PlayerControllableMock()
+        let adapter = PlayerControllableMock()
         let queueMock = QueueManagingMock()
         let context = TestDataStore.container.mainContext
         let repo = PlayerStateRepository(context: context)
@@ -47,7 +47,7 @@ private struct SUT {
             historyRepo: historyRepo, songID: { $0.id.rawValue }
         )
         let artworkService = ArtworkCacheServiceImpl()
-        let service   = MusicPlayerServiceImpl(
+        let service = MusicPlayerServiceImpl(
             rateManager: rateManager,
             persistenceService: persistenceService,
             historyManager: historyManager,
@@ -62,13 +62,14 @@ private struct SUT {
 }
 
 // MARK: - MusicPlayerServiceImpl Queue Tests
-// キュー操作アルゴリズム自体の検証は NightCoreDomain の MusicQueueManagerTests にある。
-// ここには Song 特殊化とプレイヤー副作用の結合部だけを残す
+
+/// キュー操作アルゴリズム自体の検証は NightCoreDomain の MusicQueueManagerTests にある。
+/// ここには Song 特殊化とプレイヤー副作用の結合部だけを残す
 @Suite("MusicPlayerServiceImpl Queue Tests", .serialized)
 @MainActor
 struct MusicPlayerServiceQueueTests {
     @Test("moveItem: 非再生中の曲を移動すると即時再生操作は呼ばれず、フラグだけ立つ")
-    func testMoveItemNonCurrent() async {
+    func moveItemNonCurrent() async {
         // Given
         let sut = SUT.make()
         let A = makeDummySong(id: "A")
@@ -85,7 +86,7 @@ struct MusicPlayerServiceQueueTests {
     }
 
     @Test("moveItem: 再生中の並び替えは即時にプレイヤーキューを再構築せず遅延する")
-    func testMoveItemWhilePlayingDefersResync() async {
+    func moveItemWhilePlayingDefersResync() async {
         // Given
         let sut = SUT.make()
         let A = makeDummySong(id: "A")
@@ -105,12 +106,12 @@ struct MusicPlayerServiceQueueTests {
     }
 
     @Test("removeItem: 範囲外のインデックスなら noAction で何も呼ばれない")
-    func testRemoveItemOutOfBounds() async {
+    func removeItemOutOfBounds() async {
         let A = makeDummySong(id: "A")
         let B = makeDummySong(id: "B")
         let C = makeDummySong(id: "C")
 
-        let adapter   = PlayerControllableMock()
+        let adapter = PlayerControllableMock()
         let queueMock = QueueManagingMock()
         queueMock.items = [A, B, C]
         queueMock.currentIndex = 0
@@ -130,10 +131,10 @@ struct MusicPlayerServiceQueueTests {
         )
 
         // Given
-        let beforeSet  = adapter.setQueueDescriptors.count
+        let beforeSet = adapter.setQueueDescriptors.count
         let beforeStop = adapter.stopCount
         // When
-        await service.removeItem(at: 5)   // 範囲外
+        await service.removeItem(at: 5) // 範囲外
         // Then
         #expect(adapter.setQueueDescriptors.count == beforeSet,
                 "範囲外なら setQueue(with:) が呼ばれない")
@@ -142,7 +143,7 @@ struct MusicPlayerServiceQueueTests {
     }
 
     @Test("playNextAndPlay: キュー内の曲を移動して再生する")
-    func testPlayNextAndPlayWhenSongInQueue() async {
+    func playNextAndPlayWhenSongInQueue() async {
         // Given
         let sut = SUT.make()
         let A = makeDummySong(id: "A")
@@ -165,7 +166,7 @@ struct MusicPlayerServiceQueueTests {
     }
 
     @Test("playNextAndPlay: キュー外の曲を挿入して再生する")
-    func testPlayNextAndPlayWhenSongNotInQueue() async {
+    func playNextAndPlayWhenSongNotInQueue() async {
         // Given
         let sut = SUT.make()
         let A = makeDummySong(id: "A")
@@ -186,10 +187,10 @@ struct MusicPlayerServiceQueueTests {
         #expect(sut.adapter.playCount == 1,
                 "1回 play() が呼ばれる")
     }
-
 }
 
 // MARK: - MusicPlayerServiceImpl Tests
+
 @Suite("MusicPlayerServiceImpl Tests", .serialized)
 @MainActor
 struct MusicPlayerServiceImplTests {
@@ -197,7 +198,7 @@ struct MusicPlayerServiceImplTests {
     func testSetQueue() async {
         // Given: SUTを生成し、2曲の配列を用意
         let sut = SUT.make()
-        let songs = [ makeDummySong(id: "1"), makeDummySong(id: "2") ]
+        let songs = [makeDummySong(id: "1"), makeDummySong(id: "2")]
         // When: setQueueを呼ぶ
         await sut.service.setQueue(songs: songs, startAt: 1)
         // Then: queueMock.setQueueArgsに値が入り、currentTime=0、isPlaying=true
@@ -209,7 +210,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("setQueue: musicPlayerQueue/nowPlayingIndex が同期していること")
-    func testSetQueuePropertiesSync() async {
+    func setQueuePropertiesSync() async {
         // Given: SUTを生成し、2曲配列を用意
         let sut = SUT.make()
         let songs = [makeDummySong(id: "1"), makeDummySong(id: "2")]
@@ -224,7 +225,7 @@ struct MusicPlayerServiceImplTests {
     func testPlay() async {
         // Given: SUT生成し、1曲セット
         let sut = SUT.make()
-        await sut.service.setQueue(songs: [ makeDummySong(id: "1") ], startAt: 0)
+        await sut.service.setQueue(songs: [makeDummySong(id: "1")], startAt: 0)
         // When: playを呼ぶ
         await sut.service.play()
         // Then: isPlaying=trueのスナップショット
@@ -235,7 +236,7 @@ struct MusicPlayerServiceImplTests {
     func testPause() async {
         // Given: SUT生成し、1曲セットしてplay
         let sut = SUT.make()
-        await sut.service.setQueue(songs: [ makeDummySong(id: "1") ], startAt: 0)
+        await sut.service.setQueue(songs: [makeDummySong(id: "1")], startAt: 0)
         await sut.service.play()
         // When: pauseを呼ぶ
         await sut.service.pause()
@@ -244,7 +245,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("insertNext: 空キューに対して曲を追加すると再生が開始されること")
-    func testInsertNextEmptyStartsPlayback() async {
+    func insertNextEmptyStartsPlayback() async {
         // Given: 空キュー状態のSUT
         let sut = SUT.make()
         let newSong = makeDummySong(id: "X")
@@ -258,11 +259,11 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("insertNext: 非空キューに割り込んで追加すると adapter.prepend が呼ばれること")
-    func testInsertNextNonEmpty() async {
+    func insertNextNonEmpty() async {
         // Given: 1曲セット済みのSUT
         let sut = SUT.make()
         let first = makeDummySong(id: "A")
-        await sut.service.setQueue(songs: [ first ], startAt: 0)
+        await sut.service.setQueue(songs: [first], startAt: 0)
         let newSong = makeDummySong(id: "B")
         let before = sut.adapter.prependDescriptors.count
         // When: insertNextで曲追加
@@ -272,7 +273,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("seek: 負の値をシークすると0にクランプされること")
-    func testSeekNegativeClampsToZero() async {
+    func seekNegativeClampsToZero() async {
         // Given: SUTを生成
         let sut = SUT.make()
         // When: seekを-10で呼ぶ
@@ -286,7 +287,7 @@ struct MusicPlayerServiceImplTests {
         // Given: SUTを生成し、duration=5の曲をセット
         let sut = SUT.make()
         let song = makeDummySong(id: "1", duration: 5)
-        await sut.service.setQueue(songs: [ song ], startAt: 0)
+        await sut.service.setQueue(songs: [song], startAt: 0)
         // When: seekを10で呼ぶ
         await sut.service.seek(to: 10)
         // Then: seekArgsの最後が5（durationにクランプ）
@@ -294,7 +295,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("seek: 曲終端近くでシークしたときdurationまでクランプされること")
-    func testSeekNearEndClampsToDuration() async {
+    func seekNearEndClampsToDuration() async {
         // Given: duration=100の曲
         let sut = SUT.make()
         let song = makeDummySong(id: "1", duration: 100)
@@ -309,7 +310,7 @@ struct MusicPlayerServiceImplTests {
     func testSetSessionRate() async {
         // Given: SUT生成・1曲セット
         let sut = SUT.make()
-        await sut.service.setQueue(songs: [ makeDummySong(id: "1") ], startAt: 0)
+        await sut.service.setQueue(songs: [makeDummySong(id: "1")], startAt: 0)
         // When: setSessionRateを1.5で呼ぶ
         await sut.service.setSessionRate(1.5)
         // Then: snapshot.rateが1.5
@@ -317,7 +318,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("setSessionRate: 範囲外のレートは最小値に補正されること")
-    func testSetSessionRateClampLower() async {
+    func setSessionRateClampLower() async {
         // Given: SUT生成・1曲セット
         let sut = SUT.make()
         await sut.service.setQueue(songs: [makeDummySong(id: "1")], startAt: 0)
@@ -328,7 +329,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("setSessionRate: 範囲外のレートは最大値に補正されること")
-    func testSetSessionRateClampUpper() async {
+    func setSessionRateClampUpper() async {
         // Given: SUT生成・1曲セット
         let sut = SUT.make()
         await sut.service.setQueue(songs: [makeDummySong(id: "1")], startAt: 0)
@@ -339,10 +340,10 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("next: 通常ケースではadapter.skipToNextが呼ばれること")
-    func testNextNormal() async {
+    func nextNormal() async {
         // Given
         let sut = SUT.make()
-        let songs = [ makeDummySong(id: "A"), makeDummySong(id: "B") ]
+        let songs = [makeDummySong(id: "A"), makeDummySong(id: "B")]
         await sut.service.setQueue(songs: songs, startAt: 0)
         let beforeSetQueue = sut.adapter.setQueueDescriptors.count
         // When
@@ -353,10 +354,10 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("next: 最後の曲で next() を呼んでも何もしないこと")
-    func testNextAtEndNoOp() async {
+    func nextAtEndNoOp() async {
         // Given
         let sut = SUT.make()
-        let songs = [ makeDummySong(id: "A"), makeDummySong(id: "B") ]
+        let songs = [makeDummySong(id: "A"), makeDummySong(id: "B")]
         await sut.service.setQueue(songs: songs, startAt: songs.count - 1)
         let before = sut.adapter.setQueueDescriptors.count
         // When
@@ -367,10 +368,10 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("previous: 最初の曲で previous() を呼んでも何もしないこと")
-    func testPreviousAtStartNoOp() async {
+    func previousAtStartNoOp() async {
         // Given: 2曲セット、index=0
         let sut = SUT.make()
-        let songs = [ makeDummySong(id: "A"), makeDummySong(id: "B") ]
+        let songs = [makeDummySong(id: "A"), makeDummySong(id: "B")]
         await sut.service.setQueue(songs: songs, startAt: 0)
         let before = sut.adapter.setQueueDescriptors.count
         // When: previousを呼ぶ
@@ -380,10 +381,10 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("previous: 通常ケースではadapter.skipToPreviousが呼ばれること")
-    func testPreviousNormal() async {
+    func previousNormal() async {
         // Given
         let sut = SUT.make()
-        let songs = [ makeDummySong(id: "A"), makeDummySong(id: "B") ]
+        let songs = [makeDummySong(id: "A"), makeDummySong(id: "B")]
         await sut.service.setQueue(songs: songs, startAt: 1)
         let beforeSetQueue = sut.adapter.setQueueDescriptors.count
         // When
@@ -398,7 +399,7 @@ struct MusicPlayerServiceImplTests {
         // Given: 別の曲でキューをセット
         let sut = SUT.make()
         let initial = makeDummySong(id: "X")
-        await sut.service.setQueue(songs: [ initial ], startAt: 0)
+        await sut.service.setQueue(songs: [initial], startAt: 0)
         let target = makeDummySong(id: "Y")
         let beforeSet = sut.adapter.setQueueDescriptors.count
         let beforePlay = sut.adapter.playCount
@@ -410,7 +411,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("playNow: 既存キューを破棄して指定曲のみ再生されること")
-    func testPlayNowReplacesQueue() async {
+    func playNowReplacesQueue() async {
         // Given: 既存キューにA
         let sut = SUT.make()
         let A = makeDummySong(id: "A")
@@ -426,16 +427,16 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("removeItem: 非再生中の曲を削除すると、trackChanged 後に adapter.setQueue + seek が呼ばれる")
-    func testRemoveItemNonCurrentWithTrackChanged() async {
+    func removeItemNonCurrentWithTrackChanged() async {
         // -- Setup
-        let sut   = SUT.make()
-        let A     = makeDummySong(id: "A")
-        let B     = makeDummySong(id: "B")
-        let C     = makeDummySong(id: "C")
+        let sut = SUT.make()
+        let A = makeDummySong(id: "A")
+        let B = makeDummySong(id: "B")
+        let C = makeDummySong(id: "C")
         // A(0) を再生中としてセット
         await sut.service.setQueue(songs: [A, B, C], startAt: 0)
 
-        let beforeSet  = sut.adapter.setQueueDescriptors.count
+        let beforeSet = sut.adapter.setQueueDescriptors.count
 
         // -- 実行：非再生中の曲を削除（フラグだけ立つ）
         await sut.service.removeItem(at: 2)
@@ -459,7 +460,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("removeItem: 再生中の曲を削除すると再生開始されること")
-    func testRemoveItemCurrent() async {
+    func removeItemCurrent() async {
         // Given: 3曲セット、B(1)が再生中
         let sut = SUT.make()
         let A = makeDummySong(id: "A")
@@ -476,11 +477,11 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("removeItem: 唯一の曲を削除すると停止されること")
-    func testRemoveItemSingleStops() async {
+    func removeItemSingleStops() async {
         // Given: 唯一の曲Zでキューをセット
         let sut = SUT.make()
         let only = makeDummySong(id: "Z")
-        await sut.service.setQueue(songs: [ only ], startAt: 0)
+        await sut.service.setQueue(songs: [only], startAt: 0)
         let beforeStop = sut.adapter.stopCount
         // When: 唯一の曲を削除
         await sut.service.removeItem(at: 0)
@@ -489,7 +490,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("trackChanged: trackChanged通知で履歴が追加されること")
-    func testTrackChangedHistory() async {
+    func trackChangedHistory() async {
         // Given: setQueue経由で2曲セット
         let sut = SUT.make()
         let testSong = makeDummySong(id: "HIST_A")
@@ -508,7 +509,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("moveItem 後の next() でプレイヤーキューが再構築されること")
-    func testMoveThenNextResyncsQueue() async {
+    func moveThenNextResyncsQueue() async {
         // Given
         let sut = SUT.make()
         let A = makeDummySong(id: "A")
@@ -550,7 +551,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("toggleShuffle: 再生中は即再キューせずキュー順だけ更新する")
-    func testToggleShuffleDefersQueueResyncWhilePlaying() async {
+    func toggleShuffleDefersQueueResyncWhilePlaying() async {
         let sut = SUT.make()
         let songs = [makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C")]
         await sut.service.setQueue(songs: songs, startAt: 0)
@@ -569,7 +570,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("toggleShuffle: 再生中に切り替えた後の next で初めて再同期する")
-    func testToggleShuffleResyncsOnNextWhilePlaying() async {
+    func toggleShuffleResyncsOnNextWhilePlaying() async {
         let sut = SUT.make()
         let songs = [makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C")]
         await sut.service.setQueue(songs: songs, startAt: 0)
@@ -585,7 +586,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("toggleShuffle: 再生中に切り替えた後の自然な trackChanged では再同期しない")
-    func testToggleShuffleDoesNotResyncOnNaturalTrackChange() async {
+    func toggleShuffleDoesNotResyncOnNaturalTrackChange() async {
         let sut = SUT.make()
         let songs = [makeDummySong(id: "A"), makeDummySong(id: "B"), makeDummySong(id: "C")]
         await sut.service.setQueue(songs: songs, startAt: 0)
@@ -628,7 +629,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("repeat one: 再生中に設定したあと停止したら現在曲の先頭から再開する")
-    func testRepeatOneRestartsCurrentSongOnStop() async {
+    func repeatOneRestartsCurrentSongOnStop() async {
         let sut = SUT.make()
         await sut.service.setQueue(songs: [makeDummySong(id: "A")], startAt: 0)
         await sut.service.cycleRepeatMode()
@@ -650,7 +651,7 @@ struct MusicPlayerServiceImplTests {
     }
 
     @Test("cycleRepeatMode: 再生中は .one へ入っても即再キューしない")
-    func testCycleRepeatModeDefersResyncWhenEnteringOneWhilePlaying() async {
+    func cycleRepeatModeDefersResyncWhenEnteringOneWhilePlaying() async {
         let sut = SUT.make()
         await sut.service.setQueue(
             songs: [makeDummySong(id: "A"), makeDummySong(id: "B")],
@@ -673,13 +674,15 @@ struct MusicPlayerServiceImplTests {
 }
 
 // MARK: - Characterization Tests (Phase 1-2)
+
 /// 大きな責務分割前に重要な挙動を固定するテスト群
 @Suite("CharacterizationTests (Phase 1-2)", .serialized)
 @MainActor
 struct CharacterizationTests {
     // MARK: 1. session rate 変更がプレーヤーに即反映される
+
     @Test("session rate 変更が adapter.playbackRate に即反映される")
-    func testSessionRateReflectsInPlayer() async {
+    func sessionRateReflectsInPlayer() async {
         let sut = SUT.make()
         await sut.service.setQueue(songs: [makeDummySong(id: "1")], startAt: 0)
 
@@ -690,8 +693,9 @@ struct CharacterizationTests {
     }
 
     // MARK: 2. default rate が SwiftData に永続化される
+
     @Test("default rate が repo に永続化される")
-    func testDefaultRatePersistence() async throws {
+    func defaultRatePersistence() throws {
         let sut = SUT.make()
         let newRate = 1.8
 
@@ -703,8 +707,9 @@ struct CharacterizationTests {
     }
 
     // MARK: 3. アプリ再起動後に default rate が復元される
+
     @Test("再起動シミュレーション: 永続化した rate が新 rateManager に復元される")
-    func testDefaultRateRestoredOnRestart() async throws {
+    func defaultRateRestoredOnRestart() throws {
         let sut = SUT.make()
         let persistedRate = 2.5
 
@@ -718,8 +723,9 @@ struct CharacterizationTests {
     }
 
     // MARK: 4. trackChanged 後の保存整合
+
     @Test("曲変更後に default rate で保存される（session rate ではない）")
-    func testTrackChangedSavesDefaultRate() async throws {
+    func trackChangedSavesDefaultRate() async throws {
         let sut = SUT.make()
         let songs = [makeDummySong(id: "CHAR_A"), makeDummySong(id: "CHAR_B")]
         await sut.service.setQueue(songs: songs, startAt: 0)
@@ -739,8 +745,9 @@ struct CharacterizationTests {
     }
 
     // MARK: 5. Settings 画面からの変更が Player に反映される
+
     @Test("SettingsViewModel 経由の default rate 変更が session rate にも反映される")
-    func testSettingsToPlayerPropagation() async throws {
+    func settingsToPlayerPropagation() async {
         let sut = SUT.make()
         await sut.service.setQueue(songs: [makeDummySong(id: "1")], startAt: 0)
 
@@ -770,10 +777,10 @@ struct CharacterizationTests {
 }
 
 // MARK: - Allowance Enforcement（残高枯渇時の曲境界停止）
+
 @Suite("AllowanceEnforcement Tests", .serialized)
 @MainActor
 struct AllowanceEnforcementTests {
-
     @Test("枯渇時: 曲境界で一時停止しレートが等速に戻り、イベントが順に発行される")
     func exhaustStopsAtSongBoundary() async {
         // Given: 残高ありの状態で2曲セットし、Aを自動再生

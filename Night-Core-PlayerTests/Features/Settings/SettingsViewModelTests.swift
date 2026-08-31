@@ -1,8 +1,7 @@
-import Testing
 import Foundation
 import NightCoreDomain
 import NightCoreDomainTestSupport
-
+import Testing
 @testable import Night_Core_Player
 
 // MARK: - Mock
@@ -23,17 +22,18 @@ private struct PurchaseTestError: Error {}
 @Suite("SettingsViewModel Tests", .serialized)
 @MainActor
 struct SettingsViewModelTests {
-
     // MARK: - Helpers
 
     private static func waitUntil(
-        timeoutMilliseconds: Int = 1_000,
+        timeoutMilliseconds: Int = 1000,
         pollMilliseconds: Int = 10,
         condition: @escaping @MainActor () -> Bool
     ) async {
         let attempts = max(1, timeoutMilliseconds / pollMilliseconds)
-        for _ in 0..<attempts {
-            if condition() { return }
+        for _ in 0 ..< attempts {
+            if condition() {
+                return
+            }
             try? await Task.sleep(nanoseconds: UInt64(pollMilliseconds) * 1_000_000)
         }
     }
@@ -76,7 +76,7 @@ struct SettingsViewModelTests {
     }
 
     @Test("updateDefaultRate: rateManagerとplayerServiceに反映されること")
-    func updateDefaultRate_validValue_propagatesToAll() async throws {
+    func updateDefaultRate_validValue_propagatesToAll() async {
         // Given
         let (vm, rateMock, svcMock) = SettingsViewModelTests.setUp()
 
@@ -95,7 +95,7 @@ struct SettingsViewModelTests {
     }
 
     @Test("updateDefaultRate: 最大値を超える値がクランプされること")
-    func updateDefaultRate_exceedsMax_clampedToMax() async throws {
+    func updateDefaultRate_exceedsMax_clampedToMax() async {
         // Given
         let (vm, rateMock, svcMock) = SettingsViewModelTests.setUp()
         let maxRate = Constants.MusicPlayer.maxPlaybackRate
@@ -113,7 +113,7 @@ struct SettingsViewModelTests {
     }
 
     @Test("updateDefaultRate: 最小値を下回る値がクランプされること")
-    func updateDefaultRate_belowMin_clampedToMin() async throws {
+    func updateDefaultRate_belowMin_clampedToMin() async {
         // Given
         let (vm, rateMock, svcMock) = SettingsViewModelTests.setUp()
         let minRate = Constants.MusicPlayer.minPlaybackRate
@@ -133,7 +133,7 @@ struct SettingsViewModelTests {
     // MARK: - Pro Store
 
     @Test("purchasePro: purchase()がthrowしたらerrorMessageが設定されること")
-    func purchasePro_purchaseThrows_setsErrorMessage() async throws {
+    func purchasePro_purchaseThrows_setsErrorMessage() async {
         // Given
         let storeMock = ProStoreServiceMock()
         storeMock.purchaseResult = .failure(PurchaseTestError())
@@ -149,7 +149,7 @@ struct SettingsViewModelTests {
     }
 
     @Test("purchasePro: 購入成功後にisProEntitledがtrueになること")
-    func purchasePro_purchaseSucceeds_entitlesPro() async throws {
+    func purchasePro_purchaseSucceeds_entitlesPro() async {
         // Given
         let storeMock = ProStoreServiceMock()
         storeMock.purchaseResult = .success(.purchased)
@@ -166,7 +166,7 @@ struct SettingsViewModelTests {
     }
 
     @Test("purchasePro: 商品を取得できない場合はエラーを表示すること")
-    func purchasePro_productUnavailable_showsError() async throws {
+    func purchasePro_productUnavailable_showsError() async {
         // Given: StoreKitから商品を取得できない状態
         let storeMock = ProStoreServiceMock()
         storeMock.purchaseResult = .success(.unavailable)
@@ -182,7 +182,7 @@ struct SettingsViewModelTests {
     }
 
     @Test("purchasePro: ユーザーキャンセルではエラーを表示しないこと")
-    func purchasePro_cancelled_doesNotShowError() async throws {
+    func purchasePro_cancelled_doesNotShowError() async {
         // Given
         let storeMock = ProStoreServiceMock()
         storeMock.purchaseResult = .success(.cancelled)
@@ -197,7 +197,7 @@ struct SettingsViewModelTests {
     }
 
     @Test("purchasePro: isPurchasing中の再呼び出しはpurchase()を実行しないこと")
-    func purchasePro_whilePurchasing_skipsSecondCall() async throws {
+    func purchasePro_whilePurchasing_skipsSecondCall() async {
         // Given: purchase()を遅延させ、処理中の窓を作る
         let storeMock = ProStoreServiceMock()
         storeMock.purchaseResult = .success(.purchased)
@@ -218,7 +218,7 @@ struct SettingsViewModelTests {
     }
 
     @Test("proStoreなし: loadProState()/purchasePro()が無害に終了すること")
-    func withoutProStore_callsAreHarmless() async throws {
+    func withoutProStore_callsAreHarmless() async {
         // Given
         let (vm, _, _) = SettingsViewModelTests.setUp()
 

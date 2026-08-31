@@ -38,7 +38,10 @@ public final class MusicQueueManager<Item: Sendable>: QueueManaging {
 
     public init() {}
 
-    public var isEmpty: Bool { items.isEmpty }
+    public var isEmpty: Bool {
+        items.isEmpty
+    }
+
     public var currentSong: Item? {
         guard items.indices.contains(currentIndex) else { return nil }
         return items[currentIndex]

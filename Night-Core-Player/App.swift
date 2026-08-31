@@ -5,10 +5,10 @@
 //  Created by RyuichiroMizutani on 2025/05/09.
 //
 
-import SwiftUI
 import GoogleMobileAds
 import MusicKit
 import NightCoreDomain
+import SwiftUI
 
 @main
 struct NightcorePlayerApp: App {
@@ -27,7 +27,7 @@ struct NightcorePlayerApp: App {
     init() {
         #if DEBUG
             #if targetEnvironment(simulator)
-            Bundle(path: "/Applications/InjectionIII.app/Contents/Resources/iOSInjection.bundle")?.load()
+                Bundle(path: "/Applications/InjectionIII.app/Contents/Resources/iOSInjection.bundle")?.load()
             #endif
         #endif
 

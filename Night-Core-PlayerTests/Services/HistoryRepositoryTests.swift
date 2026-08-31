@@ -1,15 +1,13 @@
-import Testing
-import SwiftData
 import NightCoreDomain
 import NightCoreDomainTestSupport
-
+import SwiftData
+import Testing
 @testable import Night_Core_Player
 
 /// SwiftData 実装が HistoryRepositoryPort の契約を満たすことを検証する
 @Suite("HistoryRepository Tests", .serialized)
 @MainActor
 struct HistoryRepositoryTests {
-
     // MARK: - Helpers
 
     private static func makeRepo() -> HistoryRepository {

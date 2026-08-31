@@ -1,6 +1,6 @@
 import Foundation
-import SwiftData
 import NightCoreDomain
+import SwiftData
 
 @Model
 final class AllowanceEntity {

@@ -15,7 +15,9 @@ final class ProStoreServiceMock: ProStoreService {
     private(set) var purchaseCallCount = 0
     private(set) var restoreCallCount = 0
 
-    var isProEntitled: Bool { entitledResult }
+    var isProEntitled: Bool {
+        entitledResult
+    }
 
     func loadProduct() async -> Product? {
         loadProductCallCount += 1
