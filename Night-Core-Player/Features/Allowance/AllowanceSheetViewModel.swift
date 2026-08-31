@@ -20,6 +20,9 @@ final class AllowanceSheetViewModel {
     private(set) var isPurchasing = false
     private(set) var isWatchingAd = false
     private(set) var showProPromptPitch = false
+    /// 残高が尽きた瞬間、曲末までの猶予を非モーダルで知らせるバナー。ADR-003の
+    /// 「黙って猶予を与える」だけだった状態を解消する(#104)
+    private(set) var isExhaustionBannerVisible = false
     private(set) var presentationReason: AllowancePresentationReason = .exhausted
     /// 今日あと何回リワードを受け取れるか。0 なら視聴ボタンを塞ぐ
     private(set) var rewardsRemainingToday = Constants.Allowance.dailyRewardLimit
@@ -54,12 +57,16 @@ final class AllowanceSheetViewModel {
             .sink { [weak self] event in
                 switch event {
                 case .stoppedAtSongEnd:
+                    self?.isExhaustionBannerVisible = false
                     self?.present(reason: .exhausted)
                 case .revertedToNormalRate:
                     // 無言で等速に戻ると理由が伝わらないため、その場で知らせる
+                    self?.isExhaustionBannerVisible = false
                     self?.present(reason: .revertedToNormalRate)
                 case .exhaustedPendingSongEnd:
-                    break
+                    // 曲末まではADR-003の猶予どおり再生を続けるが、無言のままだと
+                    // 「残高0でも再生できるバグ」に見えるため非モーダルバナーで知らせる
+                    self?.isExhaustionBannerVisible = true
                 }
             }
             .store(in: &cancellables)
@@ -69,6 +76,17 @@ final class AllowanceSheetViewModel {
     /// 枠超過を待たずに広告視聴と Pro 購入へ到達できるようにする
     func presentForAddingTime() {
         present(reason: .addTime)
+    }
+
+    /// 枯渇バナーのタップ。バナーを消して「再生時間を追加」ダイアログへ導線を繋ぐ
+    func presentFromExhaustionBanner() {
+        isExhaustionBannerVisible = false
+        presentForAddingTime()
+    }
+
+    /// 枯渇バナー右端の閉じるボタン。自動タイムアウトはしない仕様のため明示操作でのみ消える
+    func dismissExhaustionBanner() {
+        isExhaustionBannerVisible = false
     }
 
     /// 広告視聴中・購入中

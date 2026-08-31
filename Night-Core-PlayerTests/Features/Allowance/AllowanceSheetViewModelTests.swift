@@ -449,4 +449,78 @@ struct AllowanceSheetViewModelTests {
         // Then
         #expect(!vm.isPresented)
     }
+
+    // MARK: - Exhaustion Banner (#104)
+
+    @Test(".exhaustedPendingSongEndの受信で枯渇バナーが表示されること")
+    func exhaustedPendingSongEnd_showsExhaustionBanner() {
+        // Given
+        let (vm, enforcer, _, _, _) = Self.setUp()
+
+        // When
+        enforcer.send(.exhaustedPendingSongEnd)
+
+        // Then: 曲末までの猶予中はシートを出さず、バナーだけで知らせる
+        #expect(vm.isExhaustionBannerVisible)
+        #expect(!vm.isPresented)
+    }
+
+    @Test(".stoppedAtSongEndの受信で枯渇バナーが消えること")
+    func stoppedAtSongEnd_hidesExhaustionBanner() {
+        // Given
+        let (vm, enforcer, _, _, _) = Self.setUp()
+        enforcer.send(.exhaustedPendingSongEnd)
+        #expect(vm.isExhaustionBannerVisible)
+
+        // When
+        enforcer.send(.stoppedAtSongEnd)
+
+        // Then
+        #expect(!vm.isExhaustionBannerVisible)
+    }
+
+    @Test(".revertedToNormalRateの受信で枯渇バナーが消えること")
+    func revertedToNormalRate_hidesExhaustionBanner() {
+        // Given
+        let (vm, enforcer, _, _, _) = Self.setUp()
+        enforcer.send(.exhaustedPendingSongEnd)
+        #expect(vm.isExhaustionBannerVisible)
+
+        // When
+        enforcer.send(.revertedToNormalRate)
+
+        // Then
+        #expect(!vm.isExhaustionBannerVisible)
+    }
+
+    @Test("枯渇バナーのタップで消えて「再生時間を追加」ダイアログが開くこと")
+    func presentFromExhaustionBanner_hidesBannerAndOpensAddTimeDialog() {
+        // Given
+        let (vm, enforcer, _, _, _) = Self.setUp()
+        enforcer.send(.exhaustedPendingSongEnd)
+        #expect(vm.isExhaustionBannerVisible)
+
+        // When
+        vm.presentFromExhaustionBanner()
+
+        // Then
+        #expect(!vm.isExhaustionBannerVisible)
+        #expect(vm.isPresented)
+        #expect(vm.presentationReason == .addTime)
+    }
+
+    @Test("枯渇バナーの閉じるボタンでバナーだけが消え、シートは開かないこと")
+    func dismissExhaustionBanner_hidesBannerOnly() {
+        // Given
+        let (vm, enforcer, _, _, _) = Self.setUp()
+        enforcer.send(.exhaustedPendingSongEnd)
+        #expect(vm.isExhaustionBannerVisible)
+
+        // When
+        vm.dismissExhaustionBanner()
+
+        // Then
+        #expect(!vm.isExhaustionBannerVisible)
+        #expect(!vm.isPresented)
+    }
 }
