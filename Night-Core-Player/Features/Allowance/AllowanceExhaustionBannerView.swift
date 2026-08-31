@@ -7,15 +7,23 @@ struct AllowanceExhaustionBannerView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Free time used up — sped-up playback stops after this song.")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                Text("Normal speed stays free. Tap to add time.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            Button {
+                viewModel.presentFromExhaustionBanner()
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Free time used up — sped-up playback stops after this song.")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    Text("Normal speed stays free. Tap to add time.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .multilineTextAlignment(.leading)
+                .contentShape(Rectangle())
             }
-            .multilineTextAlignment(.leading)
+            .buttonStyle(.plain)
+            // VoiceOverでも「再生時間を追加」ダイアログへのタップだと伝わるようにする
+            .accessibilityLabel(Text("Add Playback Time"))
 
             Spacer(minLength: 8)
 
@@ -26,6 +34,7 @@ struct AllowanceExhaustionBannerView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+            .accessibilityLabel(Text("Close"))
             .accessibilityIdentifier("allowance_exhaustion_banner_close_button")
         }
         .padding(14)
@@ -35,10 +44,6 @@ struct AllowanceExhaustionBannerView: View {
         )
         .shadow(radius: 4)
         .padding(.horizontal, 16)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            viewModel.presentFromExhaustionBanner()
-        }
         .accessibilityIdentifier("allowance_exhaustion_banner")
     }
 }

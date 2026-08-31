@@ -523,4 +523,63 @@ struct AllowanceSheetViewModelTests {
         #expect(!vm.isExhaustionBannerVisible)
         #expect(!vm.isPresented)
     }
+
+    @Test("シート表示中は.exhaustedPendingSongEndを受けてもバナーを重ねて出さないこと")
+    func exhaustedPendingSongEnd_whileDialogPresented_doesNotShowBanner() {
+        // Given: 「再生時間を追加」ダイアログを開いた状態
+        let (vm, enforcer, _, _, _) = Self.setUp()
+        vm.presentForAddingTime()
+        #expect(vm.isPresented)
+
+        // When
+        enforcer.send(.exhaustedPendingSongEnd)
+
+        // Then: ダイアログとバナーの同時表示は避ける
+        #expect(!vm.isExhaustionBannerVisible)
+    }
+
+    @Test("バナー表示中にpresentForAddingTime()を呼ぶとバナーが消えシートが開くこと")
+    func presentForAddingTime_whileBannerVisible_hidesBannerAndOpensDialog() {
+        // Given
+        let (vm, enforcer, _, _, _) = Self.setUp()
+        enforcer.send(.exhaustedPendingSongEnd)
+        #expect(vm.isExhaustionBannerVisible)
+
+        // When
+        vm.presentForAddingTime()
+
+        // Then: ダイアログが開いたらバナーは役目を終える
+        #expect(!vm.isExhaustionBannerVisible)
+        #expect(vm.isPresented)
+    }
+
+    @Test("バナー表示中にリワード付与が成功するとバナーが消えること")
+    func grantRewardSucceeds_whileBannerVisible_hidesBanner() {
+        // Given: ダイアログを開かせずバナーだけ出ている状態(設定画面等からの直接付与を模す)
+        let (vm, enforcer, _, _, _) = Self.setUp(shouldShowProPrompt: false)
+        enforcer.send(.exhaustedPendingSongEnd)
+        #expect(vm.isExhaustionBannerVisible)
+
+        // When: 残高が回復する
+        vm.watchAdForReward()
+
+        // Then
+        #expect(!vm.isExhaustionBannerVisible)
+    }
+
+    @Test("バナー表示中にPro購入が成功するとバナーが消えること")
+    func purchaseProSucceeds_whileBannerVisible_hidesBanner() async throws {
+        // Given
+        let (vm, enforcer, _, storeMock, _) = Self.setUp(purchaseResult: .success(.purchased))
+        enforcer.send(.exhaustedPendingSongEnd)
+        #expect(vm.isExhaustionBannerVisible)
+
+        // When
+        vm.purchasePro()
+        await Self.waitUntil { storeMock.purchaseCallCount == 1 }
+        await Self.waitUntil { !vm.isExhaustionBannerVisible }
+
+        // Then
+        #expect(!vm.isExhaustionBannerVisible)
+    }
 }
