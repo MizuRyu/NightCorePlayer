@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 import NightCoreDomain
 
-final class HistoryRepository {
+final class HistoryRepository: HistoryRepositoryPort {
     private let context: ModelContext
     private let maxHistoryCount = Constants.History.maxHistoryCount
 

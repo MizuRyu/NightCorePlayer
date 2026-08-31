@@ -15,14 +15,6 @@ enum RewardedAdError: Error {
     case alreadyPresenting
 }
 
-// MARK: - Protocol
-
-@MainActor
-protocol RewardedAdService: Sendable {
-    func preload() async
-    func present() async throws -> Bool
-}
-
 // MARK: - Impl
 
 @MainActor
