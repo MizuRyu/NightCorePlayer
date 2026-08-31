@@ -9,6 +9,9 @@
 
 ## 実施順序と、その理由
 
+進捗(2026-08-31 時点): #104 完了(PR #117)、Stage A 完了(PR #118)、Stage B1 完了(PR #119)、
+Stage B2 レビュー中(PR #120)。残りは Stage C。
+
 | 順 | 対象 | 内容 | なぜこの順か |
 |---|---|---|---|
 | 1 | #104 | 枯渇時の非モーダルバナー | Features 層のみで完結し他と競合しない。実機検証で2回指摘された体験問題を最小コストで解消 |
@@ -40,9 +43,14 @@ issue 提案どおりバナーを採用する。理由:
   - 対象ファイルは依存棚卸し(下記)で確定
   - アプリターゲットは SPM 依存として取り込み、既存の型名・呼び出し側は変えない(まず移動のみ)
   - 受け入れ条件: `swift test --package-path Packages/NightCoreDomain` が simulator なしで通る
-- **Stage B — port contract**
-  - MusicKit / SwiftData / AdMob / StoreKit 境界を Domain 側 protocol として定義
-  - fake 実装に contract テストを適用(実装と fake が同じテストスイートを通る形)
+- **Stage B — port contract**(実施時に B1/B2 の 2 PR に分割した)
+  - B1(PR #119): Repository 3 種の port contract 体制。同一の契約検証関数を in-memory fake と
+    SwiftData 実実装の両方に適用し、`make test` と CI のゲートに SPM テストを追加
+  - B2(PR #120): QueueManaging / PlayHistoryManaging を primary associated type で
+    ジェネリック化して Domain へ移設。アプリ側は `Song` で特殊化
+  - **RecommendationService の Domain 化は 1.2 では見送り**: 本体が MusicKitClient への
+    取得依存であり、配合ロジックの純粋部分だけを切り出しても保守面の利得が薄い。
+    必要になったら Song 抽象化(DomainSong 導入)とセットで再検討する
 - **Stage C — 消費ロジック刷新(#102/#103 の本修正)**
   - #102: wall-clock 差分ではなく「曲 ID + 再生位置の差分」で消費量を計測する。
     再生位置が復元できない場合はクランプで誤魔化さず倍速を停止する(安全側)。
