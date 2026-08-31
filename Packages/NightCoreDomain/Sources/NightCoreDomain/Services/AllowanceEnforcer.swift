@@ -19,7 +19,7 @@ public enum AllowanceEvent: Sendable {
 public protocol AllowanceEnforcer: Sendable {
     var events: AnyPublisher<AllowanceEvent, Never> { get }
     var isExhausted: Bool { get }
-    func tick(isPlaying: Bool, rate: Double, songID: String?, now: Date)
+    func tick(isPlaying: Bool, rate: Double, songID: String?, playbackPosition: TimeInterval?, now: Date)
     func shouldStopAtSongBoundary() -> Bool
     /// 猶予対象外の曲で倍速再生が始まった場合に true。曲末を待たず等速へ戻す
     func shouldRevertToNormalRateNow() -> Bool
@@ -32,8 +32,10 @@ public protocol AllowanceEnforcer: Sendable {
 @MainActor
 public final class AllowanceEnforcerImpl: AllowanceEnforcer {
     private let logger = Logger(subsystem: Constants.Logging.subsystem, category: "Allowance")
-    /// 前回tickからの経過が異常に長い場合のconsume上限（バックグラウンド放置で残高が一気に飛ぶのを防ぐ）
-    private static let maxTickIntervalSeconds: TimeInterval = 60
+
+    /// 再生位置で裏が取れない区間（曲変更・位置取得不能・位置が進んでいない）の consume 上限。
+    /// wall-clock だけを根拠に長時間ぶんを請求すると、実際には鳴っていなかった場合に取り返せない
+    private static let fallbackMaxTickSeconds: TimeInterval = 60
 
     private let allowanceService: AllowanceService
 
@@ -46,6 +48,15 @@ public final class AllowanceEnforcerImpl: AllowanceEnforcer {
     }
 
     private var lastTickAt: Date?
+
+    /// 前回tick時点の再生状態。区間 [前回tick, 今回tick] を支配していたのは前回の状態なので、
+    /// 消費の判定も倍速の値も前回のものを使う（倍速→pause の遷移tickで直前の倍速区間を取りこぼさない）
+    private var lastState: (isSpedUp: Bool, rate: Double)?
+
+    /// 前回tick時点の再生位置と、その位置が属していた曲。消費量を wall-clock ではなく
+    /// 実際に進んだ再生位置から求めるための基準（tickが欠落しても実再生ぶんだけ消費する）
+    private var lastPlaybackPosition: TimeInterval?
+    private var lastPositionSongID: String?
 
     /// entitlement == .exhausted の写し。残高そのものの状態を表し、停止予約とは独立している
     private var isBalanceExhausted = false
@@ -78,35 +89,47 @@ public final class AllowanceEnforcerImpl: AllowanceEnforcer {
 
     public var isExhausted: Bool { isBalanceExhausted }
 
-    public func tick(isPlaying: Bool, rate: Double, songID: String?, now: Date) {
+    public func tick(isPlaying: Bool, rate: Double, songID: String?, playbackPosition: TimeInterval?, now: Date) {
+        let isSpedUpNow = isPlaying && rate != Constants.MusicPlayer.normalPlaybackRate
+
         // Proは消費もアームもしない。既存の停止予約があれば解除して即return
         guard !isProEntitled() else {
-            // lastTickAtを進めないとPro期間ぶんが溜まり、Pro解除後の初回tickで一括消費される
-            lastTickAt = now
+            // 基準を進めないとPro期間ぶんが溜まり、Pro解除後の初回tickで一括消費される
+            recordBaseline(isSpedUp: isSpedUpNow, rate: rate, position: playbackPosition, songID: songID, now: now)
             isBalanceExhausted = false
+            // Pro期間中は残高を観測していない。観測をやり直さないと、解除直後のtickで
+            // 「残高があるうちから倍速で鳴っていた」と誤認して曲末猶予を与えてしまう
+            hasObservedBalance = false
             clearGrace()
             return
         }
 
-        let baseline = lastTickAt ?? now
-        lastTickAt = now
+        // Date逆行は0に切る。時計が戻された区間を負の消費として扱うと残高が増えてしまう
+        let wallDelta = max(0, now.timeIntervalSince(lastTickAt ?? now))
 
         // consume する前の状態を控える。「残高があるうちから倍速で鳴っていた」ことが
         // 曲末までの猶予を与える条件になる
-        let isSpedUpNow = isPlaying && rate != Constants.MusicPlayer.normalPlaybackRate
         let hadBalanceBeforeConsume = hasObservedBalance && !isBalanceExhausted
 
-        // 等速再生・素の再生は消費しない。トライアル中かはAllowanceService内部で判定される
-        if isPlaying, rate != Constants.MusicPlayer.normalPlaybackRate {
-            let elapsed = min(max(0, now.timeIntervalSince(baseline)), Self.maxTickIntervalSeconds)
-            if elapsed > 0 {
+        // 消費の対象は「前回tickから今回tickまでの区間」であり、その区間の再生状態は前回tickの状態。
+        // トライアル中かはAllowanceService内部で判定される
+        if let previous = lastState, previous.isSpedUp {
+            let consumable = consumableSeconds(
+                wallDelta: wallDelta,
+                previousRate: previous.rate,
+                songID: songID,
+                playbackPosition: playbackPosition
+            )
+            if consumable > 0 {
                 do {
-                    try allowanceService.consume(elapsed, now: now)
+                    try allowanceService.consume(consumable, now: now)
                 } catch {
                     logger.error("Allowance consume error: \(error.localizedDescription)")
                 }
             }
         }
+
+        recordBaseline(isSpedUp: isSpedUpNow, rate: rate, position: playbackPosition, songID: songID, now: now)
 
         // 残高状態の写しを更新。consume後に判定することで、残高が尽きたtick内で以降の分岐に反映できる
         if let entitlement = try? allowanceService.entitlement(now: now) {
@@ -167,6 +190,42 @@ public final class AllowanceEnforcerImpl: AllowanceEnforcer {
     }
 
     // MARK: - Private
+
+    /// 実際に進んだ再生位置から消費秒数を求める。rate 倍で position が x 秒進んだなら、
+    /// それに費やした実時間は x / rate 秒（0.5x のスロー再生なら実時間の方が長くなる）。
+    /// wallDelta を上限に置くのは前方シークで過大請求しないため
+    private func consumableSeconds(
+        wallDelta: TimeInterval,
+        previousRate: Double,
+        songID: String?,
+        playbackPosition: TimeInterval?
+    ) -> TimeInterval {
+        guard
+            songID == lastPositionSongID,
+            let previous = lastPlaybackPosition,
+            let current = playbackPosition,
+            current - previous > 0,
+            previousRate > 0
+        else {
+            // 位置で裏が取れない区間（曲変更・位置取得不能・後方シークや repeat-one の周回で
+            // 位置が進んでいない）は上限つきで保守的に消費する
+            return min(wallDelta, Self.fallbackMaxTickSeconds)
+        }
+        return min(wallDelta, (current - previous) / previousRate)
+    }
+
+    private func recordBaseline(
+        isSpedUp: Bool,
+        rate: Double,
+        position: TimeInterval?,
+        songID: String?,
+        now: Date
+    ) {
+        lastTickAt = now
+        lastState = (isSpedUp: isSpedUp, rate: rate)
+        lastPlaybackPosition = position
+        lastPositionSongID = songID
+    }
 
     private func clearGrace() {
         graceSongID = nil
