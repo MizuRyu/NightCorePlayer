@@ -224,6 +224,24 @@ struct AllowanceSheetViewModelTests {
         #expect(vm.isPresented, "エラー時はシートを閉じない")
     }
 
+    @Test("リワード視聴: 日次上限のAllowanceErrorが従来のローカライズ文言に写されること")
+    func watchAdForReward_dailyRewardLimitReached_showsLocalizedMessage() {
+        // Given: Domain が日次上限エラーを投げる状態
+        let (vm, enforcer, allowanceMock, _, _) = Self.setUp()
+        allowanceMock.grantRewardError = AllowanceError.dailyRewardLimitReached
+        enforcer.send(.stoppedAtSongEnd)
+
+        // When
+        vm.watchAdForReward()
+
+        // Then: パッケージ切り出し前と同じ AppError.player の文言になる
+        let expected = AppError.player(
+            String(localized: "You've reached today's ad limit. It resets tomorrow.")
+        ).errorDescription
+        #expect(vm.errorMessage == expected)
+        #expect(vm.isPresented, "エラー時はシートを閉じない")
+    }
+
     // MARK: - Reward Ad
 
     @Test("広告視聴に成功したらgrantRewardが呼ばれること")

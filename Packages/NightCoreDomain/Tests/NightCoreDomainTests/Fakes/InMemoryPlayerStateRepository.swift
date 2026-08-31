@@ -2,8 +2,12 @@ import Foundation
 import NightCoreDomain
 
 /// SwiftData 実装 (PlayerStateRepository) の永続化挙動をタプル1本で模す。
-/// 未保存時の既定値もアプリ実装に合わせる (シャッフル/リピートは MPMusicPlayer の off/none = 0)
+/// 未保存時の既定値もアプリ実装に合わせる
 final class InMemoryPlayerStateRepository: PlayerStateRepositoryPort {
+    /// MPMusicShuffleMode.off / MPMusicRepeatMode.none の rawValue (どちらも 1。0 は default)
+    private static let shuffleOffRaw = 1
+    private static let repeatNoneRaw = 1
+
     // swiftlint:disable:next large_tuple
     private var stored: (
         queueIDs: [String],
@@ -34,6 +38,12 @@ final class InMemoryPlayerStateRepository: PlayerStateRepositoryPort {
         repeatModeRaw: Int,
         isAutoPlayEnabled: Bool
     ) {
-        stored ?? ([], 0, Constants.MusicPlayer.defaultPlaybackRate, 0, 0, false)
+        stored ?? (
+            [], 0,
+            Constants.MusicPlayer.defaultPlaybackRate,
+            Self.shuffleOffRaw,
+            Self.repeatNoneRaw,
+            false
+        )
     }
 }
