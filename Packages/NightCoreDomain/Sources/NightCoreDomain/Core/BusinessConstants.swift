@@ -70,9 +70,9 @@ public enum Constants {
     }
 
     public enum Analytics {
-        /// TelemetryDeckのApp IDは未発行(#68)。アカウント作成後、発行されたIDへ差し替える。
+        /// TelemetryDeck の App ID(公開値。クライアントに埋め込む前提で秘密ではない)。
         /// このプレースホルダのままの間はAnalyticsServiceImplが初期化・送信ともno-opにする
         public static let placeholderAppID: String = "PLACEHOLDER-TELEMETRYDECK-APP-ID"
-        public static let appID: String = placeholderAppID
+        public static let appID: String = "8377C88C-C5C2-42CA-8CBC-141A8CCE9147"
     }
 }
