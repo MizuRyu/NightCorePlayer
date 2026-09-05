@@ -17,10 +17,6 @@ protocol AnalyticsService: Sendable {
     func balanceDepleted()
 }
 
-#if !DEBUG
-    #warning("#68 TelemetryDeck App ID 未設定。アカウント作成後に Constants.Analytics.appID を差し替えたらこの警告は消える")
-#endif
-
 // MARK: - Impl
 
 @MainActor
