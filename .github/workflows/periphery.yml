@@ -1,0 +1,42 @@
+name: Periphery
+
+# デッドコード検出。品質ゲートではないため失敗させない(continue-on-error)。
+# 週次 + 手動実行のみで、PR/push のフローには関与しない。
+# 導入理由・運用方針は docs/specs/QUALITY-GATES.md の「Periphery について」を参照。
+on:
+  schedule:
+    - cron: "0 18 * * 0" # 毎週日曜 03:00 JST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Periphery Scan
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"macos-15"') }}
+    timeout-minutes: 20
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install Periphery
+        run: brew install periphery
+
+      - name: Scan
+        run: |
+          periphery scan --format github-actions | tee periphery-report.txt
+
+      - name: Job Summary
+        if: always()
+        run: |
+          {
+            echo "## Periphery scan結果"
+            echo '```'
+            cat periphery-report.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

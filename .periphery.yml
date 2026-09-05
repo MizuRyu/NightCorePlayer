@@ -1,0 +1,12 @@
+# Periphery（デッドコード検出）の設定。
+# 品質ゲートではなく週次の情報提供用（.github/workflows/periphery.yml）。理由は
+# docs/specs/QUALITY-GATES.md の「Periphery について」を参照。
+project: Night-Core-Player.xcodeproj
+schemes:
+  - Night-Core-Player
+targets:
+  - Night-Core-Player
+
+# デモ録画専用ターゲット。品質ゲート・カバレッジ対象外のため scan にも含めない
+# （docs/specs/TESTING-STRATEGY.md 参照）
+retain_public: false
