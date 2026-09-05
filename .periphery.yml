@@ -7,6 +7,7 @@ schemes:
 targets:
   - Night-Core-Player
 
-# デモ録画専用ターゲット。品質ゲート・カバレッジ対象外のため scan にも含めない
+# デモ録画専用の UI テストターゲットは targets に含めないことで scan 対象外にしている
 # （docs/specs/TESTING-STRATEGY.md 参照）
+# public 宣言も未使用なら報告する（このアプリに外部公開 API はない）
 retain_public: false

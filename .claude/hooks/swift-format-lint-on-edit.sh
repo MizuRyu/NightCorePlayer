@@ -46,8 +46,8 @@ if ! command -v swiftlint >/dev/null 2>&1; then
   exit 0
 fi
 
-lint_output="$(swiftlint lint --strict "$rel_path" 2>&1)"
-lint_status=$?
+lint_status=0
+lint_output="$(swiftlint lint --strict "$rel_path" 2>&1)" || lint_status=$?
 
 if [[ $lint_status -ne 0 ]]; then
   echo "swiftlint 違反（このファイルを直してから続行）:" >&2
