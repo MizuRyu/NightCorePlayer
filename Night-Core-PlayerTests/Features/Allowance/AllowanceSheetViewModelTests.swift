@@ -52,7 +52,8 @@ struct AllowanceSheetViewModelTests {
         enforcer: AllowanceEnforcerStub,
         allowanceMock: AllowanceServiceMock,
         storeMock: ProStoreServiceMock,
-        nav: PlayerNavigator
+        nav: PlayerNavigator,
+        analyticsMock: AnalyticsServiceMock
     ) {
         let enforcer = AllowanceEnforcerStub()
         let allowanceMock = AllowanceServiceMock()
@@ -61,14 +62,16 @@ struct AllowanceSheetViewModelTests {
         let storeMock = ProStoreServiceMock()
         storeMock.purchaseResult = purchaseResult
         let nav = PlayerNavigator()
+        let analyticsMock = AnalyticsServiceMock()
         let vm = AllowanceSheetViewModel(
             allowanceEnforcer: enforcer,
             allowanceService: allowanceMock,
             proStoreService: storeMock,
             playerNavigator: nav,
-            rewardedAdService: adService
+            rewardedAdService: adService,
+            analyticsService: analyticsMock
         )
-        return (vm, enforcer, allowanceMock, storeMock, nav)
+        return (vm, enforcer, allowanceMock, storeMock, nav, analyticsMock)
     }
 
     private static func waitUntil(
@@ -90,7 +93,7 @@ struct AllowanceSheetViewModelTests {
     @Test(".stoppedAtSongEndの受信でシートが表示されること")
     func stoppedAtSongEnd_presentsSheet() {
         // Given
-        let (vm, enforcer, _, _, _) = Self.setUp()
+        let (vm, enforcer, _, _, _, _) = Self.setUp()
 
         // When
         enforcer.send(.stoppedAtSongEnd)
@@ -102,7 +105,7 @@ struct AllowanceSheetViewModelTests {
     @Test(".exhaustedPendingSongEndではシートを表示しないこと")
     func exhaustedPendingSongEnd_doesNotPresentSheet() {
         // Given
-        let (vm, enforcer, _, _, _) = Self.setUp()
+        let (vm, enforcer, _, _, _, _) = Self.setUp()
 
         // When
         enforcer.send(.exhaustedPendingSongEnd)
@@ -114,7 +117,7 @@ struct AllowanceSheetViewModelTests {
     @Test(".stoppedAtSongEndの受信で再生キューシートが閉じること（提示の排他）")
     func stoppedAtSongEnd_dismissesQueueSheet() {
         // Given
-        let (vm, enforcer, _, _, nav) = Self.setUp()
+        let (vm, enforcer, _, _, nav, _) = Self.setUp()
         _ = vm // sink が [weak self] のため VM を保持する
         nav.isQueuePresented = true
 
@@ -128,7 +131,7 @@ struct AllowanceSheetViewModelTests {
     @Test("シート表示中に.stoppedAtSongEndを再受信すると、errorMessageとshowProPromptPitchがリセットされること")
     func stoppedAtSongEnd_whileAlreadyPresented_resetsErrorAndPitch() {
         // Given: Pro訴求を表示した状態
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(shouldShowProPrompt: true)
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp(shouldShowProPrompt: true)
         enforcer.send(.stoppedAtSongEnd)
         vm.watchAdForReward()
         #expect(vm.showProPromptPitch)
@@ -153,7 +156,7 @@ struct AllowanceSheetViewModelTests {
     @Test("リワード視聴: grantRewardが呼ばれ、Pro訴求対象でなければシートが閉じること")
     func watchAdForReward_withoutProPrompt_closesSheet() {
         // Given
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(shouldShowProPrompt: false)
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp(shouldShowProPrompt: false)
         enforcer.send(.stoppedAtSongEnd)
         #expect(vm.isPresented)
 
@@ -169,7 +172,7 @@ struct AllowanceSheetViewModelTests {
     @Test("リワード視聴: Pro訴求対象ならmarkProPromptShownを先に保存し、成功した場合のみシートを閉じずに訴求を表示すること")
     func watchAdForReward_withProPrompt_savesFirstThenShowsPitch() {
         // Given
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(shouldShowProPrompt: true)
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp(shouldShowProPrompt: true)
         enforcer.send(.stoppedAtSongEnd)
 
         // When
@@ -184,7 +187,7 @@ struct AllowanceSheetViewModelTests {
     @Test("リワード視聴: markProPromptShownが失敗したら訴求を表示せず、errorMessageにも出さないこと")
     func watchAdForReward_markProPromptShownFails_doesNotShowPitchOrUserError() {
         // Given: 保存自体が失敗する状態
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(shouldShowProPrompt: true)
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp(shouldShowProPrompt: true)
         allowanceMock.markProPromptShownError = SheetTestError()
         enforcer.send(.stoppedAtSongEnd)
 
@@ -199,7 +202,7 @@ struct AllowanceSheetViewModelTests {
     @Test("Pro訴求は生涯1回だけ表示される（2回目のリワードでは再表示されない）")
     func watchAdForReward_calledTwice_showsProPromptOnlyOnce() {
         // Given: 1回目は訴求条件を満たす
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(shouldShowProPrompt: true)
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp(shouldShowProPrompt: true)
         enforcer.send(.stoppedAtSongEnd)
         vm.watchAdForReward()
         #expect(vm.showProPromptPitch)
@@ -221,7 +224,7 @@ struct AllowanceSheetViewModelTests {
     @Test("リワード視聴: grantRewardがエラーならerrorMessageが設定されること")
     func watchAdForReward_grantRewardThrows_setsErrorMessage() {
         // Given
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp()
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp()
         allowanceMock.grantRewardError = SheetTestError()
         enforcer.send(.stoppedAtSongEnd)
 
@@ -236,7 +239,7 @@ struct AllowanceSheetViewModelTests {
     @Test("リワード視聴: 日次上限のAllowanceErrorが従来のローカライズ文言に写されること")
     func watchAdForReward_dailyRewardLimitReached_showsLocalizedMessage() {
         // Given: Domain が日次上限エラーを投げる状態
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp()
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp()
         allowanceMock.grantRewardError = AllowanceError.dailyRewardLimitReached
         enforcer.send(.stoppedAtSongEnd)
 
@@ -258,7 +261,7 @@ struct AllowanceSheetViewModelTests {
         // Given
         let adMock = RewardedAdServiceMock()
         adMock.presentResult = .success(true)
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(adService: adMock)
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp(adService: adMock)
         enforcer.send(.stoppedAtSongEnd)
 
         // When
@@ -275,7 +278,7 @@ struct AllowanceSheetViewModelTests {
         // Given
         let adMock = RewardedAdServiceMock()
         adMock.presentResult = .failure(RewardedAdError.notReady)
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(adService: adMock)
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp(adService: adMock)
         enforcer.send(.stoppedAtSongEnd)
 
         // When
@@ -293,7 +296,7 @@ struct AllowanceSheetViewModelTests {
         let adMock = RewardedAdServiceMock()
         adMock.presentResult = .success(true)
         adMock.presentDelayMilliseconds = 100
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(adService: adMock)
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp(adService: adMock)
         enforcer.send(.stoppedAtSongEnd)
 
         // When
@@ -311,7 +314,7 @@ struct AllowanceSheetViewModelTests {
         // Given
         let adMock = RewardedAdServiceMock()
         adMock.presentResult = .success(false)
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(adService: adMock)
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp(adService: adMock)
         enforcer.send(.stoppedAtSongEnd)
 
         // When
@@ -328,7 +331,7 @@ struct AllowanceSheetViewModelTests {
         // Given
         let adMock = RewardedAdServiceMock()
         adMock.presentResult = .failure(SheetTestError())
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(adService: adMock)
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp(adService: adMock)
         enforcer.send(.stoppedAtSongEnd)
 
         // When
@@ -344,7 +347,7 @@ struct AllowanceSheetViewModelTests {
         // Given
         let adMock = RewardedAdServiceMock()
         adMock.presentResult = .success(true)
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(adService: adMock)
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp(adService: adMock)
         allowanceMock.grantRewardError = SheetTestError()
         enforcer.send(.stoppedAtSongEnd)
 
@@ -360,7 +363,7 @@ struct AllowanceSheetViewModelTests {
     @Test("adServiceが未注入(nil)なら従来通り広告なしで直接grantRewardが呼ばれること")
     func watchAdForReward_noAdService_grantsRewardDirectly() {
         // Given
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp(adService: nil)
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp(adService: nil)
         enforcer.send(.stoppedAtSongEnd)
 
         // When
@@ -371,12 +374,103 @@ struct AllowanceSheetViewModelTests {
         #expect(!vm.isPresented)
     }
 
+    // MARK: - Analytics (#68)
+
+    @Test("adServiceなしでの付与はrewardGranted(viaAd: false)で計測されること")
+    func watchAdForReward_noAdService_reportsRewardGrantedWithoutAd() {
+        // Given
+        let (vm, enforcer, _, _, _, analyticsMock) = Self.setUp(adService: nil)
+        enforcer.send(.stoppedAtSongEnd)
+
+        // When
+        vm.watchAdForReward()
+
+        // Then
+        #expect(analyticsMock.rewardGrantedViaAdValues == [false])
+    }
+
+    @Test("広告視聴に成功した付与はrewardGranted(viaAd: true)で計測されること")
+    func watchAdForReward_adSucceeds_reportsRewardGrantedViaAd() async {
+        // Given
+        let adMock = RewardedAdServiceMock()
+        adMock.presentResult = .success(true)
+        let (vm, enforcer, allowanceMock, _, _, analyticsMock) = Self.setUp(adService: adMock)
+        enforcer.send(.stoppedAtSongEnd)
+
+        // When
+        vm.watchAdForReward()
+        await Self.waitUntil { allowanceMock.grantRewardCallCount == 1 }
+
+        // Then
+        #expect(analyticsMock.rewardGrantedViaAdValues == [true])
+    }
+
+    @Test("広告のロード失敗によるフォールバック付与はrewardGranted(viaAd: false)で計測されること")
+    func watchAdForReward_adUnavailable_reportsRewardGrantedWithoutAd() async {
+        // Given
+        let adMock = RewardedAdServiceMock()
+        adMock.presentResult = .failure(RewardedAdError.notReady)
+        let (vm, enforcer, allowanceMock, _, _, analyticsMock) = Self.setUp(adService: adMock)
+        enforcer.send(.stoppedAtSongEnd)
+
+        // When
+        vm.watchAdForReward()
+        await Self.waitUntil { allowanceMock.grantRewardCallCount == 1 }
+
+        // Then
+        #expect(analyticsMock.rewardGrantedViaAdValues == [false])
+    }
+
+    @Test("広告は表示されたが報酬未達の場合はrewardGrantedを計測しないこと")
+    func watchAdForReward_adPresentedButNotEarned_doesNotReportRewardGranted() async {
+        // Given
+        let adMock = RewardedAdServiceMock()
+        adMock.presentResult = .success(false)
+        let (vm, enforcer, _, _, _, analyticsMock) = Self.setUp(adService: adMock)
+        enforcer.send(.stoppedAtSongEnd)
+
+        // When
+        vm.watchAdForReward()
+        await Self.waitUntil { !vm.isWatchingAd }
+
+        // Then
+        #expect(analyticsMock.rewardGrantedViaAdValues.isEmpty)
+    }
+
+    @Test(".exhaustedPendingSongEndの受信でbalanceDepletedが1回計測されること")
+    func exhaustedPendingSongEnd_reportsBalanceDepletedOnce() {
+        // Given
+        let (vm, enforcer, _, _, _, analyticsMock) = Self.setUp()
+        _ = vm // sink が [weak self] のため VM を保持する
+
+        // When
+        enforcer.send(.exhaustedPendingSongEnd)
+
+        // Then
+        #expect(analyticsMock.balanceDepletedCallCount == 1)
+    }
+
+    @Test("同一の枯渇が続く間、balanceDepletedを重複計測しないこと")
+    func exhaustedPendingSongEnd_whileStillExhausted_doesNotDuplicateBalanceDepleted() {
+        // Given: Domain側のhasUsedGraceにより、残高回復までexhaustedPendingSongEndは再送されない想定
+        let (vm, enforcer, _, _, _, analyticsMock) = Self.setUp()
+        _ = vm // sink が [weak self] のため VM を保持する
+        enforcer.send(.exhaustedPendingSongEnd)
+        #expect(analyticsMock.balanceDepletedCallCount == 1)
+
+        // When: 曲末停止(既存の猶予消化)が起きても、新たな枯渇イベントを受けない限り増えない
+        enforcer.send(.stoppedAtSongEnd)
+
+        // Then
+        #expect(analyticsMock.balanceDepletedCallCount == 1)
+    }
+
     // MARK: - Purchase
 
     @Test("Pro購入: 購入成功でシートが閉じること")
     func purchasePro_success_closesSheet() async {
         // Given
-        let (vm, enforcer, _, storeMock, _) = Self.setUp(purchaseResult: .success(.purchased))
+        let (vm, enforcer, _, storeMock, _, _) = Self.setUp(purchaseResult: .success(.purchased))
         enforcer.send(.stoppedAtSongEnd)
 
         // When
@@ -392,7 +486,7 @@ struct AllowanceSheetViewModelTests {
     @Test("Pro購入: キャンセルではシートを閉じないこと")
     func purchasePro_cancelled_keepsSheetOpen() async {
         // Given
-        let (vm, enforcer, _, storeMock, _) = Self.setUp(purchaseResult: .success(.cancelled))
+        let (vm, enforcer, _, storeMock, _, _) = Self.setUp(purchaseResult: .success(.cancelled))
         enforcer.send(.stoppedAtSongEnd)
 
         // When
@@ -406,7 +500,7 @@ struct AllowanceSheetViewModelTests {
     @Test("Pro購入: 商品を取得できない場合はエラーを表示しシートを閉じないこと")
     func purchasePro_unavailable_showsError() async {
         // Given: StoreKitから商品を取得できない状態
-        let (vm, enforcer, _, _, _) = Self.setUp(purchaseResult: .success(.unavailable))
+        let (vm, enforcer, _, _, _, _) = Self.setUp(purchaseResult: .success(.unavailable))
         enforcer.send(.stoppedAtSongEnd)
 
         // When
@@ -421,7 +515,7 @@ struct AllowanceSheetViewModelTests {
     @Test("Pro購入: 処理中はユーザー操作で閉じられないこと")
     func dismissByUser_whilePurchasing_keepsSheetOpen() async {
         // Given: 購入処理を遅延させ、処理中の窓を作る
-        let (vm, enforcer, _, storeMock, _) = Self.setUp(purchaseResult: .success(.purchased))
+        let (vm, enforcer, _, storeMock, _, _) = Self.setUp(purchaseResult: .success(.purchased))
         storeMock.purchaseDelayMilliseconds = 500
         enforcer.send(.stoppedAtSongEnd)
 
@@ -437,7 +531,7 @@ struct AllowanceSheetViewModelTests {
     @Test("Pro購入: pendingではシートを閉じないこと")
     func purchasePro_pending_keepsSheetOpen() async {
         // Given
-        let (vm, enforcer, _, storeMock, _) = Self.setUp(purchaseResult: .success(.pending))
+        let (vm, enforcer, _, storeMock, _, _) = Self.setUp(purchaseResult: .success(.pending))
         enforcer.send(.stoppedAtSongEnd)
 
         // When
@@ -451,7 +545,7 @@ struct AllowanceSheetViewModelTests {
     @Test("Pro購入: エラーがシート内のerrorMessageに反映されること")
     func purchasePro_throws_setsErrorMessage() async {
         // Given
-        let (vm, enforcer, _, _, _) = Self.setUp(purchaseResult: .failure(SheetTestError()))
+        let (vm, enforcer, _, _, _, _) = Self.setUp(purchaseResult: .failure(SheetTestError()))
         enforcer.send(.stoppedAtSongEnd)
 
         // When
@@ -468,7 +562,7 @@ struct AllowanceSheetViewModelTests {
     @Test("閉じるボタン相当のclose()呼び出しでシートが閉じること")
     func close_dismissesSheet() {
         // Given
-        let (vm, enforcer, _, _, _) = Self.setUp()
+        let (vm, enforcer, _, _, _, _) = Self.setUp()
         enforcer.send(.stoppedAtSongEnd)
         #expect(vm.isPresented)
 
@@ -484,7 +578,7 @@ struct AllowanceSheetViewModelTests {
     @Test(".exhaustedPendingSongEndの受信で枯渇バナーが表示されること")
     func exhaustedPendingSongEnd_showsExhaustionBanner() {
         // Given
-        let (vm, enforcer, _, _, _) = Self.setUp()
+        let (vm, enforcer, _, _, _, _) = Self.setUp()
 
         // When
         enforcer.send(.exhaustedPendingSongEnd)
@@ -497,7 +591,7 @@ struct AllowanceSheetViewModelTests {
     @Test(".stoppedAtSongEndの受信で枯渇バナーが消えること")
     func stoppedAtSongEnd_hidesExhaustionBanner() {
         // Given
-        let (vm, enforcer, _, _, _) = Self.setUp()
+        let (vm, enforcer, _, _, _, _) = Self.setUp()
         enforcer.send(.exhaustedPendingSongEnd)
         #expect(vm.isExhaustionBannerVisible)
 
@@ -511,7 +605,7 @@ struct AllowanceSheetViewModelTests {
     @Test(".revertedToNormalRateの受信で枯渇バナーが消えること")
     func revertedToNormalRate_hidesExhaustionBanner() {
         // Given
-        let (vm, enforcer, _, _, _) = Self.setUp()
+        let (vm, enforcer, _, _, _, _) = Self.setUp()
         enforcer.send(.exhaustedPendingSongEnd)
         #expect(vm.isExhaustionBannerVisible)
 
@@ -525,7 +619,7 @@ struct AllowanceSheetViewModelTests {
     @Test("枯渇バナーのタップで消えて「再生時間を追加」ダイアログが開くこと")
     func presentFromExhaustionBanner_hidesBannerAndOpensAddTimeDialog() {
         // Given
-        let (vm, enforcer, _, _, _) = Self.setUp()
+        let (vm, enforcer, _, _, _, _) = Self.setUp()
         enforcer.send(.exhaustedPendingSongEnd)
         #expect(vm.isExhaustionBannerVisible)
 
@@ -541,7 +635,7 @@ struct AllowanceSheetViewModelTests {
     @Test("枯渇バナーの閉じるボタンでバナーだけが消え、シートは開かないこと")
     func dismissExhaustionBanner_hidesBannerOnly() {
         // Given
-        let (vm, enforcer, _, _, _) = Self.setUp()
+        let (vm, enforcer, _, _, _, _) = Self.setUp()
         enforcer.send(.exhaustedPendingSongEnd)
         #expect(vm.isExhaustionBannerVisible)
 
@@ -556,7 +650,7 @@ struct AllowanceSheetViewModelTests {
     @Test("シート表示中は.exhaustedPendingSongEndを受けてもバナーを重ねて出さないこと")
     func exhaustedPendingSongEnd_whileDialogPresented_doesNotShowBanner() {
         // Given: 「再生時間を追加」ダイアログを開いた状態
-        let (vm, enforcer, _, _, _) = Self.setUp()
+        let (vm, enforcer, _, _, _, _) = Self.setUp()
         vm.presentForAddingTime()
         #expect(vm.isPresented)
 
@@ -570,7 +664,7 @@ struct AllowanceSheetViewModelTests {
     @Test("バナー表示中にpresentForAddingTime()を呼ぶとバナーが消えシートが開くこと")
     func presentForAddingTime_whileBannerVisible_hidesBannerAndOpensDialog() {
         // Given
-        let (vm, enforcer, _, _, _) = Self.setUp()
+        let (vm, enforcer, _, _, _, _) = Self.setUp()
         enforcer.send(.exhaustedPendingSongEnd)
         #expect(vm.isExhaustionBannerVisible)
 
@@ -585,7 +679,7 @@ struct AllowanceSheetViewModelTests {
     @Test("バナー表示中にリワード付与が成功するとバナーが消えること")
     func grantRewardSucceeds_whileBannerVisible_hidesBanner() {
         // Given: ダイアログを開かせずバナーだけ出ている状態(設定画面等からの直接付与を模す)
-        let (vm, enforcer, _, _, _) = Self.setUp(shouldShowProPrompt: false)
+        let (vm, enforcer, _, _, _, _) = Self.setUp(shouldShowProPrompt: false)
         enforcer.send(.exhaustedPendingSongEnd)
         #expect(vm.isExhaustionBannerVisible)
 
@@ -599,7 +693,7 @@ struct AllowanceSheetViewModelTests {
     @Test("バナー表示中にPro購入が成功するとバナーが消えること")
     func purchaseProSucceeds_whileBannerVisible_hidesBanner() async {
         // Given
-        let (vm, enforcer, _, storeMock, _) = Self.setUp(purchaseResult: .success(.purchased))
+        let (vm, enforcer, _, storeMock, _, _) = Self.setUp(purchaseResult: .success(.purchased))
         enforcer.send(.exhaustedPendingSongEnd)
         #expect(vm.isExhaustionBannerVisible)
 
@@ -615,7 +709,7 @@ struct AllowanceSheetViewModelTests {
     @Test("バナー表示中に残高が回復すると通知なしでバナーが消えること")
     func balanceRecovers_whileBannerVisible_hidesBanner() {
         // Given
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp()
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp()
         enforcer.send(.exhaustedPendingSongEnd)
         #expect(vm.isExhaustionBannerVisible)
 
@@ -629,7 +723,7 @@ struct AllowanceSheetViewModelTests {
     @Test("残高が回復しないうちはバナーが出続けること")
     func balanceStillExhausted_keepsBannerVisible() {
         // Given
-        let (vm, enforcer, allowanceMock, _, _) = Self.setUp()
+        let (vm, enforcer, allowanceMock, _, _, _) = Self.setUp()
         enforcer.send(.exhaustedPendingSongEnd)
 
         // When: 残高0のまま

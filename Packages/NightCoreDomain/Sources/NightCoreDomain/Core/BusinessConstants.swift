@@ -68,4 +68,11 @@ public enum Constants {
             public static let rewardedUnitID: String = "ca-app-pub-4210364120390329/6068775358"
         #endif
     }
+
+    public enum Analytics {
+        /// TelemetryDeckのApp IDは未発行(#68)。アカウント作成後、発行されたIDへ差し替える。
+        /// このプレースホルダのままの間はAnalyticsServiceImplが初期化・送信ともno-opにする
+        public static let placeholderAppID: String = "PLACEHOLDER-TELEMETRYDECK-APP-ID"
+        public static let appID: String = placeholderAppID
+    }
 }
