@@ -42,7 +42,11 @@ final class ProStoreServiceImpl: ProStoreService {
     /// 取得済みの商品。purchase()のたびの再取得を避ける
     private var cachedProduct: Product?
 
-    init() {
+    /// 購入経路はSettings/AllowanceSheetの2箇所にあるため、計測は個々のViewModelではなくここに集約する(#68)
+    private let analyticsService: AnalyticsService
+
+    init(analyticsService: AnalyticsService) {
+        self.analyticsService = analyticsService
         updatesTask = Task { [weak self] in
             await self?.observeTransactionUpdates()
         }
@@ -81,6 +85,7 @@ final class ProStoreServiceImpl: ProStoreService {
             await refreshEntitlement()
             await transaction.finish()
             logger.info("Pro purchased (transaction id: \(transaction.id))")
+            analyticsService.proPurchased()
             return .purchased
         case .userCancelled:
             return .cancelled

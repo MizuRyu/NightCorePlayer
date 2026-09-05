@@ -50,6 +50,7 @@ final class AllowanceSheetViewModel {
     private let rewardedAdService: RewardedAdService?
     private let playerNavigator: PlayerNavigator
     private let musicPlayerService: MusicPlayerService?
+    private let analyticsService: AnalyticsService
     private let now: () -> Date
     private let logger = Logger(subsystem: Constants.Logging.subsystem, category: "Allowance")
     private var cancellables: Set<AnyCancellable> = []
@@ -61,6 +62,7 @@ final class AllowanceSheetViewModel {
         playerNavigator: PlayerNavigator,
         rewardedAdService: RewardedAdService? = nil,
         musicPlayerService: MusicPlayerService? = nil,
+        analyticsService: AnalyticsService,
         now: @escaping () -> Date = Date.init
     ) {
         self.allowanceService = allowanceService
@@ -68,6 +70,7 @@ final class AllowanceSheetViewModel {
         self.rewardedAdService = rewardedAdService
         self.playerNavigator = playerNavigator
         self.musicPlayerService = musicPlayerService
+        self.analyticsService = analyticsService
         self.now = now
         // AllowanceEnforcerは@MainActor隔離のため、eventsの発行元は既にメインスレッド。receive(on:)によるhopは不要
         allowanceEnforcer.events
@@ -85,6 +88,9 @@ final class AllowanceSheetViewModel {
                     // ダイアログが既に開いている間はバナーを重ねて出さない
                     guard !isPresented else { return }
                     isExhaustionBannerRequested = true
+                    // Domain側がexhaustedPendingSongEndを枯渇1回につき1度だけ送る(残高回復まで再送しない)ため、
+                    // ここに置くだけで重複送信にならない(#68)
+                    analyticsService.balanceDepleted()
                 }
             }
             .store(in: &cancellables)
@@ -128,7 +134,7 @@ final class AllowanceSheetViewModel {
         errorMessage = nil
 
         guard let rewardedAdService else {
-            grantRewardAndProceed()
+            grantRewardAndProceed(viaAd: false)
             return
         }
 
@@ -138,11 +144,11 @@ final class AllowanceSheetViewModel {
             do {
                 // 広告が出せない場合はエラーがthrowされ、下のcatchで無条件付与にフォールバックする
                 guard try await rewardedAdService.present() else { return }
-                grantRewardAndProceed()
+                grantRewardAndProceed(viaAd: true)
             } catch {
                 // ロード失敗・在庫切れ・表示失敗はユーザーの落ち度ではないため、広告なしで付与する。#68の計測用にログを残す
                 logger.error("Rewarded ad unavailable, granting reward without ad: \(error.localizedDescription)")
-                grantRewardAndProceed()
+                grantRewardAndProceed(viaAd: false)
             }
         }
     }
@@ -172,7 +178,7 @@ final class AllowanceSheetViewModel {
 
     // MARK: - Private
 
-    private func grantRewardAndProceed() {
+    private func grantRewardAndProceed(viaAd: Bool) {
         errorMessage = nil
         do {
             _ = try allowanceService.grantReward(now: now())
@@ -183,6 +189,7 @@ final class AllowanceSheetViewModel {
             errorMessage = (error as? AppError)?.errorDescription ?? error.localizedDescription
             return
         }
+        analyticsService.rewardGranted(viaAd: viaAd)
         refreshRewardsRemaining()
         // 残高が回復したので枯渇バナーの案内は不要になる
         isExhaustionBannerRequested = false

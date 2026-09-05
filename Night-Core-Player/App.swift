@@ -75,7 +75,10 @@ struct NightcorePlayerApp: App {
         let allowanceService = AllowanceServiceImpl(
             repo: AllowanceRepository(context: context)
         )
-        let proStoreService = ProStoreServiceImpl()
+        // -DEMO時はAnalyticsServiceImpl内部で初期化・送信ともno-opになる(#68)
+        let analyticsService: AnalyticsService = AnalyticsServiceImpl(isDemo: isDemo)
+        analyticsService.appLaunched()
+        let proStoreService = ProStoreServiceImpl(analyticsService: analyticsService)
         let allowanceEnforcer = AllowanceEnforcerImpl(
             allowanceService: allowanceService,
             isProEntitled: { proStoreService.isProEntitled }
@@ -106,7 +109,8 @@ struct NightcorePlayerApp: App {
             proStoreService: proStoreService,
             playerNavigator: navigator,
             rewardedAdService: rewardedAdService,
-            musicPlayerService: service
+            musicPlayerService: service,
+            analyticsService: analyticsService
         ))
     }
 

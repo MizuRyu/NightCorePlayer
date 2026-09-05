@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1A5134877AEF6FB940CE1BAA /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E84CD932BDCBA06A22132B14 /* Foundation.framework */; };
 		291CFAAD80F7F6A835B7D9AE /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 6617C606136C3CE99B081163 /* GoogleMobileAds */; };
+		65D290C970C1A59EDA5A2B8C /* TelemetryDeck in Frameworks */ = {isa = PBXBuildFile; productRef = 6035B1E9976986FD46805DFE /* TelemetryDeck */; };
 		E1A1957EC4B920C2CEC656A3 /* DemoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BE74BD8A1D03DB172F3F71C /* DemoUITests.swift */; };
 		F391D4232DCF2E5500517D0B /* Inject in Frameworks */ = {isa = PBXBuildFile; productRef = F391D4222DCF2E5500517D0B /* Inject */; };
 		F3D0A0010000000000000004 /* NightCoreDomain in Frameworks */ = {isa = PBXBuildFile; productRef = F3D0A0010000000000000002 /* NightCoreDomain */; };
@@ -93,6 +94,7 @@
 				F391D4232DCF2E5500517D0B /* Inject in Frameworks */,
 				291CFAAD80F7F6A835B7D9AE /* GoogleMobileAds in Frameworks */,
 				F3D0A0010000000000000004 /* NightCoreDomain in Frameworks */,
+				65D290C970C1A59EDA5A2B8C /* TelemetryDeck in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -210,6 +212,7 @@
 				F391D4222DCF2E5500517D0B /* Inject */,
 				6617C606136C3CE99B081163 /* GoogleMobileAds */,
 				F3D0A0010000000000000002 /* NightCoreDomain */,
+				6035B1E9976986FD46805DFE /* TelemetryDeck */,
 			);
 			productName = "Night-Core-Player";
 			productReference = F3FD9E852DCDAD7300645A6A /* Night-Core-Player.app */;
@@ -247,7 +250,8 @@
 			packageReferences = (
 				F391D4212DCF2E5500517D0B /* XCRemoteSwiftPackageReference "Inject" */,
 				33D80190376A948ED89E98EE /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
-				F3D0A0010000000000000001 /* XCLocalSwiftPackageReference "Packages/NightCoreDomain" */,
+				F3D0A0010000000000000001 /* XCLocalSwiftPackageReference "NightCoreDomain" */,
+				59D9473B7ABB708A6C0DF83F /* XCRemoteSwiftPackageReference "SwiftSDK" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F3FD9E862DCDAD7300645A6A /* Products */;
@@ -624,6 +628,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		F3D0A0010000000000000001 /* XCLocalSwiftPackageReference "NightCoreDomain" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/NightCoreDomain;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		33D80190376A948ED89E98EE /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -631,6 +642,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 12.0.0;
+			};
+		};
+		59D9473B7ABB708A6C0DF83F /* XCRemoteSwiftPackageReference "SwiftSDK" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TelemetryDeck/SwiftSDK";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.14.2;
 			};
 		};
 		F391D4212DCF2E5500517D0B /* XCRemoteSwiftPackageReference "Inject" */ = {
@@ -643,14 +662,12 @@
 		};
 /* End XCRemoteSwiftPackageReference section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		F3D0A0010000000000000001 /* XCLocalSwiftPackageReference "Packages/NightCoreDomain" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = Packages/NightCoreDomain;
-		};
-/* End XCLocalSwiftPackageReference section */
-
 /* Begin XCSwiftPackageProductDependency section */
+		6035B1E9976986FD46805DFE /* TelemetryDeck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 59D9473B7ABB708A6C0DF83F /* XCRemoteSwiftPackageReference "SwiftSDK" */;
+			productName = TelemetryDeck;
+		};
 		6617C606136C3CE99B081163 /* GoogleMobileAds */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 33D80190376A948ED89E98EE /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
