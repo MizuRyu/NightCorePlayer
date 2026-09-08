@@ -3,6 +3,14 @@
 # 対応キー: scripts / setup / archive / issueCommand
 scripts:
   # worktree 作成時に実行。SPM と Xcode のパッケージ解決を先に済ませ、
-  # 最初の make test / make build までの待ちを減らす。中身は scripts/orca-setup.sh を参照
+  # 最初の make test / make build までの待ちを減らす(実測 1 分強)。
+  # 秘匿ファイル(.env 等)は環境変数運用のためコピーしない。
+  # lefthook は core.hooksPath 経由で全 worktree 共通のため再インストール不要。
   setup: |
-    bash scripts/orca-setup.sh
+    set -euo pipefail
+    swift package resolve --package-path Packages/NightCoreDomain
+    xcodebuild -resolvePackageDependencies \
+      -project Night-Core-Player.xcodeproj \
+      -scheme Night-Core-Player \
+      -derivedDataPath ./.derivedData \
+      -quiet
