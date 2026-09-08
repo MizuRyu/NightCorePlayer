@@ -1,19 +1,32 @@
-# Night Core Player
+<p align="center">
+  <img src="assets/icon-1024.png" width="128" alt="NightCore Player icon">
+</p>
 
-Apple Music の楽曲を Nightcore スタイル（高速・高ピッチ）で再生する iOS アプリ。
+# NightCore Player 倍速再生
 
-### What is Night Core?
-https://ja.wikipedia.org/wiki/%E3%83%8A%E3%82%A4%E3%83%88%E3%82%B3%E3%82%A2
+[![App Store](https://img.shields.io/itunes/v/id6761187661?label=App%20Store&logo=apple&logoColor=white)](https://apps.apple.com/jp/app/id6761187661)
+[![release](https://img.shields.io/github/v/tag/MizuRyu/NightCorePlayer?label=release)](https://github.com/MizuRyu/NightCorePlayer/tags)
 
-## Features
+Apple Music の楽曲を、好きなテンポで。ダウンロード不要で Nightcore スタイル（高速・高ピッチ）の再生ができる iOS アプリ。
 
-- Apple Music カタログからの楽曲・アーティスト検索
-- 再生速度のリアルタイム調整（Nightcore 再生）
-- プレイリスト表示・再生
-- 再生キュー管理
-- 再生履歴の記録
-- アートワークキャッシュ
-- フリーミアム課金（下記「収益化モデル」を参照）
+**[App Store でダウンロード](https://apps.apple.com/jp/app/id6761187661)**
+
+## 特徴
+
+- **Apple Music の全曲が対象** — 端末にダウンロードした曲だけでなく、カタログ 1 億曲以上をそのまま速度変更して再生できる
+- **0.5x〜3.0x のリアルタイム速度調整** — 再生中にスライダーで倍率を変えられる。0.01 刻みの微調整にも対応
+- **検索・プレイリスト・キュー・履歴** — Apple Music のカタログ検索、プレイリスト再生、キュー編集、再生履歴の記録
+- **等速再生は無料・無制限** — 倍速再生には 1 日の無料枠があり、動画広告で追加するか、買い切りの Pro で無制限にできる
+
+[Nightcore とは](https://ja.wikipedia.org/wiki/%E3%83%8A%E3%82%A4%E3%83%88%E3%82%B3%E3%82%A2)
+
+## 動作環境
+
+iOS 17.0 以降の iPhone。再生には Apple Music のサブスクリプションが必要です。
+
+## インストール
+
+[App Store](https://apps.apple.com/jp/app/id6761187661) からインストールしてください。ソースからビルドする場合は下記「Build On Real Device」を参照。
 
 ## Tech Stack
 
@@ -28,18 +41,6 @@ https://ja.wikipedia.org/wiki/%E3%83%8A%E3%82%A4%E3%83%88%E3%82%B3%E3%82%A2
 | アーキテクチャ | MVVM + Service Layer（Protocol-based DI） |
 | テスト | Swift Testing / XCTest（デモ録画用 UI テスト） |
 | 品質ゲート | SwiftLint / SwiftFormat / lefthook |
-
-## 収益化モデル
-
-Apple Music の等速再生は無料・無制限。Nightcore 変換（`playbackRate != 1.0`）にのみ残高ゲートを掛ける（MusicKit 利用規約上、素の再生を制限できないため）。
-
-- 初回起動から 7 日間: 無制限トライアル
-- トライアル終了後: 1日 3600 秒（日次リセット、繰越なし）
-- リワード広告視聴で +1800 秒（1日5回まで。AdMob側に固定上限はないためアプリ側で持つ）
-- 累計 5 回のリワード後に Pro 訴求を 1 回表示
-- Pro（`MizuRyu.NightCorePlayer.pro`、StoreKit 2 非消耗型）購入で無制限化
-
-残高が尽きても即停止はせず、曲の切れ目まで再生してから停止する（BGM 用途でのブツ切りを避けるため）。詳細は [docs/adr/003-allowance-design.md](docs/adr/003-allowance-design.md) を参照。
 
 ## Directory Structure
 
@@ -113,11 +114,12 @@ mkdocs serve --config-file privacy-policy/mkdocs.yml
 
 初回のみ、GitHub リポジトリの `Settings > Pages` で `Source` を `GitHub Actions` に設定する。
 
-有効化後の公開 URL 例:
+公開 URL:
 
-- `https://<user>.github.io/NightCorePlayer/`
-- `https://<user>.github.io/NightCorePlayer/terms/`
-- `https://<user>.github.io/NightCorePlayer/privacy/`
+- https://mizuryu.github.io/NightCorePlayer/
+- https://mizuryu.github.io/NightCorePlayer/terms/
+- https://mizuryu.github.io/NightCorePlayer/privacy/
+- https://mizuryu.github.io/NightCorePlayer/support/
 
 ## Build On Real Device
 
