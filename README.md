@@ -4,7 +4,7 @@
 
 # NightCore Player 倍速再生
 
-[![App Store](https://img.shields.io/itunes/v/id6761187661?label=App%20Store&logo=apple&logoColor=white)](https://apps.apple.com/jp/app/id6761187661)
+[![App Store](https://img.shields.io/itunes/v/6761187661?label=App%20Store&logo=apple&logoColor=white)](https://apps.apple.com/jp/app/id6761187661)
 [![release](https://img.shields.io/github/v/tag/MizuRyu/NightCorePlayer?label=release)](https://github.com/MizuRyu/NightCorePlayer/tags)
 
 Apple Music の楽曲を、好きなテンポで。ダウンロード不要で Nightcore スタイル（高速・高ピッチ）の再生ができる iOS アプリ。
