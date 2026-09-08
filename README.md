@@ -18,7 +18,8 @@ Apple Music の楽曲を、好きなテンポで。ダウンロード不要で N
 - **検索・プレイリスト・キュー・履歴** — Apple Music のカタログ検索、プレイリスト再生、キュー編集、再生履歴の記録
 - **等速再生は無料・無制限** — 倍速再生には 1 日の無料枠があり、動画広告で追加するか、買い切りの Pro で無制限にできる
 
-[Nightcore とは](https://ja.wikipedia.org/wiki/%E3%83%8A%E3%82%A4%E3%83%88%E3%82%B3%E3%82%A2)
+### What is Night Core?
+https://ja.wikipedia.org/wiki/%E3%83%8A%E3%82%A4%E3%83%88%E3%82%B3%E3%82%A2
 
 ## 動作環境
 
