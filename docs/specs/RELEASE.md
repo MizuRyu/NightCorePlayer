@@ -110,3 +110,21 @@ bundle exec fastlane submit_for_review
 - クラッシュ率（Xcode Organizer / App Store Connect のメトリクス）
 - リワード広告の表示・完了率（AdMob 管理画面）
 - Pro の購入数と復元の失敗（App Store Connect の売上とトレンド）
+
+## 承認後: リリースタグ
+
+App Store で配信開始（READY_FOR_SALE）を確認したら、提出したビルドのソースに対応するコミットへ
+バージョンタグを打つ。ビルド番号の採番反映コミット（`chore: TestFlight ビルド N までの自動採番を反映`）が対応点になる。
+
+```bash
+git tag -a v<version> <commit> -m "App Store release <version> (build <N>) - approved <YYYY-MM-DD>"
+git push origin v<version>
+```
+
+配信状態と IAP の承認状態は、App Store Connect にログインしなくても API で確認できる
+（`appStoreState` が `READY_FOR_SALE`、IAP が `APPROVED` なら配信中）:
+
+```bash
+ASC_KEY_ID=<key id> ASC_ISSUER_ID=<issuer id> ASC_KEY_PATH=~/Downloads/AuthKey_<key id>.p8 \
+  uv run scripts/asc_version_state.py
+```

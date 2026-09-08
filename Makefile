@@ -41,6 +41,7 @@ test: ## ユニットテスト実行（デモ用UIテストは除外。実行は
 		-skip-testing:Night-Core-PlayerUITests \
 		-parallel-testing-enabled NO \
 		-quiet
+	@echo "** TEST SUCCEEDED ** (make test: SPM + xcodebuild)"
 
 format: check-swiftformat-version ## SwiftFormat で自動整形
 	swiftformat .

@@ -210,6 +210,22 @@ EOF
 gh pr merge --squash --delete-branch
 ```
 
+マージ後、Orca の worktree は自動では消えないので閉じる:
+
+```bash
+orca worktree rm --worktree branch:<ブランチ名> --force
+```
+
+### PR を省略できる変更
+
+main の ruleset（auto-code-review）は PR 必須だが、Repository admin はバイパスできる。
+次の条件をすべて満たす変更は main へ直接コミットしてよい:
+
+- アプリの挙動・ビルド・テスト結果に影響しない（README / docs / コメント / 文言の typo など）
+- 1〜数ファイルの小さな修正で、レビューで指摘が出る余地がない
+
+コード・テスト・ビルド設定・CI・hooks に触る変更は、規模にかかわらず PR を作る（Copilot / codex のレビューと記録のため）。
+
 ---
 
 ## 6. task/ ディレクトリの使い方
