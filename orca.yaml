@@ -1,0 +1,8 @@
+# Orca の共有設定(リポジトリにコミットしてチームで共有する)。
+# Orca はここに書いたスクリプトを、各メンバーのローカル設定より先に読む。
+# 対応キー: scripts / setup / archive / issueCommand
+scripts:
+  # worktree 作成時に実行。SPM と Xcode のパッケージ解決を先に済ませ、
+  # 最初の make test / make build までの待ちを減らす。中身は scripts/orca-setup.sh を参照
+  setup: |
+    bash scripts/orca-setup.sh
